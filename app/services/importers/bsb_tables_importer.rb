@@ -75,6 +75,19 @@ module Importers
       "tsv"
     end
 
+    # Non-transactional. With 750k word inserts wrapping the whole import
+    # in a single transaction:
+    #   * Postgres holds the entire write set in WAL until commit
+    #   * Memory grows unboundedly in the Ruby process (we saw ~1GB+)
+    #   * No row is visible from outside the importer until done
+    #   * A failure mid-run loses everything
+    #
+    # Per-verse commits give us flat memory, visible progress, and
+    # resumability — which is what an academic-scale import needs.
+    def transactional?
+      false
+    end
+
     def perform
       ensure_source_present!
 
@@ -196,7 +209,9 @@ module Importers
     end
 
     # Process all rows for a single verse: ensure work_unit, replace its
-    # Words, set body to the concatenated source-language text.
+    # Words, set body to the concatenated source-language text. Each
+    # verse runs in its own small transaction so memory stays flat and
+    # progress is visible from outside the importer.
     def process_verse(verse_id, ref_str, language, rows)
       return unless ref_str
 
@@ -213,70 +228,68 @@ module Importers
       end
 
       canonical_work = (@canonical_work_cache[slug] ||= CanonicalWork.find_by!(slug: slug))
-      canonical_ref  = ensure_canonical_ref(canonical_work, chapter, verse)
-
       work = @works[LANG_TO_WORK_SLUG[language]]
-      return unless work  # unknown language
+      return unless work
 
-      work_unit = WorkUnit.find_or_initialize_by(work_id: work.id, canonical_ref_id: canonical_ref.id)
+      ActiveRecord::Base.transaction do
+        canonical_ref = ensure_canonical_ref(canonical_work, chapter, verse)
 
-      if work_unit.new_record?
-        work_unit.assign_attributes(
-          ord: next_work_unit_ord(work),
-          label: "#{chapter}:#{verse}",
-          canonical_alignment_type: "exact"
-        )
+        work_unit = WorkUnit.find_or_initialize_by(work_id: work.id, canonical_ref_id: canonical_ref.id)
+        if work_unit.new_record?
+          work_unit.assign_attributes(
+            ord: next_work_unit_ord(work),
+            label: "#{chapter}:#{verse}",
+            canonical_alignment_type: "exact"
+          )
+        end
+
+        # Sort by source-language order. Heb Sort = fields[0], Greek Sort
+        # = fields[1]. The file's BSB Sort re-orders for English; we want
+        # the source-language ordering for the source-language work body.
+        sort_col = language == "Greek" ? 1 : 0
+        ordered = rows.sort_by { |r| r[sort_col].to_i }
+
+        body = ordered.map { |r| r[5] }.reject(&:blank?).join(" ")
+        work_unit.body = body
+        stamp(work_unit)
+        work_unit.save!
+
+        # Replace this unit's words. Cheaper than diffing.
+        Word.where(work_unit_id: work_unit.id).delete_all
+
+        word_attrs = ordered.each_with_index.map do |r, idx|
+          surface     = r[5]
+          next nil if surface.blank?
+          normalized  = normalize(surface, language)
+          morph_short = r[8].presence
+          strongs     = (language == "Greek" ? r[11] : r[10]).presence
+          lemma       = ensure_lemma(language, surface, strongs)
+
+          {
+            work_id:        work.id,
+            work_unit_id:   work_unit.id,
+            position:       idx + 1,
+            surface:        surface,
+            normalized:     normalized,
+            lemma_id:       lemma&.id,
+            morph_code:     morph_short,
+            strongs_number: strongs,
+            import_run_id:  @import_run.id,
+            notes:          { translit: r[7], parsing_long: r[9], bsb_word: r[18]&.strip }.compact,
+            created_at:     Time.current,
+            updated_at:     Time.current
+          }
+        end.compact
+
+        Word.insert_all(word_attrs) if word_attrs.any?
+
+        bump(:verses_processed)
+        bump(:words_processed, word_attrs.size)
       end
 
-      # Sort by source-language order. Columns are 1-indexed in the file
-      # but Ruby arrays are 0-indexed: Heb Sort = fields[0], Greek Sort
-      # = fields[1]. For Hebrew/Aramaic verses, the file's BSB Sort
-      # ordering re-orders for English; we want the Heb Sort ordering to
-      # produce a correct Hebrew sentence.
-      sort_col = language == "Greek" ? 1 : 0
-      ordered = rows.sort_by { |r| r[sort_col].to_i }
-
-      # Build the body string by joining the surface forms with spaces.
-      body = ordered.map { |r| r[5] }.reject(&:blank?).join(" ")
-      work_unit.body = body
-      stamp(work_unit)
-      work_unit.save!
-
-      # Replace the Words for this work_unit. Cheaper than diffing — and
-      # since the importer is idempotent at the Work level via
-      # source_revision, we only do this on real re-imports.
-      Word.where(work_unit_id: work_unit.id).delete_all
-
-      word_attrs = ordered.each_with_index.map do |r, idx|
-        surface     = r[5]
-        next nil if surface.blank?
-        normalized  = normalize(surface, language)
-        morph_short = r[8].presence
-        strongs     = (language == "Greek" ? r[11] : r[10]).presence
-        lemma       = ensure_lemma(language, surface, strongs)
-
-        {
-          work_id:        work.id,
-          work_unit_id:   work_unit.id,
-          position:       idx + 1,
-          surface:        surface,
-          normalized:     normalized,
-          lemma_id:       lemma&.id,
-          morph_code:     morph_short,
-          strongs_number: strongs,
-          import_run_id:  @import_run.id,
-          notes:          { translit: r[7], parsing_long: r[9], bsb_word: r[18]&.strip }.compact,
-          created_at:     Time.current,
-          updated_at:     Time.current
-        }
-      end.compact
-
-      Word.insert_all(word_attrs) if word_attrs.any?
-
-      bump(:verses_processed)
-      bump(:words_processed, word_attrs.size)
       if (@stats[:verses_processed] % 500).zero?
-        print "\r  #{@stats[:verses_processed]} verses, #{@stats[:words_processed]} words"
+        $stdout.puts "[BsbTablesImporter] #{@stats[:verses_processed]} verses, #{@stats[:words_processed]} words, #{@stats[:lemmas_created] || 0} lemmas"
+        $stdout.flush
       end
     end
 

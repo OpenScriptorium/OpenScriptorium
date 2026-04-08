@@ -18,15 +18,18 @@
     </p>
   </header>
 
-  <article class="scripture max-w-prose">
+  <article class="<%= scripture_classes_for(@work) %> max-w-prose"
+           lang="<%= @work.language %>"
+           dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
     <% @verses.each do |unit| %>
       <% ch = unit.canonical_ref.hierarchy[0] %>
       <% v  = unit.canonical_ref.hierarchy[1] %>
-      <p id="v<%= ch %>-<%= v %>" class="mb-3">
-        <sup class="text-xs text-[--color-ink-soft] mr-1 font-sans">
+      <p id="v<%= ch %>-<%= v %>" class="mb-4">
+        <sup class="text-xs text-[--color-ink-soft] mx-1 font-sans align-super">
           <%= link_to "#{ch}:#{v}",
                 reader_verse_path(@work.slug, @canonical_work.slug, ch, v),
-                class: "hover:underline decoration-dotted" %>
+                class: "hover:underline decoration-dotted",
+                dir: "ltr" %>
         </sup><%= unit.body %>
       </p>
     <% end %>

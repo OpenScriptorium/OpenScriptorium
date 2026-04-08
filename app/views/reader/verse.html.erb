@@ -1,6 +1,6 @@
 <% content_for :title, "#{@canonical_work.title} #{@chapter}:#{@verse_n} — #{@work.title}" %>
 
-<div class="max-w-2xl mx-auto py-12">
+<div class="max-w-2xl mx-auto px-5 py-12">
   <nav class="text-sm text-[--color-ink-soft] mb-4">
     <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
     &raquo;
@@ -17,7 +17,9 @@
     </h1>
   </header>
 
-  <article class="scripture max-w-prose">
+  <article class="<%= scripture_classes_for(@work) %> max-w-prose"
+           lang="<%= @work.language %>"
+           dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
     <p><%= @verse.body %></p>
   </article>
 

@@ -1,6 +1,6 @@
 <% content_for :title, "#{@canonical_work.title} #{@chapter} — #{@work.title}" %>
 
-<div class="max-w-3xl mx-auto py-12">
+<div class="max-w-3xl mx-auto px-5 py-12">
   <nav class="text-sm text-[--color-ink-soft] mb-4">
     <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
     &raquo;
@@ -15,14 +15,17 @@
     </h1>
   </header>
 
-  <article class="scripture max-w-prose">
+  <article class="<%= scripture_classes_for(@work) %> max-w-prose"
+           lang="<%= @work.language %>"
+           dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
     <% @verses.each do |unit| %>
       <% verse_n = unit.canonical_ref.hierarchy[1] %>
-      <p id="v<%= verse_n %>" class="mb-3">
-        <sup class="text-xs text-[--color-ink-soft] mr-1 font-sans">
+      <p id="v<%= verse_n %>" class="mb-4">
+        <sup class="text-xs text-[--color-ink-soft] mx-1 font-sans align-super">
           <%= link_to verse_n,
                 reader_verse_path(@work.slug, @canonical_work.slug, @chapter, verse_n),
-                class: "hover:underline decoration-dotted" %>
+                class: "hover:underline decoration-dotted",
+                dir: "ltr" %>
         </sup><%= unit.body %>
       </p>
     <% end %>
