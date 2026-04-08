@@ -10,4 +10,10 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::BsbTablesImporter.new(download: download).call
   end
+
+  desc "Import the Robinson-Pierpont Byzantine Greek New Testament"
+  task rp: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::RobinsonPierpontImporter.new(download: download).call
+  end
 end

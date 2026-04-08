@@ -56,6 +56,10 @@ gem "pg_search", "~> 2.3"
 # License: MIT. https://github.com/paper-trail-gem/paper_trail
 gem "paper_trail", "~> 16.0"
 
+# `csv` is no longer a default gem in Ruby 3.4+. Importers parse a lot
+# of CSV files. License: BSD-2-Clause. https://github.com/ruby/csv
+gem "csv"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
