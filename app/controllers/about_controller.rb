@@ -47,5 +47,23 @@ class AboutController < ApplicationController
         }
       end.compact
     end
+
+    # Live corpus stats — computed from the current DB so the page
+    # always reflects what's actually loaded.
+    @corpus_works = Work.includes(:license).order(:title).map do |w|
+      {
+        work: w,
+        unit_count: WorkUnit.where(work_id: w.id).count
+      }
+    end
+    @corpus_totals = {
+      works:                  Work.count,
+      canonical_works:        CanonicalWork.count,
+      canonical_refs:         CanonicalRef.count,
+      work_units:             WorkUnit.count,
+      words:                  Word.count,
+      lemmas:                 Lemma.count,
+      versification_mappings: VersificationMapping.count
+    }
   end
 end

@@ -28,4 +28,10 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::BrentonImporter.new(download: download).call
   end
+
+  desc "Import STEPBible TVTMS verse mapping data (LXX/MT/Vulgate ↔ KJV)"
+  task tvtms: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::TvtmsImporter.new(download: download).call
+  end
 end

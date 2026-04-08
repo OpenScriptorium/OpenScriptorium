@@ -83,27 +83,75 @@
     </figcaption>
   </figure>
 
-  <h2>Versification &mdash; we defer to Crosswire</h2>
+  <h2>Versification &mdash; one canonical work per scheme</h2>
 
   <p>
     Different traditions disagree about verse numbering. The Masoretic Text
-    counts Psalm superscriptions as verse 1; the Septuagint numbers Psalms
-    differently from chapter 9 onwards; Catholic and Orthodox canons
-    structure several books distinctly. We don&rsquo;t pretend these
-    differences don&rsquo;t exist, and we don&rsquo;t invent ad-hoc
-    mappings.
+    counts Psalm superscriptions as verse 1; the Septuagint combines what
+    the MT splits into Psalms 9 and 10; Jeremiah is shorter and reordered
+    in the LXX; Catholic and Orthodox canons structure several books
+    distinctly. We don&rsquo;t pretend these differences don&rsquo;t
+    exist, and we don&rsquo;t invent ad-hoc mappings.
   </p>
 
   <p>
-    Each canonical work is tagged with a
-    <strong>versification scheme</strong> taken from the Crosswire SWORD
-    project&rsquo;s published v11n list (<code>KJV</code>, <code>NRSV</code>,
-    <code>MT</code>, <code>LXX</code>, <code>Vulgate</code>,
-    <code>Catholic</code>, <code>German</code>, <code>Synodal</code>,
-    <code>Leningrad</code>, &hellip;). Imports preserve the source&rsquo;s
-    native scheme. Divergences across schemes live in
-    <code>versification_mappings</code>, populated only from Crosswire&rsquo;s
-    authoritative tables.
+    Each canonical work is tagged with a <strong>versification scheme</strong>
+    taken from the Crosswire SWORD project&rsquo;s published v11n list
+    (<code>KJV</code>, <code>NRSV</code>, <code>MT</code>, <code>LXX</code>,
+    <code>Vulgate</code>, <code>Catholic</code>, <code>German</code>,
+    <code>Synodal</code>, <code>Leningrad</code>, &hellip;). For most books,
+    every translation lines up verse-by-verse on the same canonical work
+    (a BSB Genesis 1:1 work_unit and a Rahlfs Genesis 1:1 work_unit both
+    point at the same canonical_ref). For books where the schemes
+    disagree we create a <em>separate</em> canonical_work per scheme:
+  </p>
+
+  <ul>
+    <li><code>psalms</code> &mdash; KJV scheme &mdash; used by BSB, WLC, Robinson-Pierpont</li>
+    <li><code>psalms-lxx</code> &mdash; LXX scheme &mdash; used by Rahlfs, Brenton</li>
+  </ul>
+
+  <p>
+    Both have <code>book_key="psalms"</code>, so the URL routing
+    (<code>/bsb/psalms/9</code> vs <code>/rahlfs-lxx/psalms/9</code>)
+    resolves to whichever canonical work the requested work has units in.
+    The user gets clean URLs; the schema preserves the academic distinction.
+  </p>
+
+  <h2>Cross-scheme verse mappings &mdash; <code>versification_mappings</code></h2>
+
+  <p>
+    To put a Rahlfs verse next to a BSB verse on a parallel reader, we need
+    to know that <em>LXX Psalm 9:21</em> is the same passage as <em>MT
+    Psalm 10:1</em>. That mapping data lives in the
+    <code>versification_mappings</code> table, with one row per
+    cross-scheme equivalence:
+  </p>
+
+  <pre class="text-sm">  from_scheme:        LXX
+  from_canonical_ref: psalms-lxx 9:21
+  to_scheme:          KJV
+  to_canonical_ref:   psalms 10:1
+  mapping_type:       exact</pre>
+
+  <p>
+    The data comes from the
+    <a href="https://github.com/STEPBible/STEPBible-Data/tree/master/Versification" class="underline decoration-dotted">TVTMS</a>
+    (Translators Versification Traditions with Methodology for Standardisation)
+    file maintained by Tyndale House Cambridge and STEPBible.org under
+    <strong>CC BY 4.0</strong>. TVTMS is the most thorough public
+    cross-walk of verse numbering across English, Hebrew, Latin, and Greek
+    traditions; we download it at import time, parse the expanded section,
+    and populate <code>versification_mappings</code> from it. Attribution
+    is recorded on the import_run row.
+  </p>
+
+  <p>
+    The parallel reader uses these mappings via a model helper that, given
+    a canonical_ref and a target scheme, returns the equivalent
+    canonical_ref(s) in that scheme &mdash; with split (1:N), merge (N:1),
+    and missing handled explicitly. Where there&rsquo;s no mapping row, we
+    assume identity.
   </p>
 
   <h2>Word-level alignment</h2>

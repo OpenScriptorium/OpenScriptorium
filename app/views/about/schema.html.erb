@@ -1,6 +1,6 @@
 <% content_for :title, "Schema reference" %>
 
-<div class="max-w-4xl mx-auto py-12">
+<div class="max-w-4xl mx-auto px-5 py-12">
   <header class="border-b border-[--color-rule] pb-6 mb-10">
     <p class="text-sm uppercase tracking-wide text-[--color-ink-soft]">About</p>
     <h1 class="font-serif text-4xl text-[--color-ink] mt-1">Schema reference</h1>
@@ -10,6 +10,52 @@
       explains how these tables fit together.
     </p>
   </header>
+
+  <%# Live corpus snapshot %>
+  <section class="mb-12">
+    <h2 class="font-serif text-2xl text-[--color-ink] border-b border-[--color-rule] pb-2 mb-6">
+      Currently in the corpus
+    </h2>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mb-8 text-sm font-serif">
+      <% @corpus_totals.each do |key, value| %>
+        <div>
+          <p class="text-2xl text-[--color-ink] font-mono"><%= number_with_delimiter(value) %></p>
+          <p class="text-[--color-ink-soft] uppercase tracking-wide text-xs">
+            <%= key.to_s.tr('_', ' ') %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+
+    <table class="w-full text-sm font-serif border-collapse">
+      <thead>
+        <tr class="border-b border-[--color-rule] text-left text-xs uppercase tracking-wide text-[--color-ink-soft]">
+          <th class="py-2 pr-4">Work</th>
+          <th class="py-2 pr-4">Language</th>
+          <th class="py-2 pr-4">License</th>
+          <th class="py-2 pr-4 text-right">Units</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @corpus_works.each do |entry| %>
+          <% w = entry[:work] %>
+          <tr class="border-b border-[--color-rule]">
+            <td class="py-2 pr-4">
+              <%= link_to w.title, work_path(w.slug), class: "text-[--color-link] hover:underline" %>
+            </td>
+            <td class="py-2 pr-4 uppercase tracking-wide text-xs text-[--color-ink-soft]">
+              <%= w.language %>
+            </td>
+            <td class="py-2 pr-4 text-[--color-ink-soft]">
+              <%= w.license&.name %>
+            </td>
+            <td class="py-2 pr-4 text-right font-mono"><%= number_with_delimiter(entry[:unit_count]) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
 
   <% @groups.each do |group_name, models| %>
     <% next if models.empty? %>
