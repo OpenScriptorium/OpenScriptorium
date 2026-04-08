@@ -4,4 +4,10 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::BsbImporter.new(download: download).call
   end
+
+  desc "Import the Berean interlinear tables (WLC Hebrew + Nestle 1904 Greek)"
+  task bsb_tables: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::BsbTablesImporter.new(download: download).call
+  end
 end
