@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   # Architecture / about pages
   get "about/architecture", to: "about#architecture", as: :about_architecture
   get "about/schema",       to: "about#schema",       as: :about_schema
+  get "principles",         to: "about#principles",   as: :principles
 
   # Reader. Designed so the URL itself is the OSIS-style human-readable
   # citation: /:work_slug/:book_slug/:chapter[/:verse]

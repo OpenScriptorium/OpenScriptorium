@@ -1,14 +1,15 @@
 class AboutController < ApplicationController
-  allow_unauthenticated_access only: [:architecture, :schema]
+  allow_unauthenticated_access only: [:architecture, :schema, :principles]
 
   # Group every model into one of these layers for the schema page.
   # Order matters — it's the rendering order on the page.
   SCHEMA_GROUPS = {
     "Canonical addressing" => %w[
       VersificationScheme CanonicalWork CanonicalRef VersificationMapping
+      Pericope
     ],
     "Works"                => %w[
-      License Author Work WorkAuthorship WorkUnit
+      License Author Work WorkAuthorship WorkUnit WorkUnitNote
     ],
     "Word-level data"      => %w[
       Lemma Word AlignmentGroup AlignmentGroupMember
@@ -21,10 +22,13 @@ class AboutController < ApplicationController
       User Invitation Annotation PersonalNote Bookmark
       ReadingPlan ReadingPlanEntry ReadingPlanProgress
     ],
-    "Site config"          => %w[Setting],
+    "Provenance + config"  => %w[ImportRun Setting],
   }.freeze
 
   def architecture
+  end
+
+  def principles
   end
 
   def schema

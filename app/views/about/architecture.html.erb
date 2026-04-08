@@ -1,6 +1,12 @@
 <% content_for :title, "Architecture" %>
 
-<div class="max-w-3xl mx-auto py-12 prose prose-lg font-serif text-[--color-ink] leading-relaxed">
+<div class="max-w-3xl mx-auto px-5 py-12 font-serif text-[--color-ink] leading-relaxed text-lg space-y-5
+            [&_h2]:font-serif [&_h2]:text-3xl [&_h2]:text-[--color-ink] [&_h2]:mt-14 [&_h2]:mb-4
+            [&_p]:max-w-prose
+            [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1
+            [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1
+            [&_code]:font-mono [&_code]:text-base
+            [&_strong]:font-semibold">
   <header class="border-b border-[--color-rule] pb-6 mb-10 not-prose">
     <p class="text-sm uppercase tracking-wide text-[--color-ink-soft]">About</p>
     <h1 class="font-serif text-4xl text-[--color-ink] mt-1">Architecture</h1>
@@ -125,6 +131,85 @@
       chain to its English rendering.
     </figcaption>
   </figure>
+
+  <h2>Sub-verse references &mdash; <code>Gen 1:1a</code></h2>
+
+  <p>
+    Critical editions, lexica, and academic commentaries cite half-verses
+    constantly: <code>Rom 5:12b</code>, <code>1 Cor 11:24c</code>,
+    <code>Heb 4:14ab</code>. The canonical layer represents these by
+    extending the <code>hierarchy</code> array. A whole verse is
+    <code>[chapter, verse]</code>; a sub-verse adds a third element where
+    1 means &ldquo;a&rdquo;, 2 means &ldquo;b&rdquo;, and so on. Postgres
+    array comparison gives the right ordering for free, so a chapter
+    rendered in canonical order naturally interleaves whole verses and
+    parts.
+  </p>
+
+  <h2>Provenance &mdash; <code>import_runs</code> + PaperTrail</h2>
+
+  <p>
+    Reproducible research needs to know <em>which import produced this
+    row</em>, not just <em>what changed</em>. Every importer creates an
+    <code>import_run</code> row at the start of its execution, recording
+    the source URL, source revision (sha or mtime), byte count, options,
+    and the importer class. Every text row, word, lemma, cross-reference,
+    and apparatus reading the importer creates is stamped with that run&rsquo;s
+    id.
+  </p>
+
+  <p>
+    PaperTrail captures field-level changes; <code>import_runs</code>
+    captures which run made them. Together they answer both
+    <em>&ldquo;what is the history of this verse?&rdquo;</em> and
+    <em>&ldquo;which version of which source did this come from?&rdquo;</em>
+  </p>
+
+  <h2>Stable citations &mdash; SBL</h2>
+
+  <p>
+    Every <code>canonical_work</code> carries an SBL Handbook of Style
+    abbreviation (<code>Gen</code>, <code>Matt</code>,
+    <code>Philo, QG</code>, <code>Gos. Thom.</code>) and a citation
+    format. Every <code>canonical_ref</code> caches an
+    <code>sbl_citation</code> string computed from those: <code>Gen 1:1</code>,
+    <code>Gen 1:1a</code>, <code>Philo, QG 1.1</code>,
+    <code>Josephus, Ant. 1.1.1</code>. These are stable across slug
+    changes and URL refactors, and are what every user-facing citation
+    string comes from.
+  </p>
+
+  <h2>Notes, pericopes, and the apparatus</h2>
+
+  <p>
+    Three more academic-grade tables that don&rsquo;t fit elsewhere:
+  </p>
+
+  <ul>
+    <li>
+      <strong>work_unit_notes</strong> &mdash; first-class translator and
+      editor notes, typed by purpose (textual / translation /
+      cross-reference / explanation / editorial). Querying &ldquo;all
+      text-critical notes in BSB&rdquo; is one indexed query, not a
+      DOM walk.
+    </li>
+    <li>
+      <strong>pericopes</strong> &mdash; named passage groupings (BHS
+      pericopes, NRSV section headings, lectionary readings, parashot
+      and sedarim) at the canonical layer with <code>int4range</code>
+      bounds. Multiple pericope schemes coexist via
+      <code>source_dataset</code>, so a single verse can belong to a
+      Hebrew parashah, a Christian pericope, and a lectionary reading
+      simultaneously.
+    </li>
+    <li>
+      <strong>variant_units / readings / reading_witnesses</strong>
+      carry the lemma text, surrounding context, corrector hand,
+      folio/column/line, and lacuna/supplement flags needed to render
+      a real critical apparatus citation like
+      <code>ℵ²ᵃ B 16r col 2</code>.
+    </li>
+  </ul>
 
   <h2>Things to read next</h2>
 

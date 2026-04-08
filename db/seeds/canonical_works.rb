@@ -9,7 +9,8 @@
 
 kjv = VersificationScheme.find_by!(code: "KJV")
 
-# [slug, title, native_title (or nil), osis_book_id, testament, position]
+# [slug, title, native_title (or nil), osis_book_id, testament, position, sbl_abbreviation]
+# SBL abbreviations follow the SBL Handbook of Style, 2nd ed., Appendix F.
 BOOKS = [
   # ── Hebrew Bible / OT (in Christian canonical order, KJV scheme) ────────────
   ["genesis",         "Genesis",         "בְּרֵאשִׁית",       "Gen",   "ot",  1],
@@ -102,6 +103,38 @@ BOOKS = [
   ["psalm-151",            "Psalm 151",            nil, "AddPs", "deuterocanon", 87],
 ].freeze
 
+# SBL Handbook of Style, 2nd ed., Appendix F. Map by slug → abbreviation.
+SBL_ABBREVIATIONS = {
+  "genesis"=>"Gen", "exodus"=>"Exod", "leviticus"=>"Lev", "numbers"=>"Num",
+  "deuteronomy"=>"Deut", "joshua"=>"Josh", "judges"=>"Judg", "ruth"=>"Ruth",
+  "1-samuel"=>"1 Sam", "2-samuel"=>"2 Sam", "1-kings"=>"1 Kgs", "2-kings"=>"2 Kgs",
+  "1-chronicles"=>"1 Chr", "2-chronicles"=>"2 Chr",
+  "ezra"=>"Ezra", "nehemiah"=>"Neh", "esther"=>"Esth", "job"=>"Job",
+  "psalms"=>"Ps", "proverbs"=>"Prov", "ecclesiastes"=>"Eccl",
+  "song-of-solomon"=>"Song",
+  "isaiah"=>"Isa", "jeremiah"=>"Jer", "lamentations"=>"Lam", "ezekiel"=>"Ezek",
+  "daniel"=>"Dan", "hosea"=>"Hos", "joel"=>"Joel", "amos"=>"Amos",
+  "obadiah"=>"Obad", "jonah"=>"Jonah", "micah"=>"Mic", "nahum"=>"Nah",
+  "habakkuk"=>"Hab", "zephaniah"=>"Zeph", "haggai"=>"Hag", "zechariah"=>"Zech",
+  "malachi"=>"Mal",
+  "matthew"=>"Matt", "mark"=>"Mark", "luke"=>"Luke", "john"=>"John",
+  "acts"=>"Acts", "romans"=>"Rom", "1-corinthians"=>"1 Cor", "2-corinthians"=>"2 Cor",
+  "galatians"=>"Gal", "ephesians"=>"Eph", "philippians"=>"Phil", "colossians"=>"Col",
+  "1-thessalonians"=>"1 Thess", "2-thessalonians"=>"2 Thess",
+  "1-timothy"=>"1 Tim", "2-timothy"=>"2 Tim", "titus"=>"Titus", "philemon"=>"Phlm",
+  "hebrews"=>"Heb", "james"=>"Jas", "1-peter"=>"1 Pet", "2-peter"=>"2 Pet",
+  "1-john"=>"1 John", "2-john"=>"2 John", "3-john"=>"3 John",
+  "jude"=>"Jude", "revelation"=>"Rev",
+  "tobit"=>"Tob", "judith"=>"Jdt", "esther-greek"=>"Add Esth",
+  "wisdom"=>"Wis", "sirach"=>"Sir", "baruch"=>"Bar",
+  "letter-of-jeremiah"=>"Ep Jer", "prayer-of-azariah"=>"Pr Azar",
+  "susanna"=>"Sus", "bel-and-the-dragon"=>"Bel",
+  "1-maccabees"=>"1 Macc", "2-maccabees"=>"2 Macc",
+  "3-maccabees"=>"3 Macc", "4-maccabees"=>"4 Macc",
+  "1-esdras"=>"1 Esd", "2-esdras"=>"2 Esd",
+  "prayer-of-manasseh"=>"Pr Man", "psalm-151"=>"Ps 151"
+}.freeze
+
 BOOKS.each do |slug, title, native_title, osis_id, testament, position|
   cw = CanonicalWork.find_or_initialize_by(slug: slug)
   cw.assign_attributes(
@@ -110,7 +143,9 @@ BOOKS.each do |slug, title, native_title, osis_id, testament, position|
     osis_book_id: osis_id,
     testament: testament,
     position: position,
-    versification_scheme: kjv
+    versification_scheme: kjv,
+    sbl_abbreviation: SBL_ABBREVIATIONS[slug] || title,
+    citation_format: "scripture"
   )
   cw.save!
 end

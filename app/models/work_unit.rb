@@ -8,12 +8,14 @@ class WorkUnit < ApplicationRecord
   belongs_to :work
   belongs_to :parent, class_name: "WorkUnit", optional: true
   belongs_to :canonical_ref, optional: true
+  belongs_to :import_run, optional: true
 
   has_many :children,
            class_name: "WorkUnit",
            foreign_key: :parent_id,
            dependent: :destroy
   has_many :words, dependent: :destroy
+  has_many :work_unit_notes, dependent: :destroy
 
   ALIGNMENT_TYPES = %w[exact approximate ambiguous none].freeze
 

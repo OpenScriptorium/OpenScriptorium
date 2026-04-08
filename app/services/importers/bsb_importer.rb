@@ -69,6 +69,14 @@ module Importers
 
     protected
 
+    def source_url
+      SOURCE_URL
+    end
+
+    def source_format
+      "tsv"
+    end
+
     def perform
       ensure_source_present!
 
@@ -138,6 +146,7 @@ module Importers
           publication_year: 2022,
           description: "The Berean Standard Bible (BSB) is a modern English translation of the Bible released into the public domain by the Berean Bible Translation Committee."
         )
+        stamp(w)
         w.save!
       end
     end
@@ -159,13 +168,17 @@ module Importers
       return ref if ref
 
       next_ord = (CanonicalRef.where(canonical_work_id: canonical_work.id).maximum(:ord) || 0) + 1
-      CanonicalRef.create!(
+      ref = CanonicalRef.new(
         canonical_work: canonical_work,
         ord: next_ord,
         hierarchy: hierarchy,
         display_label: "#{canonical_work.title} #{chapter}:#{verse}",
         osis_id: canonical_work.osis_book_id && "#{canonical_work.osis_book_id}.#{chapter}.#{verse}"
-      ).tap { bump(:canonical_refs_created) }
+      )
+      stamp(ref)
+      ref.save!
+      bump(:canonical_refs_created)
+      ref
     end
 
     def ensure_work_unit(work, canonical_ref, chapter, verse, text)
@@ -180,6 +193,7 @@ module Importers
         canonical_alignment_type: "exact"
       )
 
+      stamp(unit)
       if unit.changed?
         unit.save!
         bump(unit_was_new ? :work_units_created : :work_units_updated)

@@ -6,6 +6,7 @@ class AlignmentGroup < ApplicationRecord
   belongs_to :canonical_ref
   belongs_to :source_work, class_name: "Work"
   belongs_to :target_work, class_name: "Work"
+  belongs_to :import_run, optional: true
 
   has_many :alignment_group_members, dependent: :destroy
   has_many :source_members,

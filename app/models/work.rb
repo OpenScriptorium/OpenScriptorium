@@ -7,6 +7,7 @@ class Work < ApplicationRecord
   belongs_to :license
   belongs_to :default_versification_scheme,
              class_name: "VersificationScheme", optional: true
+  belongs_to :import_run, optional: true
 
   has_many :work_authorships, dependent: :destroy
   has_many :authors, through: :work_authorships

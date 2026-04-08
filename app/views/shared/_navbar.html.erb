@@ -11,10 +11,12 @@
     <nav class="flex items-center gap-x-1 sm:gap-x-4 text-sm font-serif">
       <%= link_to "Read",         works_path,
             class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link]" %>
+      <%= link_to "Principles",   principles_path,
+            class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link] hidden sm:inline" %>
       <%= link_to "Architecture", about_architecture_path,
             class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link] hidden sm:inline" %>
       <%= link_to "Schema",       about_schema_path,
-            class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link] hidden sm:inline" %>
+            class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link] hidden md:inline" %>
 
       <% if authenticated? %>
         <%= button_to "Sign out", session_path, method: :delete,

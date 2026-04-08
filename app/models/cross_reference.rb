@@ -8,6 +8,7 @@ class CrossReference < ApplicationRecord
   belongs_to :target_canonical_work, class_name: "CanonicalWork"
   belongs_to :created_by_user,  class_name: "User", optional: true
   belongs_to :approved_by_user, class_name: "User", optional: true
+  belongs_to :import_run, optional: true
 
   RELATIONSHIP_TYPES = %w[
     quotes alludes_to parallels comments_on fulfills
