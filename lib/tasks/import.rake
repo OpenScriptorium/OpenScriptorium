@@ -16,4 +16,10 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::RobinsonPierpontImporter.new(download: download).call
   end
+
+  desc "Import the Rahlfs Septuagint (1935) Greek text"
+  task rahlfs: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::RahlfsImporter.new(download: download).call
+  end
 end

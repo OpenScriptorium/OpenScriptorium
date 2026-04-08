@@ -101,6 +101,10 @@ BOOKS = [
   ["2-esdras",             "2 Esdras",             nil, "2Esd",  "deuterocanon", 85],
   ["prayer-of-manasseh",   "Prayer of Manasseh",   nil, "PrMan", "deuterocanon", 86],
   ["psalm-151",            "Psalm 151",            nil, "AddPs", "deuterocanon", 87],
+
+  # ── Pseudepigraphal works that travel with the LXX ─────────────────────────
+  ["psalms-of-solomon",    "Psalms of Solomon",    nil, "PssSol", "pseudepigrapha", 90],
+  ["odes",                 "Odes",                 nil, "Odes",   "deuterocanon",   91],
 ].freeze
 
 # SBL Handbook of Style, 2nd ed., Appendix F. Map by slug → abbreviation.
@@ -132,7 +136,8 @@ SBL_ABBREVIATIONS = {
   "1-maccabees"=>"1 Macc", "2-maccabees"=>"2 Macc",
   "3-maccabees"=>"3 Macc", "4-maccabees"=>"4 Macc",
   "1-esdras"=>"1 Esd", "2-esdras"=>"2 Esd",
-  "prayer-of-manasseh"=>"Pr Man", "psalm-151"=>"Ps 151"
+  "prayer-of-manasseh"=>"Pr Man", "psalm-151"=>"Ps 151",
+  "psalms-of-solomon"=>"Pss. Sol.", "odes"=>"Odes"
 }.freeze
 
 BOOKS.each do |slug, title, native_title, osis_id, testament, position|
