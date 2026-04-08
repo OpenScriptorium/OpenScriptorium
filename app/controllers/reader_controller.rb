@@ -114,8 +114,27 @@ class ReaderController < ApplicationController
       .pick(:ord)
   end
 
+  # Resolve the work and the canonical_work for the requested book.
+  #
+  # The book identifier in the URL is matched against canonical_works.book_key
+  # (NOT slug), and we further constrain to canonical_works that actually
+  # have work_units for the current Work. This lets multiple
+  # canonical_works share a URL — e.g. both "psalms" (KJV scheme) and
+  # "psalms-lxx" (LXX scheme) have book_key="psalms", so /bsb/psalms/9
+  # resolves to KJV-Psalms (the only one BSB has units for) while
+  # /rahlfs-lxx/psalms/9 resolves to LXX-Psalms.
+  #
+  # Falls back to a direct slug lookup so /bsb/psalms still works in
+  # the rare case the book_key happens to match neither work but a
+  # legacy URL is in someone's bookmarks.
   def load_work_and_book
     @work = Work.find_by!(slug: params[:work_slug])
-    @canonical_work = CanonicalWork.find_by!(slug: params[:book_slug])
+
+    @canonical_work = CanonicalWork.used_by_work(@work.id)
+                                   .where(book_key: params[:book_slug])
+                                   .first
+
+    @canonical_work ||= CanonicalWork.find_by(slug: params[:book_slug])
+    raise ActiveRecord::RecordNotFound, "no book #{params[:book_slug].inspect}" unless @canonical_work
   end
 end

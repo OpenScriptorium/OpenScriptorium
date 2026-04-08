@@ -22,4 +22,10 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::RahlfsImporter.new(download: download).call
   end
+
+  desc "Import Brenton's English translation of the Septuagint (1851)"
+  task brenton: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::BrentonImporter.new(download: download).call
+  end
 end

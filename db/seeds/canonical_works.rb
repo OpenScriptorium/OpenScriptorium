@@ -107,6 +107,18 @@ BOOKS = [
   ["odes",                 "Odes",                 nil, "Odes",   "deuterocanon",   91],
 ].freeze
 
+# LXX-specific canonical_works for the books whose versification or text
+# diverges substantially from the MT/KJV. These share book_key with their
+# MT/KJV counterparts so the reader URL can stay clean
+# (/rahlfs-lxx/psalms/9 routes to the LXX-Psalms canonical_work).
+#
+# [slug, book_key, title, native_title, osis_id, testament, position]
+LXX_BOOKS = [
+  ["psalms-lxx",   "psalms",   "Psalms (LXX)",   "Ψαλμοί",        "Ps",  "ot", 19],
+  ["jeremiah-lxx", "jeremiah", "Jeremiah (LXX)", "Ἰερεμίας",      "Jer", "ot", 24],
+  ["job-lxx",      "job",      "Job (LXX)",      "Ἰώβ",           "Job", "ot", 18],
+].freeze
+
 # SBL Handbook of Style, 2nd ed., Appendix F. Map by slug → abbreviation.
 SBL_ABBREVIATIONS = {
   "genesis"=>"Gen", "exodus"=>"Exod", "leviticus"=>"Lev", "numbers"=>"Num",
@@ -143,6 +155,7 @@ SBL_ABBREVIATIONS = {
 BOOKS.each do |slug, title, native_title, osis_id, testament, position|
   cw = CanonicalWork.find_or_initialize_by(slug: slug)
   cw.assign_attributes(
+    book_key: slug,
     title: title,
     native_title: native_title,
     osis_book_id: osis_id,
@@ -150,6 +163,23 @@ BOOKS.each do |slug, title, native_title, osis_id, testament, position|
     position: position,
     versification_scheme: kjv,
     sbl_abbreviation: SBL_ABBREVIATIONS[slug] || title,
+    citation_format: "scripture"
+  )
+  cw.save!
+end
+
+lxx_scheme = VersificationScheme.find_by!(code: "LXX")
+LXX_BOOKS.each do |slug, book_key, title, native_title, osis_id, testament, position|
+  cw = CanonicalWork.find_or_initialize_by(slug: slug)
+  cw.assign_attributes(
+    book_key: book_key,
+    title: title,
+    native_title: native_title,
+    osis_book_id: osis_id,
+    testament: testament,
+    position: position,
+    versification_scheme: lxx_scheme,
+    sbl_abbreviation: SBL_ABBREVIATIONS[book_key] || title,
     citation_format: "scripture"
   )
   cw.save!

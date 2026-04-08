@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_08_050007) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_08_060000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "ltree"
@@ -121,6 +121,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_08_050007) do
   end
 
   create_table "canonical_works", force: :cascade do |t|
+    t.string "book_key", null: false
     t.string "citation_format", default: "scripture"
     t.datetime "created_at", null: false
     t.text "description"
@@ -134,6 +135,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_08_050007) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.bigint "versification_scheme_id"
+    t.index ["book_key"], name: "index_canonical_works_on_book_key"
     t.index ["osis_book_id"], name: "index_canonical_works_on_osis_book_id"
     t.index ["parent_canonical_work_id", "position"], name: "index_canonical_works_on_parent_canonical_work_id_and_position"
     t.index ["parent_canonical_work_id"], name: "index_canonical_works_on_parent_canonical_work_id"

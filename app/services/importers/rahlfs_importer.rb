@@ -103,8 +103,20 @@ module Importers
       "Ezek"    => "ezekiel",
       "Sus"     => "susanna",
       "Dan"     => "daniel",
-      "Bel"     => "bel-and-the-dragon"
-      # Deferred: Ps, Jer, Job, DanTh, BelTh, SusTh, JoshB, JudgB, TobS
+      "Bel"     => "bel-and-the-dragon",
+
+      # Books with LXX-specific versification or text divergence from
+      # the MT/KJV. Each maps to a separate canonical_work tagged with
+      # the LXX versification scheme; same book_key as the MT/KJV
+      # version so the URL stays clean (/rahlfs-lxx/psalms/9).
+      "Ps"      => "psalms-lxx",
+      "Jer"     => "jeremiah-lxx",
+      "Job"     => "job-lxx"
+
+      # Still deferred: DanTh, BelTh, SusTh, JoshB, JudgB, TobS
+      # (Theodotion variants and alternative manuscript recensions are
+      # alternative TEXTS rather than alternative versifications, so
+      # they would each need their own canonical_works.)
     }.freeze
 
     def initialize(dir: nil, download: nil, **opts)

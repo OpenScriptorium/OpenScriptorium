@@ -33,12 +33,21 @@ class CanonicalWork < ApplicationRecord
 
   validates :slug, presence: true, uniqueness: true,
                    format: { with: /\A[a-z0-9-]+\z/ }
+  validates :book_key, presence: true,
+                       format: { with: /\A[a-z0-9-]+\z/ }
   validates :title, presence: true
   validates :testament, inclusion: { in: TESTAMENTS, allow_nil: true }
   validates :citation_format, inclusion: { in: CITATION_FORMATS, allow_nil: true }
 
   scope :ordered,         -> { order(:position, :title) }
   scope :for_testament,   ->(t) { where(testament: t) }
+  scope :for_book_key,    ->(key) { where(book_key: key) }
+  # All canonical_works that hold work_units for the given Work id.
+  scope :used_by_work,    ->(work_id) {
+    joins(canonical_refs: :work_units)
+      .where(work_units: { work_id: work_id })
+      .distinct
+  }
 
   def to_param
     slug
