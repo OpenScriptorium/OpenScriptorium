@@ -1,6 +1,6 @@
 <% content_for :title, "#{@canonical_work.title} — #{@work.title}" %>
 
-<div class="max-w-3xl mx-auto py-12">
+<div class="max-w-3xl mx-auto px-5 py-12">
   <nav class="text-sm text-[--color-ink-soft] mb-4">
     <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
     &raquo;
@@ -28,4 +28,28 @@
       </li>
     <% end %>
   </ul>
+
+  <%# Jump-to-passage form. Builds the URL client-side via a tiny Stimulus
+      controller so we don't need a server roundtrip. %>
+  <h2 class="font-serif text-xl text-[--color-ink] mt-10 mb-3">Jump to passage</h2>
+  <form data-controller="passage-jump"
+        data-passage-jump-work-value="<%= @work.slug %>"
+        data-passage-jump-book-value="<%= @canonical_work.slug %>"
+        data-action="submit->passage-jump#go"
+        class="flex flex-wrap items-center gap-2 font-serif">
+    <input type="text"
+           data-passage-jump-target="input"
+           placeholder="e.g. 1, 1:1, 1:1-5, 1:1-2:3"
+           class="px-3 py-2 border border-[--color-rule] bg-[--color-page] text-[--color-ink] rounded font-mono text-sm w-72"/>
+    <button type="submit"
+            class="px-4 py-2 bg-[--color-ink] text-[--color-page] rounded text-sm">
+      Go
+    </button>
+    <p class="basis-full text-xs text-[--color-ink-soft] italic mt-1">
+      Examples: <code class="font-mono">3</code> (chapter 3),
+      <code class="font-mono">3:16</code> (one verse),
+      <code class="font-mono">3:16-21</code> (verse range),
+      <code class="font-mono">1:1-2:3</code> (cross-chapter).
+    </p>
+  </form>
 </div>

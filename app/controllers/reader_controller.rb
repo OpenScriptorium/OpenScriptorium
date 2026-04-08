@@ -1,5 +1,5 @@
 class ReaderController < ApplicationController
-  allow_unauthenticated_access only: [:book, :chapter, :verse]
+  allow_unauthenticated_access only: [:book, :chapter, :verse, :range, :cross_chapter_range]
 
   before_action :load_work_and_book
 
@@ -45,7 +45,74 @@ class ReaderController < ApplicationController
     raise ActiveRecord::RecordNotFound unless @verse
   end
 
+  # /:work_slug/:book_slug/:chapter/:from-:to — verse range within a chapter
+  def range
+    @chapter = params[:chapter].to_i
+    @from    = params[:from].to_i
+    @to      = params[:to].to_i
+
+    if @to < @from
+      raise ActiveRecord::RecordNotFound, "range :to must be >= :from"
+    end
+
+    @verses = WorkUnit
+                .joins(:canonical_ref)
+                .where(canonical_refs: { canonical_work_id: @canonical_work.id })
+                .where(work_id: @work.id)
+                .where("canonical_refs.hierarchy[1] = ? AND
+                        canonical_refs.hierarchy[2] BETWEEN ? AND ?",
+                       @chapter, @from, @to)
+                .order("canonical_refs.ord")
+                .includes(:canonical_ref)
+
+    raise ActiveRecord::RecordNotFound if @verses.empty?
+
+    @range_label = "#{@chapter}:#{@from}-#{@to}"
+    @display_title = "#{@canonical_work.title} #{@range_label}"
+  end
+
+  # /:work_slug/:book_slug/:from_ch.:from_v-:to_ch.:to_v — cross-chapter range
+  def cross_chapter_range
+    @from_ch = params[:from_ch].to_i
+    @from_v  = params[:from_v].to_i
+    @to_ch   = params[:to_ch].to_i
+    @to_v    = params[:to_v].to_i
+
+    if (@to_ch < @from_ch) || (@to_ch == @from_ch && @to_v < @from_v)
+      raise ActiveRecord::RecordNotFound, "cross-chapter range end must come after start"
+    end
+
+    # Compute ordinal-based bounds via the canonical_refs.ord column.
+    # Look up the start and end canonical_refs and use their ord values.
+    start_ord = canonical_ord(@from_ch, @from_v)
+    end_ord   = canonical_ord(@to_ch,   @to_v)
+
+    raise ActiveRecord::RecordNotFound unless start_ord && end_ord
+
+    @verses = WorkUnit
+                .joins(:canonical_ref)
+                .where(canonical_refs: { canonical_work_id: @canonical_work.id })
+                .where(work_id: @work.id)
+                .where("canonical_refs.ord BETWEEN ? AND ?", start_ord, end_ord)
+                .order("canonical_refs.ord")
+                .includes(:canonical_ref)
+
+    raise ActiveRecord::RecordNotFound if @verses.empty?
+
+    @range_label   = "#{@from_ch}:#{@from_v}-#{@to_ch}:#{@to_v}"
+    @display_title = "#{@canonical_work.title} #{@range_label}"
+
+    render :range
+  end
+
   private
+
+  def canonical_ord(chapter, verse)
+    CanonicalRef
+      .where(canonical_work_id: @canonical_work.id)
+      .where("hierarchy[1] = ? AND hierarchy[2] = ?", chapter, verse)
+      .pick(:ord)
+  end
 
   def load_work_and_book
     @work = Work.find_by!(slug: params[:work_slug])

@@ -98,13 +98,40 @@ body {
 .dropcap-h1 {
   width: 1.55em;
   height: 1.55em;
-  fill: #9b2226;
+  /* The SVG has fill="currentColor" on its inner <g>, so we set color
+   * (not fill) here. Inner attribute fill="currentColor" wins over outer
+   * CSS fill, but it resolves to whatever `color` is on the parent. */
+  color: #9b2226;
   flex-shrink: 0;
 }
 
-.dark .dropcap-h1 {
+html.dark .dropcap-h1 {
   /* Slightly warmer in dark mode so it doesn't crush against the dark bg */
-  fill: #c84849;
+  color: #c84849;
+}
+
+/* Smaller drop cap used as the navbar brand mark */
+.dropcap-nav {
+  width: 2rem;
+  height: 2rem;
+  color: #9b2226;
+  flex-shrink: 0;
+}
+
+html.dark .dropcap-nav {
+  color: #c84849;
+}
+
+/* Giant illuminated initial used in the home-page hero */
+.dropcap-hero {
+  width: 9rem;
+  height: 9rem;
+  color: #9b2226;
+  flex-shrink: 0;
+}
+
+html.dark .dropcap-hero {
+  color: #c84849;
 }
 
 /* SIL fonts ----------------------------------------------------------------

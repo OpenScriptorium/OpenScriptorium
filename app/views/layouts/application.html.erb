@@ -15,15 +15,18 @@
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
-    <%# Compiled Tailwind theme + utilities %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-    <%# Bundled SIL fonts (OFL) — Propshaft rewrites url()s to digested paths %>
     <%= stylesheet_link_tag "fonts", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-[--color-page] text-[--color-ink]">
-    <main class="container mx-auto mt-12 px-5">
+  <body class="min-h-screen bg-[--color-page] text-[--color-ink] flex flex-col">
+    <%= render "shared/navbar" %>
+
+    <main class="flex-1 w-full">
       <%= yield %>
     </main>
+
+    <%= render "shared/site_footer" %>
   </body>
 </html>

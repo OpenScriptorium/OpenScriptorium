@@ -1,0 +1,29 @@
+<header class="border-b border-[--color-rule] bg-[--color-page] sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-x-6">
+    <%# Brand: small drop-cap mark + wordmark %>
+    <%= link_to root_path, class: "flex items-center gap-x-2 group" do %>
+      <%= inline_svg "dropcap-S", class: "dropcap-nav" %>
+      <span class="font-serif text-lg text-[--color-ink] tracking-tight">
+        Open Scriptorium
+      </span>
+    <% end %>
+
+    <nav class="flex items-center gap-x-1 sm:gap-x-4 text-sm font-serif">
+      <%= link_to "Read",         works_path,
+            class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link]" %>
+      <%= link_to "Architecture", about_architecture_path,
+            class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link] hidden sm:inline" %>
+      <%= link_to "Schema",       about_schema_path,
+            class: "px-2 py-1 text-[--color-ink] hover:text-[--color-link] hidden sm:inline" %>
+
+      <% if authenticated? %>
+        <%= button_to "Sign out", session_path, method: :delete,
+              class: "px-2 py-1 text-[--color-ink-soft] hover:text-[--color-link] inline-block",
+              form: { class: "inline" } %>
+      <% else %>
+        <%= link_to "Sign in", new_session_path,
+              class: "px-2 py-1 text-[--color-ink-soft] hover:text-[--color-link]" %>
+      <% end %>
+    </nav>
+  </div>
+</header>

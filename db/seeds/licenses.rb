@@ -28,12 +28,6 @@ LICENSES = [
     attribution_required: true,
     attribution_template: "%{title} by %{author}, used under CC BY-SA 4.0.",
     description: "Free use with attribution; derivatives must use the same license." },
-
-  { name: "Berean Standard Bible License",
-    spdx_id: nil,
-    url: "https://berean.bible/terms.htm",
-    attribution_required: false,
-    description: "The Berean Standard Bible (BSB) is released into the public domain. No restrictions." },
 ].freeze
 
 LICENSES.each do |attrs|

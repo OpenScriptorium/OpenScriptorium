@@ -21,10 +21,27 @@ Rails.application.routes.draw do
 
   scope "/:work_slug" do
     get "/:book_slug",                  to: "reader#book",    as: :reader_book
-    get "/:book_slug/:chapter",         to: "reader#chapter", as: :reader_chapter,
-                                        constraints: { chapter: /\d+/ }
+
+    # Cross-chapter range: /bsb/genesis/1.1-2.3
+    # Constraint comes first so it's matched before the bare chapter route.
+    get "/:book_slug/:from_ch.:from_v-:to_ch.:to_v",
+        to: "reader#cross_chapter_range",
+        as: :reader_cross_range,
+        constraints: { from_ch: /\d+/, from_v: /\d+/, to_ch: /\d+/, to_v: /\d+/ }
+
+    # Intra-chapter range: /bsb/genesis/1/1-5
+    get "/:book_slug/:chapter/:from-:to",
+        to: "reader#range",
+        as: :reader_range,
+        constraints: { chapter: /\d+/, from: /\d+/, to: /\d+/ }
+
+    # Single verse: /bsb/genesis/1/1
     get "/:book_slug/:chapter/:verse",  to: "reader#verse",   as: :reader_verse,
                                         constraints: { chapter: /\d+/, verse: /\d+/ }
+
+    # Whole chapter: /bsb/genesis/1
+    get "/:book_slug/:chapter",         to: "reader#chapter", as: :reader_chapter,
+                                        constraints: { chapter: /\d+/ }
   end
 
   # Defines the root path route ("/")

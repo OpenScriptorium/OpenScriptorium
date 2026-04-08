@@ -5,7 +5,7 @@ module SvgHelper
   #
   # Usage in views:
   #
-  #     <%= inline_svg "dropcap-O", class: "h-[1em] w-auto" %>
+  #     <%= inline_svg "dropcap-S", class: "dropcap-nav" %>
   #
   # The named SVG file is read once per process and cached in memory; the
   # CSS class (if any) is injected into the root <svg> element.

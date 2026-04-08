@@ -122,7 +122,9 @@ module Importers
     end
 
     def ensure_work
-      license = License.find_by!(name: "Berean Standard Bible License")
+      # BSB is released into the public domain by the Berean Bible
+      # Translation Committee — there is no "BSB license," just PD.
+      license = License.find_by!(name: "Public Domain")
       Work.find_or_initialize_by(slug: "bsb").tap do |w|
         w.assign_attributes(
           title: "Berean Standard Bible",

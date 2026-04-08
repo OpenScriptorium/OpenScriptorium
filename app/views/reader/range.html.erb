@@ -1,0 +1,46 @@
+<% content_for :title, "#{@display_title} — #{@work.title}" %>
+
+<div class="max-w-3xl mx-auto px-5 py-12">
+  <nav class="text-sm text-[--color-ink-soft] mb-4">
+    <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
+    &raquo;
+    <%= link_to @canonical_work.title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
+    &raquo;
+    <span><%= @range_label %></span>
+  </nav>
+
+  <header class="border-b border-[--color-rule] pb-6 mb-10">
+    <h1 class="font-serif text-3xl text-[--color-ink]">
+      <%= @canonical_work.title %> <%= @range_label %>
+    </h1>
+    <p class="text-sm text-[--color-ink-soft] mt-2">
+      <%= pluralize(@verses.size, "verse") %>
+    </p>
+  </header>
+
+  <article class="scripture max-w-prose">
+    <% @verses.each do |unit| %>
+      <% ch = unit.canonical_ref.hierarchy[0] %>
+      <% v  = unit.canonical_ref.hierarchy[1] %>
+      <p id="v<%= ch %>-<%= v %>" class="mb-3">
+        <sup class="text-xs text-[--color-ink-soft] mr-1 font-sans">
+          <%= link_to "#{ch}:#{v}",
+                reader_verse_path(@work.slug, @canonical_work.slug, ch, v),
+                class: "hover:underline decoration-dotted" %>
+        </sup><%= unit.body %>
+      </p>
+    <% end %>
+  </article>
+
+  <footer class="mt-16 pt-6 border-t border-[--color-rule] text-xs text-[--color-ink-soft]">
+    <p>
+      <%= @work.title %>
+      <% if @work.license %>
+        · <%= @work.license.name %>
+        <% if @work.source_url %>
+          · <%= link_to "source", @work.source_url, class: "underline decoration-dotted" %>
+        <% end %>
+      <% end %>
+    </p>
+  </footer>
+</div>
