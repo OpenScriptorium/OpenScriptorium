@@ -77,6 +77,12 @@ set :puma_systemctl_user,    :user
 set :puma_enable_lingering,  false   # we set this manually once during bootstrap
 set :puma_service_unit_name, "puma_openscriptorium"
 
+# Wrap ExecStart in `/bin/bash -lc '...'` so the rbenv-style env-var
+# prefix (RBENV_ROOT=... rbenv exec ...) gets interpreted by bash.
+# Without this, systemd treats the prefix as part of the executable name
+# and rejects the unit file with "bad unit file setting".
+set :puma_use_login_shell, true
+
 # Bind to a Unix socket inside shared/tmp/sockets/. Apache reverse-proxies
 # to this from the openscriptorium.org vhost. Permissions: 0660, owned
 # seth:seth — Apache (www-data) needs to traverse the parent dirs (already
