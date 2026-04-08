@@ -1,5 +1,5 @@
 class AboutController < ApplicationController
-  allow_unauthenticated_access only: [:architecture, :schema, :principles]
+  allow_unauthenticated_access only: [:architecture, :schema, :principles, :appeal_to_scholars]
 
   # Group every model into one of these layers for the schema page.
   # Order matters — it's the rendering order on the page.
@@ -29,6 +29,9 @@ class AboutController < ApplicationController
   end
 
   def principles
+  end
+
+  def appeal_to_scholars
   end
 
   def schema
