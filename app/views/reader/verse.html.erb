@@ -1,0 +1,35 @@
+<% content_for :title, "#{@canonical_work.title} #{@chapter}:#{@verse_n} — #{@work.title}" %>
+
+<div class="max-w-2xl mx-auto py-12">
+  <nav class="text-sm text-[--color-ink-soft] mb-4">
+    <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
+    &raquo;
+    <%= link_to @canonical_work.title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
+    &raquo;
+    <%= link_to "Chapter #{@chapter}", reader_chapter_path(@work.slug, @canonical_work.slug, @chapter), class: "hover:underline" %>
+    &raquo;
+    <span>Verse <%= @verse_n %></span>
+  </nav>
+
+  <header class="mb-8">
+    <h1 class="font-serif text-3xl text-[--color-ink]">
+      <%= @canonical_work.title %> <%= @chapter %>:<%= @verse_n %>
+    </h1>
+  </header>
+
+  <article class="scripture max-w-prose">
+    <p><%= @verse.body %></p>
+  </article>
+
+  <footer class="mt-16 pt-6 border-t border-[--color-rule] text-xs text-[--color-ink-soft]">
+    <p>
+      <%= @work.title %>
+      <% if @work.license %>
+        · <%= @work.license.name %>
+        <% if @work.source_url %>
+          · <%= link_to "source", @work.source_url, class: "underline decoration-dotted" %>
+        <% end %>
+      <% end %>
+    </p>
+  </footer>
+</div>

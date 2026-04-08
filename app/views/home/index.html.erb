@@ -34,6 +34,15 @@
     </p>
   </section>
 
+  <nav class="mt-12 pt-6 border-t border-[--color-rule] flex flex-wrap gap-x-6 gap-y-2 text-base font-serif">
+    <%= link_to "Read", works_path,
+          class: "text-[--color-link] hover:underline decoration-dotted" %>
+    <%= link_to "Architecture", about_architecture_path,
+          class: "text-[--color-link] hover:underline decoration-dotted" %>
+    <%= link_to "Schema", about_schema_path,
+          class: "text-[--color-link] hover:underline decoration-dotted" %>
+  </nav>
+
   <footer class="mt-16 pt-8 border-t border-[--color-rule] text-sm text-[--color-ink-soft]">
     <p>
       Open Scriptorium &middot; This is

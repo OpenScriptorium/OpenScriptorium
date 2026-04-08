@@ -91,12 +91,20 @@ body {
  *
  * Used inside an inline-flex w/ items-center, so no vertical-align tricks
  * needed — the parent flex container handles vertical centering.
+ *
+ * Fill is the manuscript "rubric red" used for the favicon and for
+ * decorative initials in actual KJV printings.
  */
 .dropcap-h1 {
   width: 1.55em;
   height: 1.55em;
-  fill: currentColor;
+  fill: #9b2226;
   flex-shrink: 0;
+}
+
+.dark .dropcap-h1 {
+  /* Slightly warmer in dark mode so it doesn't crush against the dark bg */
+  fill: #c84849;
 }
 
 /* SIL fonts ----------------------------------------------------------------

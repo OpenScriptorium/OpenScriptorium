@@ -1,0 +1,137 @@
+<% content_for :title, "Architecture" %>
+
+<div class="max-w-3xl mx-auto py-12 prose prose-lg font-serif text-[--color-ink] leading-relaxed">
+  <header class="border-b border-[--color-rule] pb-6 mb-10 not-prose">
+    <p class="text-sm uppercase tracking-wide text-[--color-ink-soft]">About</p>
+    <h1 class="font-serif text-4xl text-[--color-ink] mt-1">Architecture</h1>
+    <p class="mt-3 italic text-[--color-ink-soft]">
+      How the corpus is modelled, and how cross-references work across translations.
+    </p>
+  </header>
+
+  <h2>The unified addressing model</h2>
+
+  <p>
+    Every text in Open Scriptorium &mdash; the Hebrew Bible, the Greek New
+    Testament, the Septuagint, the apocrypha, Josephus, Philo, the Gospel of
+    Thomas &mdash; lives in the same data model. There is no separate
+    &ldquo;scripture table&rdquo; and &ldquo;commentary table.&rdquo;
+    Instead, three layers cooperate:
+  </p>
+
+  <ol>
+    <li>
+      <strong>Works</strong> are concrete documents: a translation, an
+      original-language edition, a commentary, a lexicon. Each work has a
+      license, a language, and a list of <em>work units</em>.
+    </li>
+    <li>
+      <strong>Work units</strong> are the smallest addressable piece of any
+      work. For scripture this is usually a verse; for Loeb commentary it
+      might be a numbered section; for the Gospel of Thomas it&rsquo;s a
+      logion. Every work unit carries the actual text body.
+    </li>
+    <li>
+      <strong>Canonical refs</strong> are the abstract concept of
+      &ldquo;Genesis 1:1.&rdquo; Translations and editions of the same
+      passage all align to the <em>same</em> canonical ref. This is what
+      makes parallel reading and cross-referencing possible.
+    </li>
+  </ol>
+
+  <figure class="not-prose my-10">
+    <%= render "shared/diagram_addressing" %>
+    <figcaption class="text-xs text-[--color-ink-soft] italic mt-2 text-center">
+      Diagram: BSB Genesis 1:1, WLC Genesis 1:1, and the LXX all point at
+      the same canonical ref. The canonical layer carries no text &mdash; it
+      is the <em>address</em> shared between editions.
+    </figcaption>
+  </figure>
+
+  <h2>Cross-references at the canonical layer</h2>
+
+  <p>
+    Because canonical refs are the shared addressing scheme, cross-references
+    live there too &mdash; not at the work level. A statement like
+    <em>&ldquo;Jude 1:14 quotes 1 Enoch 1:9&rdquo;</em> is one row, language-
+    independent and edition-independent. It applies to every translation of
+    Jude and every translation of Enoch automatically.
+  </p>
+
+  <p>
+    Each cross-reference stores its source and target as Postgres
+    <code class="font-mono text-sm">int4range</code> values over the
+    sequential <code>ord</code> column on canonical refs. With a GIST index,
+    asking <em>&ldquo;what cross-references touch this verse?&rdquo;</em>
+    is a single indexed lookup &mdash; whether the matching reference points
+    at one verse, a chapter, or a whole book.
+  </p>
+
+  <figure class="not-prose my-10">
+    <%= render "shared/diagram_xrefs" %>
+    <figcaption class="text-xs text-[--color-ink-soft] italic mt-2 text-center">
+      Diagram: a single GIST overlap query against
+      <code class="font-mono">source_range &amp;&amp; int4range(N, N+1)</code>
+      finds every cross-reference touching canonical ord N, including ones
+      whose range covers an entire chapter or book.
+    </figcaption>
+  </figure>
+
+  <h2>Versification &mdash; we defer to Crosswire</h2>
+
+  <p>
+    Different traditions disagree about verse numbering. The Masoretic Text
+    counts Psalm superscriptions as verse 1; the Septuagint numbers Psalms
+    differently from chapter 9 onwards; Catholic and Orthodox canons
+    structure several books distinctly. We don&rsquo;t pretend these
+    differences don&rsquo;t exist, and we don&rsquo;t invent ad-hoc
+    mappings.
+  </p>
+
+  <p>
+    Each canonical work is tagged with a
+    <strong>versification scheme</strong> taken from the Crosswire SWORD
+    project&rsquo;s published v11n list (<code>KJV</code>, <code>NRSV</code>,
+    <code>MT</code>, <code>LXX</code>, <code>Vulgate</code>,
+    <code>Catholic</code>, <code>German</code>, <code>Synodal</code>,
+    <code>Leningrad</code>, &hellip;). Imports preserve the source&rsquo;s
+    native scheme. Divergences across schemes live in
+    <code>versification_mappings</code>, populated only from Crosswire&rsquo;s
+    authoritative tables.
+  </p>
+
+  <h2>Word-level alignment</h2>
+
+  <p>
+    Original-language texts (Hebrew, Greek) carry word-level data:
+    inflected surface form, lemma, Strong&rsquo;s number, morphological
+    parsing. Words in a translation can be aligned to source words via
+    <strong>alignment groups</strong> &mdash; the same model used by the
+    Macula Hebrew and Macula Greek projects.
+  </p>
+
+  <p>
+    Each alignment group is a logical unit containing some source words and
+    some target words, supporting one-to-one, one-to-many, many-to-one,
+    many-to-many, and null alignments uniformly. This is how
+    interlinear-style displays and quotation matching (e.g. detecting NT
+    quotations of the LXX) will be powered.
+  </p>
+
+  <figure class="not-prose my-10">
+    <%= render "shared/diagram_alignment" %>
+    <figcaption class="text-xs text-[--color-ink-soft] italic mt-2 text-center">
+      Diagram: a many-to-many alignment group joining a Hebrew construct
+      chain to its English rendering.
+    </figcaption>
+  </figure>
+
+  <h2>Things to read next</h2>
+
+  <ul>
+    <li><%= link_to "Schema reference", about_schema_path, class: "underline decoration-dotted" %> &mdash; every table, column, and association.</li>
+    <li><a href="https://wiki.crosswire.org/DevTools:Versification" class="underline decoration-dotted">Crosswire SWORD versification</a></li>
+    <li><a href="https://github.com/Clear-Bible/macula-hebrew" class="underline decoration-dotted">Macula Hebrew</a></li>
+    <li><a href="https://github.com/Clear-Bible/macula-greek" class="underline decoration-dotted">Macula Greek</a></li>
+  </ul>
+</div>

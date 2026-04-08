@@ -1,0 +1,86 @@
+<%# Three layers — works at top, work_units in middle, canonical_refs at bottom.
+    Three works (BSB / WLC / LXX) all align to the same canonical ref. %>
+
+<svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg"
+     class="w-full h-auto"
+     role="img"
+     aria-labelledby="diagram-addressing-title">
+  <title id="diagram-addressing-title">Unified addressing model</title>
+
+  <style>
+    .layer-label  { font: italic 14px serif; fill: #6b6b6b; }
+    .box          { fill: #fff; stroke: #1a1a1a; stroke-width: 1.5; }
+    .box-shaded   { fill: #f5f1ea; stroke: #1a1a1a; stroke-width: 1.5; }
+    .box-canonical{ fill: #fbeae0; stroke: #9b2226; stroke-width: 2; }
+    .heading      { font: bold 13px sans-serif; fill: #1a1a1a; }
+    .body         { font: 12px serif; fill: #1a1a1a; }
+    .ref          { font: 12px ui-monospace, monospace; fill: #1a1a1a; }
+    .conn         { stroke: #1a1a1a; stroke-width: 1.2; fill: none; }
+    .conn-dotted  { stroke: #6b6b6b; stroke-width: 1.2; stroke-dasharray: 3 3; fill: none; }
+    .layer-rule   { stroke: #d6d2c9; stroke-dasharray: 2 4; }
+  </style>
+
+  <!-- Layer dividers -->
+  <text x="20" y="32" class="layer-label">works</text>
+  <line x1="120" y1="28" x2="740" y2="28" class="layer-rule"/>
+
+  <text x="20" y="160" class="layer-label">work_units</text>
+  <line x1="120" y1="156" x2="740" y2="156" class="layer-rule"/>
+
+  <text x="20" y="290" class="layer-label">canonical_refs</text>
+  <line x1="135" y1="286" x2="740" y2="286" class="layer-rule"/>
+
+  <!-- Top row: 3 works -->
+  <g>
+    <rect x="160" y="40"  width="160" height="60" rx="4" class="box"/>
+    <text x="240" y="62"  text-anchor="middle" class="heading">BSB</text>
+    <text x="240" y="80"  text-anchor="middle" class="body">English translation</text>
+    <text x="240" y="94"  text-anchor="middle" class="body">Public domain</text>
+
+    <rect x="370" y="40"  width="160" height="60" rx="4" class="box"/>
+    <text x="450" y="62"  text-anchor="middle" class="heading">WLC</text>
+    <text x="450" y="80"  text-anchor="middle" class="body">Hebrew · Leningrad</text>
+    <text x="450" y="94"  text-anchor="middle" class="body">Public domain</text>
+
+    <rect x="580" y="40"  width="160" height="60" rx="4" class="box"/>
+    <text x="660" y="62"  text-anchor="middle" class="heading">LXX (Rahlfs)</text>
+    <text x="660" y="80"  text-anchor="middle" class="body">Greek · Septuagint</text>
+    <text x="660" y="94"  text-anchor="middle" class="body">PD in CA / EU</text>
+  </g>
+
+  <!-- Middle row: one work_unit per work -->
+  <g>
+    <rect x="160" y="180" width="160" height="60" rx="4" class="box-shaded"/>
+    <text x="240" y="200" text-anchor="middle" class="heading">work_unit</text>
+    <text x="240" y="220" text-anchor="middle" class="body">"In the beginning</text>
+    <text x="240" y="234" text-anchor="middle" class="body">God created..."</text>
+
+    <rect x="370" y="180" width="160" height="60" rx="4" class="box-shaded"/>
+    <text x="450" y="200" text-anchor="middle" class="heading">work_unit</text>
+    <text x="450" y="220" text-anchor="middle" class="body" font-family="serif" direction="rtl">בְּרֵאשִׁית</text>
+    <text x="450" y="234" text-anchor="middle" class="body" font-family="serif" direction="rtl">בָּרָא אֱלֹהִים...</text>
+
+    <rect x="580" y="180" width="160" height="60" rx="4" class="box-shaded"/>
+    <text x="660" y="200" text-anchor="middle" class="heading">work_unit</text>
+    <text x="660" y="220" text-anchor="middle" class="body">Ἐν ἀρχῇ ἐποίησεν</text>
+    <text x="660" y="234" text-anchor="middle" class="body">ὁ θεὸς...</text>
+  </g>
+
+  <!-- Bottom: shared canonical_ref -->
+  <g>
+    <rect x="280" y="305" width="320" height="60" rx="6" class="box-canonical"/>
+    <text x="440" y="325" text-anchor="middle" class="heading" fill="#9b2226">canonical_ref</text>
+    <text x="440" y="343" text-anchor="middle" class="ref">Genesis · ord=1 · hierarchy=[1,1]</text>
+    <text x="440" y="357" text-anchor="middle" class="ref">display: "Gen 1:1"</text>
+  </g>
+
+  <!-- work → work_unit (vertical lines) -->
+  <line x1="240" y1="100" x2="240" y2="180" class="conn"/>
+  <line x1="450" y1="100" x2="450" y2="180" class="conn"/>
+  <line x1="660" y1="100" x2="660" y2="180" class="conn"/>
+
+  <!-- work_unit → canonical_ref (converging lines) -->
+  <path d="M 240 240 Q 240 290, 360 305" class="conn-dotted"/>
+  <path d="M 450 240 L 450 305"           class="conn-dotted"/>
+  <path d="M 660 240 Q 660 290, 520 305"  class="conn-dotted"/>
+</svg>

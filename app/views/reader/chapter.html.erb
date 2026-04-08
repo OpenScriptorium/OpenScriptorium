@@ -1,0 +1,54 @@
+<% content_for :title, "#{@canonical_work.title} #{@chapter} — #{@work.title}" %>
+
+<div class="max-w-3xl mx-auto py-12">
+  <nav class="text-sm text-[--color-ink-soft] mb-4">
+    <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
+    &raquo;
+    <%= link_to @canonical_work.title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
+    &raquo;
+    <span>Chapter <%= @chapter %></span>
+  </nav>
+
+  <header class="border-b border-[--color-rule] pb-6 mb-10">
+    <h1 class="font-serif text-3xl text-[--color-ink]">
+      <%= @canonical_work.title %> <%= @chapter %>
+    </h1>
+  </header>
+
+  <article class="scripture max-w-prose">
+    <% @verses.each do |unit| %>
+      <% verse_n = unit.canonical_ref.hierarchy[1] %>
+      <p id="v<%= verse_n %>" class="mb-3">
+        <sup class="text-xs text-[--color-ink-soft] mr-1 font-sans">
+          <%= link_to verse_n,
+                reader_verse_path(@work.slug, @canonical_work.slug, @chapter, verse_n),
+                class: "hover:underline decoration-dotted" %>
+        </sup><%= unit.body %>
+      </p>
+    <% end %>
+  </article>
+
+  <nav class="mt-10 flex justify-between text-sm font-serif">
+    <% prev_ch = @chapter - 1 %>
+    <% next_ch = @chapter + 1 %>
+    <% if prev_ch > 0 %>
+      <%= link_to "← Chapter #{prev_ch}", reader_chapter_path(@work.slug, @canonical_work.slug, prev_ch),
+            class: "text-[--color-link] hover:underline" %>
+    <% else %><span></span><% end %>
+
+    <%= link_to "Chapter #{next_ch} →", reader_chapter_path(@work.slug, @canonical_work.slug, next_ch),
+          class: "text-[--color-link] hover:underline" %>
+  </nav>
+
+  <footer class="mt-16 pt-6 border-t border-[--color-rule] text-xs text-[--color-ink-soft]">
+    <p>
+      <%= @work.title %>
+      <% if @work.license %>
+        · <%= @work.license.name %>
+        <% if @work.source_url %>
+          · <%= link_to "source", @work.source_url, class: "underline decoration-dotted" %>
+        <% end %>
+      <% end %>
+    </p>
+  </footer>
+</div>
