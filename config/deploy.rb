@@ -60,11 +60,12 @@ set :rbenv_roles,       :all
 # -----------------------------------------------------------------------------
 # Bundler (capistrano-bundler)
 # -----------------------------------------------------------------------------
-set :bundle_path,        -> { shared_path.join("vendor/bundle") }
-set :bundle_jobs,        4
-set :bundle_flags,       "--deployment"
-# Don't install development/test groups in production
-set :bundle_without,     %w[development test].join(" ")
+set :bundle_path,    -> { shared_path.join("vendor/bundle") }
+set :bundle_jobs,    4
+# Note: don't pass --deployment as a flag — modern bundler uses
+# `bundle config set deployment true`, which capistrano-bundler 2.x
+# handles for us automatically in the bundler:config step.
+set :bundle_without, %w[development test].join(" ")
 
 # -----------------------------------------------------------------------------
 # Puma (capistrano3-puma)
