@@ -72,13 +72,13 @@ group :development do
   gem "web-console"
 
   # Capistrano for deploys to the Toronto VPS via SSH. All MIT-licensed.
-  # See config/deploy.rb. Capistrano runs only on the local machine.
-  gem "capistrano",          "~> 3.19", require: false
-  gem "capistrano-rails",    "~> 1.7",  require: false
-  gem "capistrano-bundler",  "~> 2.1",  require: false
-  gem "capistrano-rbenv",    "~> 2.2",  require: false
-  gem "capistrano-passenger", "~> 0.2", require: false # for ::SSHKit::Backend::Netssh.config helpers (no Passenger used)
-  gem "capistrano3-puma",    "~> 6.0",  require: false
+  # Runs only on the local machine; never installed on the server.
+  # See config/deploy.rb and config/deploy/production.rb.
+  gem "capistrano",         "~> 3.19", require: false
+  gem "capistrano-rails",   "~> 1.7",  require: false
+  gem "capistrano-bundler", "~> 2.1",  require: false
+  gem "capistrano-rbenv",   "~> 2.2",  require: false
+  gem "capistrano3-puma",   "~> 6.0",  require: false
 end
 
 group :test do
