@@ -83,6 +83,15 @@ set :puma_service_unit_name, "puma_openscriptorium"
 # and rejects the unit file with "bad unit file setting".
 set :puma_use_login_shell, true
 
+# Inject these as Environment= directives in the systemd unit.
+# RAILS_ENV must be set in the shell environment (not just via `puma -e
+# production`) so that config/puma.rb's branching on ENV["RAILS_ENV"]
+# evaluates to production and binds to the Unix socket instead of TCP 3000.
+set :puma_service_unit_env_vars, [
+  "RAILS_ENV=production",
+  "RACK_ENV=production"
+]
+
 # Bind to a Unix socket inside shared/tmp/sockets/. Apache reverse-proxies
 # to this from the openscriptorium.org vhost. Permissions: 0660, owned
 # seth:seth — Apache (www-data) needs to traverse the parent dirs (already
