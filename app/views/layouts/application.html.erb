@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>" class="<%= 'dark' if cookies[:theme] == 'dark' %>">
+  <head>
+    <title><%= content_for(:title) || "Open Scriptorium" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Open Scriptorium">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%# Compiled Tailwind theme + utilities %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%# Bundled SIL fonts (OFL) — Propshaft rewrites url()s to digested paths %>
+    <%= stylesheet_link_tag "fonts", "data-turbo-track": "reload" %>
+  </head>
+
+  <body class="bg-[--color-page] text-[--color-ink]">
+    <main class="container mx-auto mt-12 px-5">
+      <%= yield %>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* ============================================================================
+ * Open Scriptorium — Tailwind v4 theme
+ *
+ * Reading-app typography. Clean white default + first-class dark mode.
+ * Dark mode uses the `class` strategy so users can override their OS pref via
+ * a toggle (Stimulus controller toggles the `dark` class on <html>).
+ *
+ * Fonts are bundled SIL fonts (OFL) — see app/assets/fonts/. Users can
+ * override the body/scripture/greek/hebrew font families per account
+ * preference (rendered as inline style on <html>).
+ * ========================================================================== */
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Typography ------------------------------------------------------------- */
+  --font-sans: "Charis SIL", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --font-serif: "Charis SIL", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --font-hebrew: "Ezra SIL", "Charis SIL", serif;
+  --font-greek: "Galatia SIL", "Charis SIL", serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Source Code Pro", monospace;
+
+  /* Reading-optimized sizing ----------------------------------------------- */
+  --text-reading: 1.0625rem;        /* ~17px body */
+  --text-reading--line-height: 1.7;
+  --text-scripture: 1.125rem;       /* ~18px scripture */
+  --text-scripture--line-height: 1.85;
+
+  /* Light mode palette — clean, paper-white -------------------------------- */
+  --color-page: #ffffff;
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #4a4a4a;
+  --color-rule: #e5e5e5;
+  --color-accent: #6b3410;       /* warm brown — manuscript ink */
+  --color-link: #1f4d8a;
+  --color-mark: #fef3c7;         /* highlight */
+}
+
+/* Dark mode overrides — comfortable dark, not pitch black ------------------ */
+.dark {
+  --color-page: #14161a;
+  --color-ink: #e8e6e3;
+  --color-ink-soft: #a8a6a3;
+  --color-rule: #2a2d33;
+  --color-accent: #d4a574;
+  --color-link: #7ab0e8;
+  --color-mark: #4a3a10;
+}
+
+/* Document-level defaults --------------------------------------------------- */
+html {
+  background: var(--color-page);
+  color: var(--color-ink);
+  color-scheme: light dark;
+  font-family: var(--font-sans);
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+
+/* Hebrew + Greek body classes for inline use ------------------------------- */
+.font-hebrew {
+  font-family: var(--font-hebrew);
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+.font-greek {
+  font-family: var(--font-greek);
+}
+
+/* Scripture-text class for verse rendering --------------------------------- */
+.scripture {
+  font-family: var(--font-serif);
+  font-size: var(--text-scripture);
+  line-height: var(--text-scripture--line-height);
+  color: var(--color-ink);
+}
+
+/* SIL fonts ----------------------------------------------------------------
+ * @font-face declarations live in app/assets/stylesheets/fonts.css
+ * (loaded via the Propshaft asset pipeline). Font files belong in
+ * app/assets/fonts/. See CLAUDE.md for licensing notes.
+ * -------------------------------------------------------------------------- */

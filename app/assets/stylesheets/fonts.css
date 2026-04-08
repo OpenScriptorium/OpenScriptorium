@@ -1,0 +1,74 @@
+/* ============================================================================
+ * SIL fonts (Open Font License 1.1)
+ *
+ * Bundled with Open Scriptorium under the SIL OFL.
+ *
+ *   Charis SIL  — primary serif body font (English, Latin, footnotes)
+ *                 https://software.sil.org/charis/
+ *   Ezra SIL    — Biblical Hebrew with full pointing & cantillation
+ *                 https://software.sil.org/ezra/
+ *   Galatia SIL — polytonic Greek
+ *                 https://software.sil.org/galatia/
+ *
+ * Files live in app/assets/fonts/. Propshaft rewrites the relative url()s
+ * below into digested asset URLs at request time.
+ *
+ * Reserved Font Names per OFL: derivatives must NOT use these names. We use
+ * them unmodified, so we keep them. See app/assets/fonts/OFL.txt.
+ * ========================================================================== */
+
+@font-face {
+  font-family: "Charis SIL";
+  src: url("CharisSIL-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Charis SIL";
+  src: url("CharisSIL-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Charis SIL";
+  src: url("CharisSIL-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Charis SIL";
+  src: url("CharisSIL-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ezra SIL";
+  src: url("SILEOT.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galatia SIL";
+  src: url("GalSILR.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galatia SIL";
+  src: url("GalSILB.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
