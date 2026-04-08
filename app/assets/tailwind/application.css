@@ -82,6 +82,23 @@ body {
   color: var(--color-ink);
 }
 
+/* Inline KJV drop caps in the H1.
+ * The visible letter sits in roughly the inner ~65% of the SVG canvas,
+ * with the rest occupied by the decorative border. To make the visible
+ * letter match the cap height of the surrounding text, the SVG box has
+ * to be larger than 1em — we use 1.55em so the visible glyph reads as
+ * the same height as the lowercase letters next to it.
+ *
+ * Used inside an inline-flex w/ items-center, so no vertical-align tricks
+ * needed — the parent flex container handles vertical centering.
+ */
+.dropcap-h1 {
+  width: 1.55em;
+  height: 1.55em;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
 /* SIL fonts ----------------------------------------------------------------
  * @font-face declarations live in app/assets/stylesheets/fonts.css
  * (loaded via the Propshaft asset pipeline). Font files belong in
