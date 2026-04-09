@@ -28,6 +28,8 @@ class ReaderController < ApplicationController
     if @verses.empty?
       raise ActiveRecord::RecordNotFound, "No chapter #{@chapter} in #{@canonical_work.display_title}"
     end
+
+    @pericope_starts = pericope_starts_for(@verses)
   end
 
   # /:work_slug/:book_slug/:chapter/:verse — single verse permalink
@@ -112,6 +114,28 @@ class ReaderController < ApplicationController
       .where(canonical_work_id: @canonical_work.id)
       .where("hierarchy[1] = ? AND hierarchy[2] = ?", chapter, verse)
       .pick(:ord)
+  end
+
+  # For each verse in the loaded chapter (or range), find any
+  # pericopes from the work's traditions whose range starts at that
+  # verse's ord. Returns a hash of `ord => [Pericope, ...]` so the
+  # view can render the pericope name as a section heading just above
+  # the verse where it begins. Returns an empty hash if the work has
+  # no pericope traditions or no pericopes match.
+  def pericope_starts_for(verses)
+    return {} if @work.pericope_traditions.blank?
+    return {} if verses.empty?
+
+    ords = verses.map { |u| u.canonical_ref.ord }
+    starts = Hash.new { |h, k| h[k] = [] }
+
+    Pericope
+      .where(canonical_work_id: @canonical_work.id, tradition: @work.pericope_traditions)
+      .where("lower(canonical_range) = ANY(ARRAY[?])", ords)
+      .ordered
+      .each { |p| starts[p.canonical_range.begin] << p }
+
+    starts
   end
 
   # Resolve the work and the canonical_work for the requested book.

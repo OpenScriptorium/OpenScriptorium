@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_08_060000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_09_222131) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "ltree"
@@ -281,6 +281,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_08_060000) do
     t.string "pericope_type"
     t.integer "sequence_number"
     t.string "source_dataset", null: false
+    t.string "tradition"
     t.datetime "updated_at", null: false
     t.index ["canonical_work_id", "canonical_range"], name: "idx_pericopes_range", using: :gist
     t.index ["canonical_work_id"], name: "index_pericopes_on_canonical_work_id"
@@ -288,6 +289,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_08_060000) do
     t.index ["pericope_type"], name: "index_pericopes_on_pericope_type"
     t.index ["source_dataset", "sequence_number"], name: "index_pericopes_on_source_dataset_and_sequence_number"
     t.index ["source_dataset"], name: "index_pericopes_on_source_dataset"
+    t.index ["tradition"], name: "index_pericopes_on_tradition"
   end
 
   create_table "personal_notes", force: :cascade do |t|
@@ -554,6 +556,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_08_060000) do
     t.datetime "last_imported_at"
     t.bigint "license_id", null: false
     t.string "native_title"
+    t.string "pericope_traditions", default: [], array: true
     t.integer "publication_year"
     t.string "slug", null: false
     t.string "source_revision"
@@ -566,6 +569,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_08_060000) do
     t.index ["import_run_id"], name: "index_works_on_import_run_id"
     t.index ["language"], name: "index_works_on_language"
     t.index ["license_id"], name: "index_works_on_license_id"
+    t.index ["pericope_traditions"], name: "index_works_on_pericope_traditions", using: :gin
     t.index ["slug"], name: "index_works_on_slug", unique: true
     t.index ["tradition"], name: "index_works_on_tradition"
     t.index ["work_type"], name: "index_works_on_work_type"

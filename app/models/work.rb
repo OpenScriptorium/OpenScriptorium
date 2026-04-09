@@ -69,4 +69,58 @@ class Work < ApplicationRecord
   def work_type_label
     WORK_TYPE_LABELS[work_type] || work_type.tr("_", " ").capitalize
   end
+
+  # ---------------------------------------------------------------
+  # Feature flags
+  # ---------------------------------------------------------------
+  # Per-work features displayed in the works index legend (NTS / LEM /
+  # STR / PRS / ALN / PRC). Each predicate is one indexed query against
+  # the table that holds the feature data; the works index page calls
+  # `feature_flags` once per work and renders the resulting array.
+  #
+  # XRF (cross-references) and APP (apparatus) are deliberately not
+  # per-work features — cross_references are keyed on canonical_refs
+  # and apply to every work that aligns to those refs, so the per-work
+  # flag would degenerate to "yes for everything". They live on the
+  # verse view's apparatus panel instead.
+
+  FEATURE_DEFINITIONS = [
+    ["NTS", :has_notes?,     "Notes",      "translator/editor footnotes or marginalia"],
+    ["LEM", :has_lemmas?,    "Lemmas",     "dictionary form per word"],
+    ["STR", :has_strongs?,   "Strong's",   "Strong's concordance numbers per word"],
+    ["PRS", :has_parsing?,   "Parsing",    "morphological analysis per word"],
+    ["ALN", :has_alignment?, "Alignment",  "Macula-style word-level alignment to source-language texts"],
+    ["PRC", :has_pericopes?, "Pericopes",  "named passage groupings (parashot, BHS pericopes, lectionaries…)"]
+  ].freeze
+
+  def feature_flags
+    FEATURE_DEFINITIONS.filter_map { |abbr, predicate, _label, _desc| abbr if send(predicate) }
+  end
+
+  def has_notes?
+    WorkUnitNote.where(work_unit_id: work_units.select(:id)).exists?
+  end
+
+  def has_lemmas?
+    Word.where(work_id: id).where.not(lemma_id: nil).exists?
+  end
+
+  def has_strongs?
+    Word.where(work_id: id).where.not(strongs_number: [nil, ""]).exists?
+  end
+
+  def has_parsing?
+    Word.where(work_id: id).where.not(morph_code: [nil, ""]).exists?
+  end
+
+  def has_alignment?
+    AlignmentGroup.where(source_work_id: id).or(AlignmentGroup.where(target_work_id: id)).exists?
+  end
+
+  def has_pericopes?
+    return false if pericope_traditions.blank?
+    canonical_work_ids = work_units.joins(:canonical_ref).distinct.pluck("canonical_refs.canonical_work_id")
+    return false if canonical_work_ids.empty?
+    Pericope.where(canonical_work_id: canonical_work_ids, tradition: pericope_traditions).exists?
+  end
 end

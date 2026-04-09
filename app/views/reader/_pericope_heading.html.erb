@@ -1,0 +1,26 @@
+<%# Pericope section heading.
+    Rendered just above any verse where one or more pericopes begin.
+    Receives `pericopes:` — an array of Pericope rows whose
+    canonical_range starts at the current verse's ord (or nil/empty
+    when nothing starts here).
+
+    For Hebrew works (WLC, etc.) we show only the Hebrew name.
+    For English/other works (JPS 1917, future LXX/Brenton parallels)
+    we show the English transliteration. %>
+<% show_hebrew_only = @work&.language == "he" %>
+<% Array(pericopes).each do |p| %>
+  <% range = pericope_range_label(p) %>
+  <div class="my-8 first:mt-0 col-span-full text-[var(--color-ink-soft)] font-serif">
+    <p class="text-base">
+      <em class="not-italic uppercase text-[10px] tracking-wider mr-2"><%= p.pericope_type.humanize %></em>
+      <% if show_hebrew_only && p.native_name.present? %>
+        <span class="font-hebrew text-xl text-[var(--color-ink)]" lang="he" dir="rtl"><%= p.native_name %></span>
+      <% else %>
+        <span class="italic text-[var(--color-ink)]"><%= p.name %></span>
+      <% end %>
+      <% if range %>
+        <span class="text-xs ml-2"><%= range %></span>
+      <% end %>
+    </p>
+  </div>
+<% end %>

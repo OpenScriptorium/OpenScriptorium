@@ -156,6 +156,26 @@ module ReaderHelper
     units.any? { |u| u.work_unit_notes.any? }
   end
 
+  # Human-readable verse-range label for a pericope, computed from its
+  # int4range over canonical_refs.ord. Returns e.g. "Gen 6:9–11:32"
+  # or nil if the range can't be resolved.
+  def pericope_range_label(pericope)
+    cw = pericope.canonical_work
+    return nil unless cw && pericope.canonical_range
+    start_ord = pericope.canonical_range.begin
+    end_ord   = pericope.canonical_range.end - 1  # int4range is half-open
+    refs = CanonicalRef.where(canonical_work_id: cw.id, ord: [start_ord, end_ord]).index_by(&:ord)
+    s = refs[start_ord]
+    e = refs[end_ord]
+    return nil unless s && e
+    abbr = cw.sbl_abbreviation.presence || cw.display_title
+    if s.hierarchy[0] == e.hierarchy[0]
+      "#{abbr} #{s.hierarchy[0]}:#{s.hierarchy[1]}–#{e.hierarchy[1]}"
+    else
+      "#{abbr} #{s.hierarchy[0]}:#{s.hierarchy[1]}–#{e.hierarchy[0]}:#{e.hierarchy[1]}"
+    end
+  end
+
   private
 
   # Superscript letter marker (ᵃ ᵇ ᶜ … ᶻ ᵃᵃ ᵃᵇ …) for note index N.

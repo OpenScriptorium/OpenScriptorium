@@ -40,6 +40,7 @@
       <% @verses.each do |unit| %>
         <% verse_n = unit.canonical_ref.hierarchy[1] %>
         <% notes   = unit.work_unit_notes.sort_by(&:position_in_unit) %>
+        <%= render "pericope_heading", pericopes: @pericope_starts[unit.canonical_ref.ord] %>
         <div class="verse-row" id="v<%= verse_n %>">
           <p class="verse-text">
             <sup class="text-xs text-[var(--color-ink-soft)] mx-1 font-sans align-super">
@@ -62,6 +63,7 @@
              dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
       <% @verses.each do |unit| %>
         <% verse_n = unit.canonical_ref.hierarchy[1] %>
+        <%= render "pericope_heading", pericopes: @pericope_starts[unit.canonical_ref.ord] %>
         <p id="v<%= verse_n %>" class="mb-4">
           <sup class="text-xs text-[var(--color-ink-soft)] mx-1 font-sans align-super">
             <%= link_to verse_n,
