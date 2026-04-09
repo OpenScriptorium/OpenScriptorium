@@ -34,4 +34,22 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::TvtmsImporter.new(download: download).call
   end
+
+  desc "Import the King James Version (1769) with Apocrypha + 1611 marginal notes"
+  task kjva: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::KjvaImporter.new(download: download).call
+  end
+
+  desc "Import the JPS 1917 English Tanakh + footnotes from JPS Press's PDF"
+  task jps1917: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::Jps1917Importer.new(download: download).call
+  end
+
+  desc "Import the Lutherbibel 1912 (German) from the Karl-Barth TEI"
+  task luther1912: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::Luther1912Importer.new(download: download).call
+  end
 end

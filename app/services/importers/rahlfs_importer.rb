@@ -111,12 +111,22 @@ module Importers
       # version so the URL stays clean (/rahlfs-lxx/psalms/9).
       "Ps"      => "psalms-lxx",
       "Jer"     => "jeremiah-lxx",
-      "Job"     => "job-lxx"
+      "Job"     => "job-lxx",
 
-      # Still deferred: DanTh, BelTh, SusTh, JoshB, JudgB, TobS
-      # (Theodotion variants and alternative manuscript recensions are
-      # alternative TEXTS rather than alternative versifications, so
-      # they would each need their own canonical_works.)
+      # Theodotion variants — alternative Greek translations of
+      # Daniel/Bel/Susanna transmitted alongside the Old Greek text
+      # in many LXX manuscripts. They have separate canonical_works
+      # under distinct slugs but share book_key with their OG version.
+      "DanTh"   => "daniel-theodotion",
+      "BelTh"   => "bel-and-the-dragon-theodotion",
+      "SusTh"   => "susanna-theodotion",
+
+      # Alternative manuscript recensions (Vaticanus B-text for
+      # Joshua/Judges, Sinaiticus recension of Tobit). Same book_key
+      # as the primary version, distinct slug.
+      "JoshB"   => "joshua-vaticanus-b",
+      "JudgB"   => "judges-vaticanus-b",
+      "TobS"    => "tobit-sinaiticus"
     }.freeze
 
     def initialize(dir: nil, download: nil, **opts)

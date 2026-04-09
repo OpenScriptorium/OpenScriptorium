@@ -56,11 +56,32 @@ html {
   color-scheme: light dark;
   font-family: var(--font-sans);
   font-feature-settings: "kern", "liga", "calt";
+
+  /* Smooth out reading-theme slider transitions, especially the hard
+     light-dark flip at 50%. Without this, dragging across the cliff
+     between light and dark themes is a strobe-like instant snap.
+     The transition runs on bg, fg, and border colors so the navbar
+     and rules animate in sync with the page. */
+  transition: background-color 180ms ease-out, color 180ms ease-out;
 }
 
 body {
   background: var(--color-page);
   color: var(--color-ink);
+  transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+
+/* When the reading-theme slider crosses its hard light/dark flip,
+   we want the chrome (navbar, borders, side panels) to animate in
+   sync with the body, not paint instantly first. This applies the
+   same transition to the structural chrome elements that consume
+   the page-level custom properties. Hover states and other
+   interactive transitions are NOT affected — only structural
+   theme colors. */
+header, footer, nav, article, main, section, hr {
+  transition: background-color 180ms ease-out,
+              color            180ms ease-out,
+              border-color     180ms ease-out;
 }
 
 /* Hebrew + Greek body classes for inline use ------------------------------- */
@@ -80,6 +101,177 @@ body {
   font-size: var(--text-scripture);
   line-height: var(--text-scripture--line-height);
   color: var(--color-ink);
+}
+
+/* Marginal notes — 1611-style two-column layout ---------------------------
+ *
+ * Used by the chapter view when the work has any work_unit_notes
+ * (currently KJV is the only such work). Verses sit in the left column
+ * (capped at the prose width) and their notes sit in a narrow right
+ * column, vertically aligned to the verse via grid rows. Each verse
+ * is a `.verse-row` wrapper that uses `display: contents` to flatten
+ * its <p> and <aside> directly into the parent grid.
+ *
+ * On screens narrower than the lg breakpoint, the grid collapses to a
+ * single column and the notes flow inline beneath their verse, sized
+ * down and indented to read as footnotes.
+ *
+ * The Stimulus annotation-highlight controller pairs anchor phrases in
+ * the verse text with their margin entries via matching data-annot
+ * attributes. Hovering either side adds .annot-active to all matching
+ * elements in the same verse-row.
+ */
+.chapter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 65ch) minmax(0, 18rem);
+  column-gap: 2.5rem;
+  row-gap: 1rem;
+  align-items: baseline;
+}
+
+.verse-row {
+  display: contents;
+}
+
+.verse-text {
+  grid-column: 1;
+}
+
+.verse-notes {
+  grid-column: 2;
+  font-family: var(--font-serif);
+  padding-top: 0.35em; /* nudge baseline down to align with verse text */
+}
+
+.verse-notes:empty {
+  /* Empty asides still occupy a row in the grid; that's fine —
+   * the row collapses to its content height (which is zero). */
+}
+
+/* Mobile / narrow: collapse the margin column inline beneath the verse. */
+@media (max-width: 64rem) {
+  .chapter-grid {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+  .verse-text, .verse-notes {
+    grid-column: 1;
+  }
+  .verse-notes:not(:empty) {
+    margin-bottom: 1rem;
+    padding: 0.5rem 0 0.75rem 1.25rem;
+    border-left: 2px solid var(--color-rule);
+    font-size: 0.85rem;
+    color: var(--color-ink-soft);
+  }
+}
+
+/* Anchor phrase highlighted inside the verse text. Subtle by default
+ * (a thin dotted underline in the soft ink color), full ink color +
+ * solid background when "active" (hovered, on either side). */
+.annot {
+  text-decoration: underline dotted var(--color-rule);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  cursor: help;
+}
+
+.annot-mark {
+  font-family: var(--font-serif);
+  color: var(--color-ink-soft);
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+  margin-left: 0.05em;
+  cursor: help;
+}
+
+.annot-active,
+.annot:hover,
+.annot-mark:hover {
+  text-decoration-color: var(--color-link);
+  color: var(--color-link);
+}
+
+.annot-active.annot,
+.annot.annot-active {
+  background-color: color-mix(in oklab, var(--color-link) 14%, transparent);
+  border-radius: 0.15em;
+  padding: 0 0.1em;
+  text-decoration-color: var(--color-link);
+}
+
+.annot-note {
+  transition: background-color 150ms;
+  border-radius: 0.2em;
+  padding: 0.15em 0.4em;
+  margin-left: -0.4em;
+}
+
+.annot-note.annot-active {
+  background-color: color-mix(in oklab, var(--color-link) 14%, transparent);
+}
+
+.annot-note .annot-mark {
+  color: var(--color-link);
+  font-weight: 600;
+}
+
+/* Hover-tooltip variant of the anchor span, used by the parallel
+ * reader where there's no room for a margin column. The anchor gets
+ * the same dotted underline; on hover or focus a small popover
+ * appears above the phrase showing the note text. */
+.annot-tooltip {
+  position: relative;
+  text-decoration: underline dotted var(--color-rule);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  cursor: help;
+}
+
+.annot-tooltip:hover,
+.annot-tooltip:focus {
+  text-decoration-color: var(--color-link);
+  color: var(--color-link);
+  outline: none;
+}
+
+.annot-tooltip:hover::after,
+.annot-tooltip:focus::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.5em);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-ink);
+  color: var(--color-page);
+  padding: 0.55em 0.8em;
+  border-radius: 0.25em;
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  font-style: normal;
+  text-decoration: none;
+  white-space: normal;
+  width: max-content;
+  max-width: 22rem;
+  z-index: 50;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  pointer-events: none;
+}
+
+/* Little arrow pointing down from the tooltip toward the anchor. */
+.annot-tooltip:hover::before,
+.annot-tooltip:focus::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 0.1em);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0.4em solid transparent;
+  border-top-color: var(--color-ink);
+  z-index: 51;
+  pointer-events: none;
 }
 
 /* Inline KJV drop caps in the H1.

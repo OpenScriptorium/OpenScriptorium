@@ -1,3 +1,5 @@
+require "json"
+
 # Seed the canonical_works metadata for the standard 66 + deuterocanonical
 # books. canonical_refs (the verse-level rows) are NOT created here — those
 # come from the BSB importer in Phase 2, which has the authoritative verse
@@ -117,6 +119,24 @@ LXX_BOOKS = [
   ["psalms-lxx",   "psalms",   "Psalms (LXX)",   "Ψαλμοί",        "Ps",  "ot", 19],
   ["jeremiah-lxx", "jeremiah", "Jeremiah (LXX)", "Ἰερεμίας",      "Jer", "ot", 24],
   ["job-lxx",      "job",      "Job (LXX)",      "Ἰώβ",           "Job", "ot", 18],
+
+  # Theodotion variants — alternative Greek translations transmitted
+  # alongside the Old Greek (OG) text in many LXX manuscripts. Tagged
+  # with the LXX scheme but distinct slugs from the OG versions.
+  ["daniel-theodotion",
+    "daniel", "Daniel (Theodotion)", "Δανιήλ (Θεοδοτίων)", "DanTh",  "deuterocanon", 27],
+  ["bel-and-the-dragon-theodotion",
+    "bel-and-the-dragon", "Bel and the Dragon (Theodotion)", nil, "BelTh",  "deuterocanon", 79],
+  ["susanna-theodotion",
+    "susanna", "Susanna (Theodotion)", nil, "SusTh",  "deuterocanon", 78],
+
+  # Alternative recensions / manuscript traditions
+  ["joshua-vaticanus-b",
+    "joshua", "Joshua (Vaticanus B-text)", "Ἰησοῦς (Β)", "Josh",   "ot", 6],
+  ["judges-vaticanus-b",
+    "judges", "Judges (Vaticanus B-text)", "Κριταί (Β)", "Judg",   "ot", 7],
+  ["tobit-sinaiticus",
+    "tobit", "Tobit (Sinaiticus recension)", nil, "Tob",            "deuterocanon", 70],
 ].freeze
 
 # SBL Handbook of Style, 2nd ed., Appendix F. Map by slug → abbreviation.
@@ -183,6 +203,94 @@ LXX_BOOKS.each do |slug, book_key, title, native_title, osis_id, testament, posi
     citation_format: "scripture"
   )
   cw.save!
+end
+
+# MT-specific canonical_works for books where MT versification diverges
+# from KJV (verse boundaries, titled psalms, or just to have a distinct
+# canonical_work for the TVTMS MT-scheme mapping rows to land on). These
+# mirror the LXX_BOOKS pattern: same `book_key` as the protestant/KJV
+# counterpart, distinct slug ending in `-mt`, tagged with the MT scheme.
+#
+# Canonical refs for these MT works are derived from the JPS 1917
+# Sefaria JSON dumps in tmp/jps/sefaria/*.json — those files carry the
+# authoritative Masoretic verse counts (titled psalms count as v1,
+# Joel has 4 chapters instead of 3, etc.). The seed is idempotent:
+# re-running it only creates missing refs.
+MT_BOOKS = [
+  # [slug,            sefaria_filename,    kjv_slug (for metadata inheritance)]
+  ["genesis-mt",      "Genesis",           "genesis"],
+  ["leviticus-mt",    "Leviticus",         "leviticus"],
+  ["numbers-mt",      "Numbers",           "numbers"],
+  ["1-samuel-mt",     "I_Samuel",          "1-samuel"],
+  ["2-samuel-mt",     "II_Samuel",         "2-samuel"],
+  ["1-kings-mt",      "I_Kings",           "1-kings"],
+  ["2-kings-mt",      "II_Kings",          "2-kings"],
+  ["nehemiah-mt",     "Nehemiah",          "nehemiah"],
+  ["job-mt",          "Job",               "job"],
+  ["psalms-mt",       "Psalms",            "psalms"],
+  ["ecclesiastes-mt", "Ecclesiastes",      "ecclesiastes"],
+  ["isaiah-mt",       "Isaiah",            "isaiah"],
+  ["jeremiah-mt",     "Jeremiah",          "jeremiah"],
+  ["ezekiel-mt",      "Ezekiel",           "ezekiel"],
+  ["daniel-mt",       "Daniel",            "daniel"],
+  ["hosea-mt",        "Hosea",             "hosea"],
+  ["joel-mt",         "Joel",              "joel"],
+  ["jonah-mt",        "Jonah",             "jonah"],
+  ["micah-mt",        "Micah",             "micah"],
+  ["malachi-mt",      "Malachi",           "malachi"]
+].freeze
+
+mt_scheme = VersificationScheme.find_by!(code: "MT")
+sefaria_dir = Rails.root.join("tmp/jps/sefaria")
+
+MT_BOOKS.each do |slug, sefaria_filename, kjv_slug|
+  sefaria_path = sefaria_dir.join("#{sefaria_filename}.json")
+  unless File.exist?(sefaria_path)
+    warn "  [MT seed] missing Sefaria file #{sefaria_path}, skipping #{slug}"
+    next
+  end
+
+  kjv_cw = CanonicalWork.find_by(slug: kjv_slug)
+  base_title = (kjv_cw&.title || kjv_slug.humanize).sub(/\s*\(.*\)\s*\z/, "")
+
+  cw = CanonicalWork.find_or_initialize_by(slug: slug)
+  cw.assign_attributes(
+    book_key:             kjv_cw&.book_key || kjv_slug,
+    title:                "#{base_title} (MT)",
+    native_title:         kjv_cw&.native_title,
+    osis_book_id:         kjv_cw&.osis_book_id,
+    testament:            kjv_cw&.testament || "ot",
+    position:             kjv_cw&.position,
+    versification_scheme: mt_scheme,
+    sbl_abbreviation:     kjv_cw&.sbl_abbreviation || SBL_ABBREVIATIONS[kjv_slug] || base_title,
+    citation_format:      kjv_cw&.citation_format || "scripture"
+  )
+  cw.save!
+
+  data = JSON.parse(File.read(sefaria_path))
+  existing_hierarchies = cw.canonical_refs
+                           .where("array_length(hierarchy, 1) = 2")
+                           .pluck(:hierarchy)
+                           .to_set
+  max_ord = cw.canonical_refs.maximum(:ord) || 0
+  ord = max_ord
+
+  data["text"].each_with_index do |chapter_verses, ch_idx|
+    chapter = ch_idx + 1
+    chapter_verses.each_with_index do |_, v_idx|
+      verse_n = v_idx + 1
+      next if existing_hierarchies.include?([chapter, verse_n])
+
+      ord += 1
+      CanonicalRef.create!(
+        canonical_work_id: cw.id,
+        hierarchy: [chapter, verse_n],
+        ord: ord,
+        display_label: "#{cw.title} #{chapter}:#{verse_n}",
+        osis_id: cw.osis_book_id && "#{cw.osis_book_id}.#{chapter}.#{verse_n}"
+      )
+    end
+  end
 end
 
 puts "  canonical_works: #{CanonicalWork.count}"

@@ -48,4 +48,25 @@ class Work < ApplicationRecord
   def to_param
     slug
   end
+
+  # User-facing label for work_type. The internal enum keeps the
+  # `scripture_original` name for historical/code reasons; in the UI
+  # we present these as "source-language" texts (vs translations) so
+  # we don't imply we're displaying autograph manuscripts.
+  WORK_TYPE_LABELS = {
+    "scripture_translation" => "Scripture translation",
+    "scripture_original"    => "Source-language scripture",
+    "commentary"            => "Commentary",
+    "treatise"              => "Treatise",
+    "letter"                => "Letter",
+    "lexicon"               => "Lexicon",
+    "pseudepigraphon"       => "Pseudepigraphon",
+    "apocalypse"            => "Apocalypse",
+    "apostolic_father"      => "Apostolic Father",
+    "other"                 => "Other"
+  }.freeze
+
+  def work_type_label
+    WORK_TYPE_LABELS[work_type] || work_type.tr("_", " ").capitalize
+  end
 end

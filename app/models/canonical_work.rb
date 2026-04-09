@@ -53,6 +53,18 @@ class CanonicalWork < ApplicationRecord
     slug
   end
 
+  # The canonical_work's title with any scheme parenthetical stripped
+  # for end-user display. Internal slugs like `psalms-mt` and
+  # `psalms-german` carry titles like "Psalms (MT)" / "Psalms (German)"
+  # to keep the catalog unambiguous, but the reader is always showing a
+  # specific Work — the user has chosen Luther 1912 or JPS 1917 already
+  # — so the scheme tag is noise that leaks implementation detail into
+  # the breadcrumbs and headings. Use this everywhere a verse view,
+  # chapter view, or book view shows the canonical_work to a reader.
+  def display_title
+    title.sub(/\s*\((?:MT|KJV|LXX|German|Vulgate|Catholic|NRSV|Synodal|Orthodox)\)\s*\z/, "").strip.presence || title
+  end
+
   # Generate an SBL-style citation string from a hierarchy. Used by
   # CanonicalRef#sbl_citation. Honors citation_format:
   #

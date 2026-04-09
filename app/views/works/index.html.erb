@@ -1,20 +1,20 @@
 <% content_for :title, "Works" %>
 
 <div class="max-w-3xl mx-auto py-12">
-  <header class="border-b border-[--color-rule] pb-6 mb-10">
-    <h1 class="font-serif text-4xl text-[--color-ink]">Works</h1>
-    <p class="mt-3 text-[--color-ink-soft] italic font-serif">
-      All translations, originals, and commentaries currently in the corpus.
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10">
+    <h1 class="font-serif text-4xl text-[var(--color-ink)]">Works</h1>
+    <p class="mt-3 text-[var(--color-ink-soft)] italic font-serif">
+      All translations, source texts, and commentaries currently in the corpus.
     </p>
   </header>
 
-  <ul class="divide-y divide-[--color-rule]">
+  <ul class="divide-y divide-[var(--color-rule)]">
     <% @works.each do |work| %>
       <li class="py-4">
         <%= link_to work_path(work.slug), class: "block hover:underline" do %>
-          <h2 class="font-serif text-2xl text-[--color-ink]"><%= work.title %></h2>
-          <p class="text-sm text-[--color-ink-soft] mt-1">
-            <%= work.work_type.tr('_', ' ').capitalize %>
+          <h2 class="font-serif text-2xl text-[var(--color-ink)]"><%= work.title %></h2>
+          <p class="text-sm text-[var(--color-ink-soft)] mt-1">
+            <%= work.work_type_label %>
             <% if work.language.present? %> · <span class="uppercase tracking-wide"><%= work.language %></span><% end %>
             <% if work.license %> · <%= work.license.name %><% end %>
           </p>

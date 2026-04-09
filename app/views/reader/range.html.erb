@@ -1,41 +1,88 @@
 <% content_for :title, "#{@display_title} — #{@work.title}" %>
 
-<div class="max-w-3xl mx-auto px-5 py-12">
-  <nav class="text-sm text-[--color-ink-soft] mb-4">
+<% has_notes = any_notes?(@verses) %>
+<% wrapper_max = has_notes ? "max-w-5xl" : "max-w-3xl" %>
+
+<div class="<%= wrapper_max %> mx-auto px-5 py-12">
+  <nav class="text-sm text-[var(--color-ink-soft)] mb-4">
     <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
     &raquo;
-    <%= link_to @canonical_work.title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
+    <%= link_to @canonical_work.display_title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
     &raquo;
     <span><%= @range_label %></span>
   </nav>
 
-  <header class="border-b border-[--color-rule] pb-6 mb-10">
-    <h1 class="font-serif text-3xl text-[--color-ink]">
-      <%= @canonical_work.title %> <%= @range_label %>
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10">
+    <h1 class="font-serif text-3xl text-[var(--color-ink)]">
+      <%= @canonical_work.display_title %> <%= @range_label %>
     </h1>
-    <p class="text-sm text-[--color-ink-soft] mt-2">
+    <p class="text-sm text-[var(--color-ink-soft)] mt-2">
       <%= pluralize(@verses.size, "verse") %>
+    </p>
+    <p class="mt-2 text-sm font-serif">
+      <%
+        first = @verses.first.canonical_ref.hierarchy
+        last  = @verses.last.canonical_ref.hierarchy
+        parallel_path =
+          if first[0] == last[0]
+            parallel_range_path(@canonical_work.book_key, first[0], first[1], last[1],
+                                works: parallel_works_param(@work))
+          else
+            parallel_cross_range_path(@canonical_work.book_key, first[0], first[1], last[0], last[1],
+                                      works: parallel_works_param(@work))
+          end
+      %>
+      <%= link_to "Read in parallel →", parallel_path,
+            class: "text-[var(--color-link)] hover:underline" %>
     </p>
   </header>
 
-  <article class="<%= scripture_classes_for(@work) %> max-w-prose"
-           lang="<%= @work.language %>"
-           dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
-    <% @verses.each do |unit| %>
-      <% ch = unit.canonical_ref.hierarchy[0] %>
-      <% v  = unit.canonical_ref.hierarchy[1] %>
-      <p id="v<%= ch %>-<%= v %>" class="mb-4">
-        <sup class="text-xs text-[--color-ink-soft] mx-1 font-sans align-super">
-          <%= link_to "#{ch}:#{v}",
-                reader_verse_path(@work.slug, @canonical_work.slug, ch, v),
-                class: "hover:underline decoration-dotted",
-                dir: "ltr" %>
-        </sup><%= unit.body %>
-      </p>
-    <% end %>
-  </article>
+  <% if has_notes %>
+    <article class="chapter-grid <%= scripture_classes_for(@work) %>"
+             lang="<%= @work.language %>"
+             dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>"
+             data-controller="annotation-highlight">
+      <% note_offset = 0 %>
+      <% @verses.each do |unit| %>
+        <% ch = unit.canonical_ref.hierarchy[0] %>
+        <% v  = unit.canonical_ref.hierarchy[1] %>
+        <% notes = unit.work_unit_notes.sort_by(&:position_in_unit) %>
+        <div class="verse-row" id="v<%= ch %>-<%= v %>">
+          <p class="verse-text">
+            <sup class="text-xs text-[var(--color-ink-soft)] mx-1 font-sans align-super">
+              <%= link_to "#{ch}:#{v}",
+                    reader_verse_path(@work.slug, @canonical_work.slug, ch, v),
+                    class: "hover:underline decoration-dotted",
+                    dir: "ltr" %>
+            </sup><%= render_verse_body_with_anchors(unit, notes, note_offset) %>
+          </p>
+          <aside class="verse-notes" aria-label="marginal notes">
+            <%= render_verse_marginal_notes(notes, note_offset) %>
+          </aside>
+        </div>
+        <% note_offset += notes.size %>
+      <% end %>
+    </article>
+  <% else %>
+    <article class="<%= scripture_classes_for(@work) %> max-w-prose"
+             lang="<%= @work.language %>"
+             dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
+      <% @verses.each do |unit| %>
+        <% ch = unit.canonical_ref.hierarchy[0] %>
+        <% v  = unit.canonical_ref.hierarchy[1] %>
+        <p id="v<%= ch %>-<%= v %>" class="mb-4">
+          <sup class="text-xs text-[var(--color-ink-soft)] mx-1 font-sans align-super">
+            <%= link_to "#{ch}:#{v}",
+                  reader_verse_path(@work.slug, @canonical_work.slug, ch, v),
+                  class: "hover:underline decoration-dotted",
+                  dir: "ltr" %>
+          </sup><%= unit.body %>
+        </p>
+      <% end %>
+    </article>
+  <% end %>
 
-  <footer class="mt-16 pt-6 border-t border-[--color-rule] text-xs text-[--color-ink-soft]">
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)]">
     <p>
       <%= @work.title %>
       <% if @work.license %>

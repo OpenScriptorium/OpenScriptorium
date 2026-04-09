@@ -1,22 +1,41 @@
 <% content_for :title, "Principles" %>
 
 <div class="max-w-3xl mx-auto px-5 py-12">
-  <header class="border-b border-[--color-rule] pb-6 mb-10">
-    <p class="text-sm uppercase tracking-wide text-[--color-ink-soft]">About</p>
-    <h1 class="font-serif text-4xl text-[--color-ink] mt-1">Principles</h1>
-    <p class="mt-3 italic text-[--color-ink-soft] font-serif">
-      What guides this site, in three commitments.
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10">
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">About</p>
+    <h1 class="font-serif text-4xl text-[var(--color-ink)] mt-1">Principles</h1>
+    <p class="mt-3 italic text-[var(--color-ink-soft)] font-serif">
+      What this site commits to, and what it refuses.
     </p>
   </header>
 
-  <article class="font-serif text-[--color-ink] leading-relaxed text-lg space-y-5 [&_p]:max-w-prose">
+  <article class="font-serif text-[var(--color-ink)] leading-relaxed text-lg space-y-5 [&_p]:max-w-prose">
 
-    <h2 class="font-serif text-3xl text-[--color-ink] mt-14 mb-4 first:mt-2">Free, in the strict sense</h2>
+    <h2 class="font-serif text-3xl text-[var(--color-ink)] mt-14 mb-4 first:mt-2">Scripture must be free</h2>
+
+    <figure class="my-6 pl-6 border-l-2 border-[var(--color-rule)] not-italic">
+      <blockquote class="text-[var(--color-ink-soft)]">
+        <p>&hellip;Write the vision, and make it plain upon tables,
+        that a man may read it swiftly.</p>
+      </blockquote>
+      <figcaption class="text-sm italic mt-1 text-[var(--color-ink-soft)]">
+        &mdash; Habakkuk 2:2 (JPS 1917)
+      </figcaption>
+    </figure>
+
+    <figure class="my-6 pl-6 border-l-2 border-[var(--color-rule)] not-italic">
+      <blockquote class="text-[var(--color-ink-soft)]">
+        <p>&hellip;freely ye have received, freely give.</p>
+      </blockquote>
+      <figcaption class="text-sm italic mt-1 text-[var(--color-ink-soft)]">
+        &mdash; Matthew 10:8 (KJV)
+      </figcaption>
+    </figure>
 
     <p>
       Every text in the corpus, every font, every line of source code, and
       every gem we depend on must meet the
-      <a href="https://www.gnu.org/philosophy/free-sw.en.html" class="underline decoration-dotted hover:text-[--color-link]">FSF&rsquo;s definition of free software</a>
+      <a href="https://www.gnu.org/philosophy/free-sw.en.html" class="underline decoration-dotted hover:text-[var(--color-link)]">FSF&rsquo;s definition of free software</a>
       &mdash; the four freedoms: the freedom to run, study, modify, and
       redistribute, with or without changes.
     </p>
@@ -39,7 +58,7 @@
       maintainers. The corpus you read is the corpus you can fork.
     </p>
 
-    <h2 class="font-serif text-3xl text-[--color-ink] mt-14 mb-4 first:mt-2">Academic consensus over dogmatic bias</h2>
+    <h2 class="font-serif text-3xl text-[var(--color-ink)] mt-14 mb-4 first:mt-2">Academic consensus over dogmatic bias</h2>
 
     <p>
       The site is built for serious study. That means defaulting to
@@ -66,11 +85,12 @@
       the relevant field &mdash; for example, NA28 / ECM for the Greek New
       Testament, BHS for the Hebrew Bible, the Göttingen LXX or Rahlfs for
       the Septuagint &mdash; not the preference of any one tradition.
-      Where we cannot host the consensus edition for legal reasons, we
-      say so.
+      Where the consensus edition is not available under a free license,
+      we will not platform or promote it: we host the freest faithful
+      witness we can, and say so.
     </p>
 
-    <h2 class="font-serif text-3xl text-[--color-ink] mt-14 mb-4 first:mt-2">Big tent &mdash; with a light hand</h2>
+    <h2 class="font-serif text-3xl text-[var(--color-ink)] mt-14 mb-4 first:mt-2">Big tent &mdash; with a light hand</h2>
 
     <p>
       The corpus is meant to be inclusive. Anything an academic might
@@ -88,11 +108,14 @@
       Moderation exists, but with a light hand and a clear principle: we
       curate for <em>academic relevance</em>, not for theological agreement.
       The Gospel of Thomas belongs here. So do Philo, Josephus, Origen,
-      Maimonides, Calvin, Fox, and Barclay. Texts that have no historical
-      or scholarly relationship to the biblical literature do not.
+      Maimonides, Augustine, Luther, and Calvin. The Book of Mormon is
+      welcome too &mdash; though it likely won&rsquo;t be in the default
+      document set, and most readers will need to opt in to see it.
+      Texts that have no historical or scholarly relationship to the
+      biblical literature do not belong.
     </p>
 
-    <h2 class="font-serif text-3xl text-[--color-ink] mt-14 mb-4 first:mt-2">Customizable, with sensible defaults</h2>
+    <h2 class="font-serif text-3xl text-[var(--color-ink)] mt-14 mb-4 first:mt-2">Customizable, with sensible defaults</h2>
 
     <p>
       Different readers want different things. A scholar comparing the
@@ -113,21 +136,62 @@
       defaults themselves</em>. Everything that can be customized will be.
     </p>
 
-    <hr class="border-[--color-rule] my-12">
+    <h2 class="font-serif text-3xl text-[var(--color-ink)] mt-14 mb-4 first:mt-2">A note on harmful content</h2>
 
-    <p class="text-sm text-[--color-ink-soft] italic">
+    <p>
+      The corpus contains scripture, and scripture &mdash; read honestly &mdash;
+      contains passages that have been used to justify enormous harm: slavery,
+      the subjugation of women, the persecution of Jews, the conquest of
+      indigenous peoples, the killing of heretics. We do not redact these
+      passages, footnote them away, or pretend they aren&rsquo;t there. A site
+      built for serious study has to let the text speak, including where the
+      text is hard. Readers are trusted to bring their own judgment, and the
+      scholarly apparatus is there precisely so they can see how that
+      judgment has been formed and contested over two millennia.
+    </p>
+
+    <p>
+      Commentary and secondary literature are held to a different standard.
+      Inclusion in the corpus is editorial; it is not neutral, and it is not
+      required by the principle of academic relevance. A work can be
+      historically important and unfit to host. Luther&rsquo;s <em>On the Jews
+      and Their Lies</em> is the clearest example: it is undeniably part of
+      the historical record, it is studied seriously by scholars of
+      Reformation antisemitism, and it does not belong in a reading library
+      that aims to serve Jewish readers, Christian readers, and everyone
+      else on equal footing. The same goes for early modern tracts whose
+      primary content is dehumanization rather than argument.
+    </p>
+
+    <p>
+      The line we try to hold is this: we host commentary that engages the
+      biblical literature, even where it disagrees sharply with traditions
+      we respect. We do not host commentary whose central project is the
+      degradation of a people. Where a corpus author has written some work
+      that crosses that line and other work that doesn&rsquo;t, we host the
+      rest.
+    </p>
+
+    <p>
+      If you think we&rsquo;ve drawn this line wrong &mdash; in either
+      direction &mdash; please open an issue.
+    </p>
+
+    <hr class="border-[var(--color-rule)] my-12">
+
+    <p class="text-sm text-[var(--color-ink-soft)] italic">
       These principles are operating commitments, not platitudes. If you
       catch the site violating one of them &mdash; bundling a non-free
       dependency, hiding an inconvenient textual variant, refusing a text
       on doctrinal rather than scholarly grounds &mdash; please open an
       issue on
-      <a href="https://git.sr.ht/~sethkush/openscriptorium" class="underline decoration-dotted hover:text-[--color-link]">the source repository</a>.
+      <a href="https://git.sr.ht/~sethkush/openscriptorium" class="underline decoration-dotted hover:text-[var(--color-link)]">the source repository</a>.
     </p>
 
-    <p class="text-sm text-[--color-ink-soft] mt-6 not-italic">
+    <p class="text-sm text-[var(--color-ink-soft)] mt-6 not-italic">
       For scholars, editors, and lexicographers: please also read our
       <%= link_to "appeal", appeal_to_scholars_path,
-            class: "underline decoration-dotted hover:text-[--color-link]" %>
+            class: "underline decoration-dotted hover:text-[var(--color-link)]" %>
       asking you to release your editorial work under a license that
       respects the four freedoms.
     </p>

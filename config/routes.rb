@@ -21,6 +21,31 @@ Rails.application.routes.draw do
   # the controller simple. /works gives a directory of every work.
   resources :works, only: [:index, :show], param: :slug
 
+  # Parallel reader. URL grammar matches the single-work reader so a
+  # passage citation looks the same regardless of which view it lands in.
+  # Defined before the /:work_slug scope so "parallel" isn't swallowed.
+  #
+  #   /parallel/:book_slug/:chapter                    — whole chapter
+  #   /parallel/:book_slug/:chapter/:verse             — single verse
+  #   /parallel/:book_slug/:chapter/:from-:to          — intra-chapter range
+  #   /parallel/:book_slug/:from_ch.:from_v-:to_ch.:to_v — cross-chapter range
+  get "/parallel/:book_slug/:from_ch.:from_v-:to_ch.:to_v",
+      to: "parallel#show",
+      as: :parallel_cross_range,
+      constraints: { from_ch: /\d+/, from_v: /\d+/, to_ch: /\d+/, to_v: /\d+/ }
+  get "/parallel/:book_slug/:chapter/:from-:to",
+      to: "parallel#show",
+      as: :parallel_range,
+      constraints: { chapter: /\d+/, from: /\d+/, to: /\d+/ }
+  get "/parallel/:book_slug/:chapter/:verse",
+      to: "parallel#show",
+      as: :parallel_verse,
+      constraints: { chapter: /\d+/, verse: /\d+/ }
+  get "/parallel/:book_slug/:chapter",
+      to: "parallel#show",
+      as: :parallel_chapter,
+      constraints: { chapter: /\d+/ }
+
   scope "/:work_slug" do
     get "/:book_slug",                  to: "reader#book",    as: :reader_book
 

@@ -1,16 +1,16 @@
 <% content_for :title, "Architecture" %>
 
-<div class="max-w-3xl mx-auto px-5 py-12 font-serif text-[--color-ink] leading-relaxed text-lg space-y-5
-            [&_h2]:font-serif [&_h2]:text-3xl [&_h2]:text-[--color-ink] [&_h2]:mt-14 [&_h2]:mb-4
+<div class="max-w-3xl mx-auto px-5 py-12 font-serif text-[var(--color-ink)] leading-relaxed text-lg space-y-5
+            [&_h2]:font-serif [&_h2]:text-3xl [&_h2]:text-[var(--color-ink)] [&_h2]:mt-14 [&_h2]:mb-4
             [&_p]:max-w-prose
             [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1
             [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1
             [&_code]:font-mono [&_code]:text-base
             [&_strong]:font-semibold">
-  <header class="border-b border-[--color-rule] pb-6 mb-10 not-prose">
-    <p class="text-sm uppercase tracking-wide text-[--color-ink-soft]">About</p>
-    <h1 class="font-serif text-4xl text-[--color-ink] mt-1">Architecture</h1>
-    <p class="mt-3 italic text-[--color-ink-soft]">
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10 not-prose">
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">About</p>
+    <h1 class="font-serif text-4xl text-[var(--color-ink)] mt-1">Architecture</h1>
+    <p class="mt-3 italic text-[var(--color-ink-soft)]">
       How the corpus is modelled, and how cross-references work across translations.
     </p>
   </header>
@@ -27,8 +27,8 @@
 
   <ol>
     <li>
-      <strong>Works</strong> are concrete documents: a translation, an
-      original-language edition, a commentary, a lexicon. Each work has a
+      <strong>Works</strong> are concrete documents: a translation, a
+      source-language edition, a commentary, a lexicon. Each work has a
       license, a language, and a list of <em>work units</em>.
     </li>
     <li>
@@ -47,7 +47,7 @@
 
   <figure class="not-prose my-10">
     <%= render "shared/diagram_addressing" %>
-    <figcaption class="text-xs text-[--color-ink-soft] italic mt-2 text-center">
+    <figcaption class="text-xs text-[var(--color-ink-soft)] italic mt-2 text-center">
       Diagram: BSB Genesis 1:1, WLC Genesis 1:1, and the LXX all point at
       the same canonical ref. The canonical layer carries no text &mdash; it
       is the <em>address</em> shared between editions.
@@ -75,7 +75,7 @@
 
   <figure class="not-prose my-10">
     <%= render "shared/diagram_xrefs" %>
-    <figcaption class="text-xs text-[--color-ink-soft] italic mt-2 text-center">
+    <figcaption class="text-xs text-[var(--color-ink-soft)] italic mt-2 text-center">
       Diagram: a single GIST overlap query against
       <code class="font-mono">source_range &amp;&amp; int4range(N, N+1)</code>
       finds every cross-reference touching canonical ord N, including ones
@@ -86,20 +86,19 @@
   <h2>Versification &mdash; one canonical work per scheme</h2>
 
   <p>
-    Different traditions disagree about verse numbering. The Masoretic Text
-    counts Psalm superscriptions as verse 1; the Septuagint combines what
-    the MT splits into Psalms 9 and 10; Jeremiah is shorter and reordered
-    in the LXX; Catholic and Orthodox canons structure several books
-    distinctly. We don&rsquo;t pretend these differences don&rsquo;t
+    Different traditions disagree about verse numbering. The Masoretic
+    Text counts Psalm superscriptions as verse 1; the Septuagint combines
+    what the MT splits into Psalms 9 and 10; Jeremiah is shorter and
+    reordered in the LXX; Catholic and Orthodox canons structure several
+    books distinctly. We don&rsquo;t pretend these differences don&rsquo;t
     exist, and we don&rsquo;t invent ad-hoc mappings.
   </p>
 
   <p>
     Each canonical work is tagged with a <strong>versification scheme</strong>
-    taken from the Crosswire SWORD project&rsquo;s published v11n list
-    (<code>KJV</code>, <code>NRSV</code>, <code>MT</code>, <code>LXX</code>,
-    <code>Vulgate</code>, <code>Catholic</code>, <code>German</code>,
-    <code>Synodal</code>, <code>Leningrad</code>, &hellip;). For most books,
+    drawn from the schemes documented by TVTMS (see below):
+    <code>KJV</code>, <code>MT</code>, <code>LXX</code>, <code>Vulgate</code>,
+    and a few specific sub-traditions where they matter. For most books
     every translation lines up verse-by-verse on the same canonical work
     (a BSB Genesis 1:1 work_unit and a Rahlfs Genesis 1:1 work_unit both
     point at the same canonical_ref). For books where the schemes
@@ -109,27 +108,35 @@
   <ul>
     <li><code>psalms</code> &mdash; KJV scheme &mdash; used by BSB, WLC, Robinson-Pierpont</li>
     <li><code>psalms-lxx</code> &mdash; LXX scheme &mdash; used by Rahlfs, Brenton</li>
+    <li><code>jeremiah-lxx</code>, <code>job-lxx</code> &mdash; LXX scheme &mdash; reordered / shorter</li>
+    <li><code>daniel-theodotion</code>, <code>bel-and-the-dragon-theodotion</code>,
+        <code>susanna-theodotion</code> &mdash; alternative Greek recensions</li>
+    <li><code>joshua-vaticanus-b</code>, <code>judges-vaticanus-b</code>,
+        <code>tobit-sinaiticus</code> &mdash; alternative manuscript recensions</li>
   </ul>
 
   <p>
-    Both have <code>book_key="psalms"</code>, so the URL routing
+    Each of these shares a <code>book_key</code> with its primary
+    counterpart (<code>psalms-lxx</code> and <code>psalms</code> both
+    have <code>book_key="psalms"</code>), so the URL routing
     (<code>/bsb/psalms/9</code> vs <code>/rahlfs-lxx/psalms/9</code>)
-    resolves to whichever canonical work the requested work has units in.
-    The user gets clean URLs; the schema preserves the academic distinction.
+    resolves to whichever canonical work the requested work has the
+    most coverage in. The user gets clean URLs; the schema preserves
+    the academic distinction.
   </p>
 
   <h2>Cross-scheme verse mappings &mdash; <code>versification_mappings</code></h2>
 
   <p>
-    To put a Rahlfs verse next to a BSB verse on a parallel reader, we need
-    to know that <em>LXX Psalm 9:21</em> is the same passage as <em>MT
-    Psalm 10:1</em>. That mapping data lives in the
+    To put a Rahlfs verse next to a BSB verse on a parallel reader, we
+    need to know that <em>LXX Psalm 9:22</em> is the same passage as
+    <em>MT Psalm 10:1</em>. That mapping data lives in the
     <code>versification_mappings</code> table, with one row per
     cross-scheme equivalence:
   </p>
 
   <pre class="text-sm">  from_scheme:        LXX
-  from_canonical_ref: psalms-lxx 9:21
+  from_canonical_ref: psalms-lxx 9:22
   to_scheme:          KJV
   to_canonical_ref:   psalms 10:1
   mapping_type:       exact</pre>
@@ -137,27 +144,80 @@
   <p>
     The data comes from the
     <a href="https://github.com/STEPBible/STEPBible-Data/tree/master/Versification" class="underline decoration-dotted">TVTMS</a>
-    (Translators Versification Traditions with Methodology for Standardisation)
-    file maintained by Tyndale House Cambridge and STEPBible.org under
-    <strong>CC BY 4.0</strong>. TVTMS is the most thorough public
-    cross-walk of verse numbering across English, Hebrew, Latin, and Greek
-    traditions; we download it at import time, parse the expanded section,
-    and populate <code>versification_mappings</code> from it. Attribution
-    is recorded on the import_run row.
+    (<em>Translators Versification Traditions with Methodology for
+    Standardisation</em>) file maintained by Tyndale House Cambridge
+    and STEPBible.org under <strong>CC BY 4.0</strong>. TVTMS is the
+    most thorough public cross-walk of verse numbering across English,
+    Hebrew, Latin, and Greek traditions; we download it at import time
+    and populate <code>versification_mappings</code> from its
+    <em>Expanded</em> section. Attribution is recorded on every
+    <code>import_run</code> row the importer creates.
   </p>
 
   <p>
-    The parallel reader uses these mappings via a model helper that, given
-    a canonical_ref and a target scheme, returns the equivalent
-    canonical_ref(s) in that scheme &mdash; with split (1:N), merge (N:1),
-    and missing handled explicitly. Where there&rsquo;s no mapping row, we
-    assume identity.
+    Each TVTMS row has the shape <em>(SourceType, SourceRef, StandardRef,
+    Action)</em>: <em>&ldquo;in tradition X, the verse numbered Y is the
+    same passage as KJV verse Z, via this kind of action.&rdquo;</em> The
+    importer maps each <code>Action</code> string to a
+    <code>mapping_type</code> on our side &mdash; <code>exact</code>,
+    <code>split</code>, <code>merge</code>, or <code>missing</code> &mdash;
+    so the parallel reader can render splits, merges, and gaps without
+    silently fudging anything.
   </p>
+
+  <h3 class="font-serif text-xl mt-6 mb-3">A subtle gotcha &mdash; pick the right TVTMS source tradition</h3>
+
+  <p>
+    TVTMS encodes <em>several</em> Greek traditions because real-world
+    LXX texts disagree about whether the title of a Psalm counts as
+    verse 1. The two most relevant labels:
+  </p>
+
+  <ul>
+    <li>
+      <code>Greek</code> / <code>Latin+Greek</code> &mdash; title-as-v1
+      convention (LXX Ps 9 has <strong>39</strong> verses, with the
+      title numbered 9:1). This is what Rahlfs&rsquo;s 1935 print
+      edition does, what the CCAT digital encoding does, and what the
+      Eliran Wong repository we import from preserves.
+    </li>
+    <li>
+      <code>Greek2</code> &mdash; title-merged convention (LXX Ps 9 has
+      <strong>38</strong> verses; what the title would be numbered is
+      collapsed into v1). This is what NETS and Brenton typically use.
+    </li>
+  </ul>
+
+  <p>
+    Importing the wrong set causes a silent off-by-one in every Psalm
+    with a title. We import only the rows tagged <code>Greek</code> and
+    <code>Latin+Greek</code> because those match how our underlying
+    Rahlfs data is numbered. If we ever import a NETS-style LXX, it
+    will need its own scheme tag and will pull from the
+    <code>Greek2</code> rows instead.
+  </p>
+
+  <h3 class="font-serif text-xl mt-6 mb-3">Looking up equivalences &mdash; <code>CanonicalRef#equivalent_in</code></h3>
+
+  <p>
+    The parallel reader doesn&rsquo;t join across the mappings table
+    inline; it asks
+    <code>canonical_ref.equivalent_in(target_scheme)</code> and gets
+    back an array of equivalent <code>canonical_ref</code>s. The helper
+    handles all four cases explicitly:
+  </p>
+
+  <ul>
+    <li><strong>identity</strong> &mdash; same scheme as the source: returns <code>[self]</code>.</li>
+    <li><strong>explicit mapping</strong> (forward or reverse) &mdash; returns the mapped ref(s); split/merge are handled by returning multiple refs or by repeating one ref across N rows.</li>
+    <li><strong><code>missing</code></strong> &mdash; the verse does not exist in the target tradition: returns <code>[]</code> and the parallel column shows an em-dash.</li>
+    <li><strong>identity fallback</strong> &mdash; no mapping row exists at all: assumes identity (most verses agree across schemes), looking up the same hierarchy in a target-scheme canonical_work that shares this <code>book_key</code>, or falling through to <code>self</code> if no scheme-specific work exists for the book.</li>
+  </ul>
 
   <h2>Word-level alignment</h2>
 
   <p>
-    Original-language texts (Hebrew, Greek) carry word-level data:
+    Source-language texts (Hebrew, Greek) carry word-level data:
     inflected surface form, lemma, Strong&rsquo;s number, morphological
     parsing. Words in a translation can be aligned to source words via
     <strong>alignment groups</strong> &mdash; the same model used by the
@@ -174,7 +234,7 @@
 
   <figure class="not-prose my-10">
     <%= render "shared/diagram_alignment" %>
-    <figcaption class="text-xs text-[--color-ink-soft] italic mt-2 text-center">
+    <figcaption class="text-xs text-[var(--color-ink-soft)] italic mt-2 text-center">
       Diagram: a many-to-many alignment group joining a Hebrew construct
       chain to its English rendering.
     </figcaption>
@@ -235,8 +295,8 @@
 
   <ul>
     <li>
-      <strong>work_unit_notes</strong> &mdash; first-class translator and
-      editor notes, typed by purpose (textual / translation /
+      <strong>work_unit_notes</strong> &mdash; translator and editor
+      notes stored as rows, typed by purpose (textual / translation /
       cross-reference / explanation / editorial). Querying &ldquo;all
       text-critical notes in BSB&rdquo; is one indexed query, not a
       DOM walk.
@@ -263,7 +323,7 @@
 
   <ul>
     <li><%= link_to "Schema reference", about_schema_path, class: "underline decoration-dotted" %> &mdash; every table, column, and association.</li>
-    <li><a href="https://wiki.crosswire.org/DevTools:Versification" class="underline decoration-dotted">Crosswire SWORD versification</a></li>
+    <li><a href="https://github.com/STEPBible/STEPBible-Data/tree/master/Versification" class="underline decoration-dotted">TVTMS</a> &mdash; the Translators Versification Traditions file (CC BY 4.0).</li>
     <li><a href="https://github.com/Clear-Bible/macula-hebrew" class="underline decoration-dotted">Macula Hebrew</a></li>
     <li><a href="https://github.com/Clear-Bible/macula-greek" class="underline decoration-dotted">Macula Greek</a></li>
   </ul>

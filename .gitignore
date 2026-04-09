@@ -40,3 +40,8 @@
 # Bundler installs all gems here (set via `bundle config set --local path`).
 # See CLAUDE.md → "Bundler quirk".
 /vendor/bundle
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+

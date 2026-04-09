@@ -54,7 +54,7 @@ gem "pg_search", "~> 2.3"
 
 # PaperTrail tracks model changes for the moderation/wiki workflow.
 # License: MIT. https://github.com/paper-trail-gem/paper_trail
-gem "paper_trail", "~> 16.0"
+gem "paper_trail", "~> 17.0"
 
 # `csv` is no longer a default gem in Ruby 3.4+. Importers parse a lot
 # of CSV files. License: BSD-2-Clause. https://github.com/ruby/csv

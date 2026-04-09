@@ -1,10 +1,10 @@
-<% content_for :title, "#{@canonical_work.title} #{@chapter}:#{@verse_n} — #{@work.title}" %>
+<% content_for :title, "#{@canonical_work.display_title} #{@chapter}:#{@verse_n} — #{@work.title}" %>
 
 <div class="max-w-2xl mx-auto px-5 py-12">
-  <nav class="text-sm text-[--color-ink-soft] mb-4">
+  <nav class="text-sm text-[var(--color-ink-soft)] mb-4">
     <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
     &raquo;
-    <%= link_to @canonical_work.title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
+    <%= link_to @canonical_work.display_title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
     &raquo;
     <%= link_to "Chapter #{@chapter}", reader_chapter_path(@work.slug, @canonical_work.slug, @chapter), class: "hover:underline" %>
     &raquo;
@@ -12,18 +12,34 @@
   </nav>
 
   <header class="mb-8">
-    <h1 class="font-serif text-3xl text-[--color-ink]">
-      <%= @canonical_work.title %> <%= @chapter %>:<%= @verse_n %>
+    <h1 class="font-serif text-3xl text-[var(--color-ink)]">
+      <%= @canonical_work.display_title %> <%= @chapter %>:<%= @verse_n %>
     </h1>
+    <p class="mt-2 text-sm font-serif">
+      <%= link_to "Read in parallel →",
+            parallel_verse_path(@canonical_work.book_key, @chapter, @verse_n,
+                                works: parallel_works_param(@work)),
+            class: "text-[var(--color-link)] hover:underline" %>
+    </p>
   </header>
 
+  <% notes = @verse.work_unit_notes.sort_by(&:position_in_unit) %>
   <article class="<%= scripture_classes_for(@work) %> max-w-prose"
            lang="<%= @work.language %>"
-           dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
-    <p><%= @verse.body %></p>
+           dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>"
+           data-controller="annotation-highlight">
+    <div class="verse-row">
+      <p class="verse-text"><%= render_verse_body_with_anchors(@verse, notes) %></p>
+      <% if notes.any? %>
+        <aside class="verse-notes mt-6 pt-4 border-t border-[var(--color-rule)]"
+               aria-label="marginal notes">
+          <%= render_verse_marginal_notes(notes) %>
+        </aside>
+      <% end %>
+    </div>
   </article>
 
-  <footer class="mt-16 pt-6 border-t border-[--color-rule] text-xs text-[--color-ink-soft]">
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)]">
     <p>
       <%= @work.title %>
       <% if @work.license %>

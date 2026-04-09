@@ -23,10 +23,10 @@ class ReaderController < ApplicationController
                  .where(work_id: @work.id)
                  .where("canonical_refs.hierarchy[1] = ?", @chapter)
                  .order("canonical_refs.ord")
-                 .includes(:canonical_ref)
+                 .includes(:canonical_ref, :work_unit_notes)
 
     if @verses.empty?
-      raise ActiveRecord::RecordNotFound, "No chapter #{@chapter} in #{@canonical_work.title}"
+      raise ActiveRecord::RecordNotFound, "No chapter #{@chapter} in #{@canonical_work.display_title}"
     end
   end
 
@@ -40,7 +40,7 @@ class ReaderController < ApplicationController
                .where(work_id: @work.id)
                .where("canonical_refs.hierarchy[1] = ? AND canonical_refs.hierarchy[2] = ?",
                       @chapter, @verse_n)
-               .includes(:canonical_ref)
+               .includes(:canonical_ref, :work_unit_notes)
                .first
     raise ActiveRecord::RecordNotFound unless @verse
   end
@@ -63,12 +63,12 @@ class ReaderController < ApplicationController
                         canonical_refs.hierarchy[2] BETWEEN ? AND ?",
                        @chapter, @from, @to)
                 .order("canonical_refs.ord")
-                .includes(:canonical_ref)
+                .includes(:canonical_ref, :work_unit_notes)
 
     raise ActiveRecord::RecordNotFound if @verses.empty?
 
     @range_label = "#{@chapter}:#{@from}-#{@to}"
-    @display_title = "#{@canonical_work.title} #{@range_label}"
+    @display_title = "#{@canonical_work.display_title} #{@range_label}"
   end
 
   # /:work_slug/:book_slug/:from_ch.:from_v-:to_ch.:to_v — cross-chapter range
@@ -95,12 +95,12 @@ class ReaderController < ApplicationController
                 .where(work_id: @work.id)
                 .where("canonical_refs.ord BETWEEN ? AND ?", start_ord, end_ord)
                 .order("canonical_refs.ord")
-                .includes(:canonical_ref)
+                .includes(:canonical_ref, :work_unit_notes)
 
     raise ActiveRecord::RecordNotFound if @verses.empty?
 
     @range_label   = "#{@from_ch}:#{@from_v}-#{@to_ch}:#{@to_v}"
-    @display_title = "#{@canonical_work.title} #{@range_label}"
+    @display_title = "#{@canonical_work.display_title} #{@range_label}"
 
     render :range
   end
@@ -124,16 +124,27 @@ class ReaderController < ApplicationController
   # resolves to KJV-Psalms (the only one BSB has units for) while
   # /rahlfs-lxx/psalms/9 resolves to LXX-Psalms.
   #
-  # Falls back to a direct slug lookup so /bsb/psalms still works in
-  # the rare case the book_key happens to match neither work but a
-  # legacy URL is in someone's bookmarks.
+  # Where multiple canonical_works share a book_key for the same Work
+  # (e.g. Rahlfs has both `joshua` — the JoshA fragments — and
+  # `joshua-vaticanus-b` — the full B-text — under book_key="joshua"),
+  # we pick the canonical_work with the most work_units in this Work.
+  # This makes the "primary" recension win for the bare URL while the
+  # secondary one is still reachable via its full slug.
+  #
+  # Falls back to a direct slug lookup so /rahlfs-lxx/joshua-vaticanus-b
+  # and similar explicit-slug URLs still work.
   def load_work_and_book
     @work = Work.find_by!(slug: params[:work_slug])
 
-    @canonical_work = CanonicalWork.used_by_work(@work.id)
-                                   .where(book_key: params[:book_slug])
-                                   .first
+    candidates = CanonicalWork
+                   .joins(canonical_refs: :work_units)
+                   .where(work_units: { work_id: @work.id })
+                   .where(book_key: params[:book_slug])
+                   .group("canonical_works.id")
+                   .order(Arel.sql("COUNT(work_units.id) DESC"))
+                   .select("canonical_works.*")
 
+    @canonical_work = candidates.first
     @canonical_work ||= CanonicalWork.find_by(slug: params[:book_slug])
     raise ActiveRecord::RecordNotFound, "no book #{params[:book_slug].inspect}" unless @canonical_work
   end
