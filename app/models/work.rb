@@ -96,7 +96,19 @@ class Work < ApplicationRecord
   ].freeze
 
   def feature_flags
+    cached_feature_flags.presence || compute_feature_flags
+  end
+
+  def compute_feature_flags
     FEATURE_DEFINITIONS.filter_map { |abbr, predicate, _label, _desc| abbr if send(predicate) }
+  end
+
+  def refresh_feature_flags!
+    update!(cached_feature_flags: compute_feature_flags)
+  end
+
+  def self.refresh_all_feature_flags!
+    find_each { |w| w.refresh_feature_flags! }
   end
 
   def has_notes?

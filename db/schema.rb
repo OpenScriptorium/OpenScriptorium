@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_10_025506) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_10_222738) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "ltree"
@@ -542,6 +542,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_025506) do
   end
 
   create_table "works", force: :cascade do |t|
+    t.string "cached_feature_flags", default: [], array: true
     t.datetime "created_at", null: false
     t.bigint "default_versification_scheme_id"
     t.text "description"
