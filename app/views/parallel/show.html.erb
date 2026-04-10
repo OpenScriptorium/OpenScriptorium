@@ -32,7 +32,8 @@
               options_for_select(picker_options + [["(remove this column)", "__remove__"]], w.slug),
               class: "parallel-col w-full text-sm bg-transparent border-0 border-b border-[var(--color-rule)] " \
                      "py-1 px-0 font-serif text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-link)]",
-              "data-action": "change->parallel-picker#update" %>
+              "data-action": "change->parallel-picker#update",
+              "aria-label": "Column #{idx + 1} work" %>
         <% if idx == 0 %>
           <p class="text-xs text-[var(--color-ink-soft)] italic mt-1">primary &middot; row anchor</p>
         <% end %>
@@ -46,7 +47,8 @@
             class: "parallel-col w-full text-sm bg-transparent border-0 border-b border-dashed " \
                    "border-[var(--color-rule)] py-1 px-0 font-serif text-[var(--color-ink-soft)] " \
                    "italic focus:outline-none focus:border-[var(--color-link)]",
-            "data-action": "change->parallel-picker#update" %>
+            "data-action": "change->parallel-picker#update",
+            "aria-label": "Add a column" %>
     </div>
   </div>
 

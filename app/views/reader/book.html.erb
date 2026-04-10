@@ -2,9 +2,11 @@
 
 <div class="max-w-3xl mx-auto px-5 py-12">
   <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
-    <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
-    <span aria-hidden="true">&raquo;</span>
-    <span><%= @canonical_work.display_title %></span>
+    <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
+      <li><%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li aria-current="page"><%= @canonical_work.display_title %></li>
+    </ol>
   </nav>
 
   <header class="border-b border-[var(--color-rule)] pb-6 mb-8">
@@ -37,10 +39,11 @@
         data-passage-jump-book-value="<%= @canonical_work.slug %>"
         data-action="submit->passage-jump#go"
         class="flex flex-wrap items-center gap-2 font-serif">
+    <label for="passage-jump-input" class="sr-only">Jump to passage</label>
     <input type="text"
+           id="passage-jump-input"
            data-passage-jump-target="input"
            placeholder="e.g. 1, 1:1, 1:1-5, 1:1-2:3"
-           aria-label="Jump to passage"
            class="px-3 py-2 border border-[var(--color-rule)] bg-[var(--color-page)] text-[var(--color-ink)] rounded font-mono text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]"/>
     <button type="submit"
             aria-label="Go to passage"

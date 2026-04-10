@@ -28,8 +28,9 @@
 <% end %>
 
 <%# --- Red-letter / words of Christ --- %>
-<% rl_on = cookies[:red_letter].to_s == "on" %>
-<div class="text-xs font-serif text-[var(--color-ink-soft)] flex items-center gap-x-2"
+<% rl_mode = cookies[:red_letter].to_s %>
+<% rl_on = %w[on accessible].include?(rl_mode) %>
+<div class="text-xs font-serif text-[var(--color-ink-soft)] flex items-center gap-x-3 flex-wrap"
      data-controller="red-letter">
   <label class="cursor-pointer flex items-center gap-1.5">
     <input type="checkbox" name="red_letter" value="on"
@@ -38,4 +39,13 @@
            class="accent-[var(--color-ink)]" />
     <span>Words of Christ</span>
   </label>
+  <% if rl_on %>
+    <label class="cursor-pointer flex items-center gap-1.5">
+      <input type="checkbox" name="red_letter_underline" value="accessible"
+             <%= "checked" if rl_mode == "accessible" %>
+             data-action="change->red-letter#toggleUnderline"
+             class="accent-[var(--color-ink)]" />
+      <span>also underline</span>
+    </label>
+  <% end %>
 </div>

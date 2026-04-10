@@ -92,6 +92,7 @@ export default class extends Controller {
     this.sliderTarget.value = initial
     this.lastSide = initial >= 50 ? "dark" : "light"
     this.apply(initial / 100)
+    this.updateValueText(initial)
   }
 
   update(event) {
@@ -126,7 +127,19 @@ export default class extends Controller {
     }
 
     this.apply(v / 100)
+    this.updateValueText(v)
     this.writeCookie(v)
+  }
+
+  updateValueText(v) {
+    let label
+    if (v < 17)      label = "Light"
+    else if (v < 33) label = "Warm light"
+    else if (v < 50) label = "Warm"
+    else if (v < 67) label = "Dark"
+    else if (v < 83) label = "Deep dark"
+    else              label = "High contrast dark"
+    this.sliderTarget.setAttribute("aria-valuetext", label)
   }
 
   apply(t) {

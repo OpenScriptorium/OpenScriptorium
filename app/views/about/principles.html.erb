@@ -202,6 +202,44 @@
       direction &mdash; please open an issue.
     </p>
 
+    <h2 class="font-serif text-3xl text-[var(--color-ink)] mt-14 mb-4 first:mt-2">Accessibility</h2>
+
+    <p>
+      Open Scriptorium is built to be usable by everyone who reads
+      scripture, including people who use screen readers, braille
+      displays, keyboard navigation, or other assistive technology.
+    </p>
+
+    <p>
+      The project targets WCAG 2.2 Level AA conformance. Every page uses
+      semantic HTML landmarks, proper heading hierarchy, and ARIA labels
+      on interactive controls. Scripture text carries language attributes
+      (<code>lang="he"</code> for Hebrew, <code>lang="grc"</code> for
+      Greek) so screen readers and braille displays can switch
+      pronunciation tables correctly. Verse numbers are labeled for
+      assistive technology. Decorative elements are hidden from screen
+      readers. All interactive controls are keyboard-accessible with
+      visible focus indicators.
+    </p>
+
+    <p>
+      Known limitations: the parallel reader&rsquo;s multi-column layout
+      is difficult to navigate linearly with a screen reader when more
+      than two columns are active. The reading theme slider produces
+      intermediate color states whose contrast ratios have not been
+      exhaustively verified at every position. Red-letter highlighting is
+      conveyed by color alone; we plan to add an optional secondary
+      indicator (italic or underline) for users who cannot perceive color
+      differences.
+    </p>
+
+    <p>
+      If you encounter an accessibility barrier on this site, please
+      open an issue on
+      <a href="https://git.sr.ht/~sethkush/openscriptorium" class="underline decoration-dotted hover:text-[var(--color-link)]">the source repository</a>.
+      We treat accessibility bugs with the same seriousness as data bugs.
+    </p>
+
     <hr class="border-[var(--color-rule)] my-12">
 
     <p class="text-sm text-[var(--color-ink-soft)] italic">

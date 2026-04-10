@@ -1,29 +1,42 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Red-letter / words-of-Christ toggle. On/off only — uses the site's
-// garnet accent color (#9b2226 light / #c84849 dark).
-//
-// Sets/removes `data-red-letter` on the nearest `<article>` so the
-// CSS `.rl` class takes effect. Persists choice in `red_letter`
-// cookie. Instant — no page reload needed.
+// Red-letter / words-of-Christ toggle with optional accessibility
+// underline. Cookie values: "" (off), "on" (color only), "accessible"
+// (color + underline). The CSS uses [data-red-letter] for color and
+// [data-red-letter="accessible"] for the underline addition.
 export default class extends Controller {
   connect() {
-    const saved = this.getCookie("red_letter") === "on"
-    const checkbox = this.element.querySelector("input[name='red_letter']")
-    if (checkbox) checkbox.checked = saved
+    const saved = this.getCookie("red_letter")
+    const main = this.element.querySelector("input[name='red_letter']")
+    const underline = this.element.querySelector("input[name='red_letter_underline']")
+    if (main) main.checked = saved === "on" || saved === "accessible"
+    if (underline) underline.checked = saved === "accessible"
     this.setArticle(saved)
   }
 
   apply() {
-    const checked = this.element.querySelector("input[name='red_letter']")?.checked || false
-    this.setArticle(checked)
-    this.setCookie("red_letter", checked ? "on" : "", 365)
+    const main = this.element.querySelector("input[name='red_letter']")?.checked || false
+    const underline = this.element.querySelector("input[name='red_letter_underline']")?.checked || false
+    const mode = main ? (underline ? "accessible" : "on") : ""
+    this.setArticle(mode)
+    this.setCookie("red_letter", mode, 365)
+    // Reload to show/hide the underline sub-option
+    if (!main) window.location.reload()
   }
 
-  setArticle(on) {
+  toggleUnderline() {
+    const underline = this.element.querySelector("input[name='red_letter_underline']")?.checked || false
+    const mode = underline ? "accessible" : "on"
+    this.setArticle(mode)
+    this.setCookie("red_letter", mode, 365)
+  }
+
+  setArticle(mode) {
     const article = document.querySelector("article")
     if (!article) return
-    if (on) {
+    if (mode === "accessible") {
+      article.setAttribute("data-red-letter", "accessible")
+    } else if (mode === "on") {
       article.setAttribute("data-red-letter", "")
     } else {
       article.removeAttribute("data-red-letter")

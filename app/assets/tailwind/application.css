@@ -337,6 +337,18 @@ html.dark .dropcap-hero {
 [data-red-letter] .rl { color: #9b2226; }
 html.dark [data-red-letter] .rl { color: #d65c5e; }
 
+/* Accessible red-letter: adds a thin underline for users who cannot
+ * perceive color differences. Toggled via a sub-option under the
+ * Words of Christ checkbox; sets data-red-letter="accessible". */
+[data-red-letter="accessible"] .rl {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+html.dark [data-red-letter="accessible"] .rl {
+  text-decoration-color: #d65c5e;
+}
+
 /* Works-index filter badges. The badge wraps a hidden checkbox; the
  * Stimulus controller toggles `is-active` on every change. */
 .filter-badge.is-active {
@@ -355,6 +367,14 @@ html.dark [data-red-letter] .rl { color: #d65c5e; }
  * line rather than flush against it. */
 html {
   scroll-padding-top: 4.5rem;
+}
+
+/* Parallel reader — stack columns vertically on narrow viewports ---------- */
+@media (max-width: 640px) {
+  .max-w-7xl [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem 0;
+  }
 }
 
 /* SIL fonts ----------------------------------------------------------------

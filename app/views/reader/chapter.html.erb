@@ -5,11 +5,13 @@
 
 <div class="<%= wrapper_max %> mx-auto px-5 py-12">
   <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
-    <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
-    <span aria-hidden="true">&raquo;</span>
-    <%= link_to @canonical_work.display_title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
-    <span aria-hidden="true">&raquo;</span>
-    <span>Chapter <%= @chapter %></span>
+    <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
+      <li><%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li><%= link_to @canonical_work.display_title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li aria-current="page">Chapter <%= @chapter %></li>
+    </ol>
   </nav>
 
   <header class="border-b border-[var(--color-rule)] pb-6 mb-10">
@@ -33,18 +35,19 @@
       flow inline beneath their verse. %>
   <% if has_notes %>
     <% rl_on = red_letter_enabled? %>
+    <% rl_attr = cookies[:red_letter].to_s.strip == "accessible" ? 'data-red-letter="accessible"' : "data-red-letter" %>
     <article class="chapter-grid <%= scripture_classes_for(@work) %>"
              lang="<%= @work.language %>"
              dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>"
              data-controller="annotation-highlight"
-             <%= "data-red-letter" if rl_on %>>
+             <%= rl_attr.html_safe if rl_on %>>
       <% note_offset = 0 %>
       <% @verses.each do |unit| %>
         <% verse_n = unit.canonical_ref.hierarchy[1] %>
         <% notes   = unit.work_unit_notes.sort_by(&:position_in_unit) %>
         <%= render "pericope_heading", pericopes: @pericope_starts[unit.canonical_ref.ord] %>
         <div class="verse-row" id="v<%= verse_n %>">
-          <p class="verse-text">
+          <p class="verse-text" aria-describedby="notes-v<%= verse_n %>">
             <sup class="text-xs text-[var(--color-ink-soft)] mx-1 font-sans align-super">
               <%= link_to verse_n,
                     reader_verse_path(@work.slug, @canonical_work.slug, @chapter, verse_n),
@@ -53,7 +56,7 @@
                     "aria-label": "Verse #{verse_n}" %>
             </sup><%= render_verse_body_with_anchors(unit, notes, note_offset) %>
           </p>
-          <aside class="verse-notes" aria-label="marginal notes">
+          <aside class="verse-notes" id="notes-v<%= verse_n %>" aria-label="marginal notes">
             <%= render_verse_marginal_notes(notes, note_offset) %>
           </aside>
           <%= render "verse_xrefs", verse_unit: unit %>
@@ -63,10 +66,11 @@
     </article>
   <% else %>
     <% rl_on = red_letter_enabled? %>
+    <% rl_attr = cookies[:red_letter].to_s.strip == "accessible" ? 'data-red-letter="accessible"' : "data-red-letter" %>
     <article class="<%= scripture_classes_for(@work) %> max-w-prose"
              lang="<%= @work.language %>"
              dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>"
-             <%= "data-red-letter" if rl_on %>>
+             <%= rl_attr.html_safe if rl_on %>>
       <% @verses.each do |unit| %>
         <% verse_n = unit.canonical_ref.hierarchy[1] %>
         <%= render "pericope_heading", pericopes: @pericope_starts[unit.canonical_ref.ord] %>

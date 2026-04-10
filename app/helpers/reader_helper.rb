@@ -150,7 +150,7 @@ module ReaderHelper
       anchor_text = body[start, len]
       tip = ERB::Util.h(note.body)
       body = body[0...start] +
-             %(<span class="annot-tooltip" tabindex="0" data-tooltip="#{tip}" title="#{tip}">#{anchor_text}</span>) +
+             %(<span class="annot-tooltip" tabindex="0" data-tooltip="#{tip}" title="#{tip}">#{anchor_text}<span class="sr-only"> (note: #{tip})</span></span>) +
              body[(start + len)..]
     end
 
@@ -258,12 +258,33 @@ module ReaderHelper
   end
 
   # ----------------------------------------------------------------
+  # Apparatus rendering
+  # ----------------------------------------------------------------
+
+  # Returns VariantUnit rows for a canonical_ref, with readings and
+  # their manuscript witnesses eager-loaded. Cached per-request so
+  # the chapter view doesn't re-query per verse.
+  def apparatus_for(canonical_ref)
+    return [] if canonical_ref.nil?
+
+    @apparatus_cache ||= {}
+    return @apparatus_cache[canonical_ref.id] if @apparatus_cache.key?(canonical_ref.id)
+
+    @apparatus_cache[canonical_ref.id] = VariantUnit
+      .where(canonical_ref_id: canonical_ref.id)
+      .includes(readings: { reading_witnesses: :manuscript })
+      .order(:id)
+      .to_a
+  end
+
+  # ----------------------------------------------------------------
   # Red-letter rendering
   # ----------------------------------------------------------------
 
   # True if the visitor has red-letter display enabled (cookie).
+  # Accepts both "on" (color only) and "accessible" (color + underline).
   def red_letter_enabled?
-    cookies[:red_letter].to_s.strip == "on"
+    %w[on accessible].include?(cookies[:red_letter].to_s.strip)
   end
 
   # Returns true if the work_unit has red-letter markup and ALL of

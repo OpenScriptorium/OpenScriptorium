@@ -1,0 +1,41 @@
+<%# Inline apparatus for a single verse.
+    Receives:
+      verse_unit: WorkUnit (the verse being annotated)
+
+    Renders nothing when no variant units exist for this verse's
+    canonical_ref — the default reader view stays uncluttered.
+    Unlike cross-references (opt-in), apparatus data is shown
+    automatically whenever it exists. %>
+<% variant_units = apparatus_for(verse_unit.canonical_ref) %>
+<% if variant_units.any? %>
+  <div class="verse-apparatus mt-1 ml-6 text-xs text-[var(--color-ink-soft)] font-serif"
+       aria-label="critical apparatus">
+    <% variant_units.each do |vu| %>
+      <p class="apparatus-entry mb-0.5">
+        <% if vu.lemma_text.present? %>
+          <span class="apparatus-lemma font-bold"><%= vu.lemma_text %></span>
+          <span class="mx-0.5">]</span>
+        <% end %>
+        <% vu.readings.each_with_index do |reading, i| %>
+          <% is_base = vu.base_reading_id == reading.id %>
+          <% next if is_base && vu.lemma_text.present? %>
+          <span class="apparatus-reading<%= ' italic' unless is_base %>">
+            <%= ";" if i > 0 && !(i == 1 && vu.base_reading_id == vu.readings.first.id) %>
+            <span class="<%= 'font-semibold' if is_base %>"><%= reading.text %></span>
+            <% witnesses = reading.reading_witnesses.sort_by { |rw| rw.manuscript.siglum } %>
+            <% if witnesses.any? %>
+              <span class="apparatus-witnesses text-[var(--color-ink-soft)] opacity-80">
+                <% witnesses.each_with_index do |rw, wi| %><%= " " if wi == 0 %><%= "," if wi > 0 %>
+                  <span class="apparatus-witness whitespace-nowrap"
+                        title="<%= rw.manuscript.name %><%= " (#{rw.manuscript.date_text})" if rw.manuscript.date_text.present? %>"><%= rw.manuscript.siglum %><% if rw.correction_layer.present? && rw.correction_layer != "*" %><sup><%= rw.correction_layer %></sup><% end %><% if rw.is_lacuna %><span class="opacity-60">(lac)</span><% end %><% if rw.is_supplement %><span class="opacity-60">(suppl)</span><% end %></span><% end %>
+              </span>
+            <% end %>
+          </span>
+        <% end %>
+        <% if vu.variant_type.present? && vu.variant_type != "other" %>
+          <span class="apparatus-type opacity-60 ml-1">(<%= vu.variant_type %>)</span>
+        <% end %>
+      </p>
+    <% end %>
+  </div>
+<% end %>

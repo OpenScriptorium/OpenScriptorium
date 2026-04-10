@@ -58,6 +58,11 @@ namespace :import do
     Importers::KjvStrongsImporter.new.call
   end
 
+  desc "Import the Louis Segond 1910 French Bible from USFM"
+  task segond: :environment do
+    Importers::SegondImporter.new.call
+  end
+
   desc "Import OpenBible.info cross-references (CC BY 4.0, ~344k links)"
   task openbible_xrefs: :environment do
     download = ENV["DOWNLOAD"] != "false"
