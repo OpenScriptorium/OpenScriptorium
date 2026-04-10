@@ -1,4 +1,5 @@
 <% content_for :title, "#{@canonical_work.display_title} #{@chapter} — #{@work.title}" %>
+<% preload_xrefs_for_chapter!(@verses) %>
 
 <% has_notes = any_notes?(@verses) %>
 <% wrapper_max = has_notes ? "max-w-5xl" : "max-w-3xl" %>

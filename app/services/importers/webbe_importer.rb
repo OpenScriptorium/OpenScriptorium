@@ -207,7 +207,7 @@ module Importers
           .gsub(/\\fr\s*[\d:.]+\s*/, "")
           .gsub(/\\ft\s*/, "")
           .gsub(/\\fqa?\s*/, "")
-          .gsub(/\\[a-z]+\s*/i, "")
+          .gsub(/\\\+?[a-z]+\*?\s*/i, "")
           .gsub(/\s+/, " ").strip
         next if fn_body.empty?
         WorkUnitNote.create!(

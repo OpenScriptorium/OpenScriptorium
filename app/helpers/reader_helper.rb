@@ -210,6 +210,42 @@ module ReaderHelper
   # given canonical_ref's ord, filtered by the user's selected
   # datasets. Empty array if no datasets are selected — keeps the
   # default reader uncluttered.
+  #
+  # Batch preload: call preload_xrefs_for_chapter! once with all
+  # verses, then per-verse lookups are just hash reads.
+  def preload_xrefs_for_chapter!(verses)
+    datasets = current_xref_datasets
+    return if datasets.empty? || verses.empty?
+
+    @xref_cache ||= {}
+    @reverse_xref_cache ||= {}
+
+    cw_id = verses.first.canonical_ref.canonical_work_id
+    ords = verses.map { |v| v.canonical_ref.ord }
+    min_ord, max_ord = ords.minmax
+
+    # Forward xrefs: source_range overlaps any verse ord
+    forward = CrossReference.approved
+                .where(source_dataset: datasets, source_canonical_work_id: cw_id)
+                .where("source_range && int4range(?, ?)", min_ord, max_ord + 1)
+                .includes(:target_canonical_work)
+                .to_a
+
+    # Reverse xrefs: target_range overlaps any verse ord
+    reverse = CrossReference.approved
+                .where(source_dataset: datasets, target_canonical_work_id: cw_id)
+                .where("target_range && int4range(?, ?)", min_ord, max_ord + 1)
+                .includes(:source_canonical_work)
+                .to_a
+
+    # Bucket by ord
+    ords.each do |ord|
+      key = [verses.find { |v| v.canonical_ref.ord == ord }&.canonical_ref&.id, datasets]
+      @xref_cache[key] = forward.select { |xr| xr.source_range.cover?(ord) }
+      @reverse_xref_cache[key] = reverse.select { |xr| xr.target_range.cover?(ord) }
+    end
+  end
+
   def cross_references_for(canonical_ref)
     datasets = current_xref_datasets
     return [] if datasets.empty? || canonical_ref.nil?
@@ -269,9 +305,7 @@ module ReaderHelper
     start_ref = CanonicalRef.where(canonical_work_id: cw.id, ord: start_ord).first
     return "#" unless start_ref
     chapter = start_ref.hierarchy[0]
-    work_slug = @work && @work.work_units.joins(:canonical_ref)
-                              .where(canonical_refs: { canonical_work_id: cw.id })
-                              .exists? ? @work.slug : "bsb"
+    work_slug = resolve_work_for_canonical_work(cw)
     reader_chapter_path(work_slug, cw.book_key, chapter, anchor: "v#{start_ref.hierarchy[1]}")
   end
 
@@ -308,9 +342,7 @@ module ReaderHelper
     start_ref = CanonicalRef.where(canonical_work_id: cw.id, ord: start_ord).first
     return "#" unless start_ref
     chapter = start_ref.hierarchy[0]
-    work_slug = @work && @work.work_units.joins(:canonical_ref)
-                              .where(canonical_refs: { canonical_work_id: cw.id })
-                              .exists? ? @work.slug : "bsb"
+    work_slug = resolve_work_for_canonical_work(cw)
     reader_chapter_path(work_slug, cw.book_key, chapter, anchor: "v#{start_ref.hierarchy[1]}")
   end
 
@@ -468,6 +500,26 @@ module ReaderHelper
   # view threads a chapter-wide counter through the helpers so every
   # marker on the page is visually unique.
   ANNOT_LETTERS = %w[ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ⁱ ʲ ᵏ ˡ ᵐ ⁿ ᵒ ᵖ ᵠ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ].freeze
+
+  # Find the best work slug to link to for a given canonical_work.
+  # Prefers the current @work if it has units there, otherwise finds
+  # any work that does. Cached per-request.
+  def resolve_work_for_canonical_work(cw)
+    @work_for_cw_cache ||= {}
+    return @work_for_cw_cache[cw.id] if @work_for_cw_cache.key?(cw.id)
+
+    # Try current work first
+    if @work && WorkUnit.where(work_id: @work.id).joins(:canonical_ref)
+                        .where(canonical_refs: { canonical_work_id: cw.id }).exists?
+      return @work_for_cw_cache[cw.id] = @work.slug
+    end
+
+    # Find any work that has units for this canonical_work
+    slug = WorkUnit.joins(:canonical_ref, :work)
+                   .where(canonical_refs: { canonical_work_id: cw.id })
+                   .pick("works.slug")
+    @work_for_cw_cache[cw.id] = slug || "bsb"
+  end
 
   def annot_letter(idx)
     return ANNOT_LETTERS[idx] if idx < 26
