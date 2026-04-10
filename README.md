@@ -150,8 +150,8 @@ Add a corresponding rake task in `lib/tasks/import.rake`.
 
 ## License
 
-The source code of Open Scriptorium is free software. See the repository for
-license details.
+The source code of Open Scriptorium is released under the
+[ISC License](LICENSE).
 
 Each imported text carries its own license, tracked in the `works` table via a
 `license_id` foreign key. Every passage view on the site displays provenance
