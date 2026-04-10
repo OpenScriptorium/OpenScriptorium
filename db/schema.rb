@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_10_222738) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_10_224101) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "ltree"
@@ -160,13 +160,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_222738) do
     t.bigint "target_canonical_work_id", null: false
     t.int4range "target_range", null: false
     t.datetime "updated_at", null: false
-    t.index ["approved_by_user_id"], name: "index_cross_references_on_approved_by_user_id"
-    t.index ["created_by_user_id"], name: "index_cross_references_on_created_by_user_id"
     t.index ["import_run_id"], name: "index_cross_references_on_import_run_id"
     t.index ["source_canonical_work_id", "source_range"], name: "idx_xrefs_source_range", using: :gist
+    t.index ["source_canonical_work_id", "status", "source_dataset"], name: "idx_xrefs_source_status_dataset"
     t.index ["source_canonical_work_id"], name: "index_cross_references_on_source_canonical_work_id"
     t.index ["source_dataset"], name: "index_cross_references_on_source_dataset"
-    t.index ["status"], name: "index_cross_references_on_status"
+    t.index ["target_canonical_work_id", "status", "source_dataset"], name: "idx_xrefs_target_status_dataset"
     t.index ["target_canonical_work_id", "target_range"], name: "idx_xrefs_target_range", using: :gist
     t.index ["target_canonical_work_id"], name: "index_cross_references_on_target_canonical_work_id"
   end
@@ -533,10 +532,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_222738) do
     t.datetime "updated_at", null: false
     t.bigint "work_id", null: false
     t.index ["canonical_ref_id"], name: "index_work_units_on_canonical_ref_id"
-    t.index ["hierarchy_path"], name: "index_work_units_on_hierarchy_path", using: :gist
     t.index ["import_run_id"], name: "index_work_units_on_import_run_id"
     t.index ["parent_id", "position"], name: "index_work_units_on_parent_id_and_position"
-    t.index ["parent_id"], name: "index_work_units_on_parent_id"
+    t.index ["work_id", "canonical_ref_id"], name: "idx_work_units_work_canonical_ref"
     t.index ["work_id", "ord"], name: "index_work_units_on_work_id_and_ord", unique: true
     t.index ["work_id"], name: "index_work_units_on_work_id"
   end

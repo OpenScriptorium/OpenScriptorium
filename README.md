@@ -17,6 +17,7 @@ you read is the corpus you can fork.
 
 The site is live at [openscriptorium.org](https://openscriptorium.org).
 Source code is hosted on [sr.ht](https://git.sr.ht/~sethkush/openscriptorium).
+Bug reports and feature requests: [issue tracker](https://todo.sr.ht/~sethkush/OpenScriptorium).
 
 ## The corpus
 
