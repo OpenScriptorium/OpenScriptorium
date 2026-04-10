@@ -141,7 +141,7 @@ module Importers
         .gsub(/\\x\s+.*?\\x\*/m, "")      # strip cross-references
         .gsub(/\\wj\s*/i, "")             # strip red-letter open
         .gsub(/\\wj\*/i, "")              # strip red-letter close
-        .gsub(/\\w\s+([^|]+)\|[^\\]*\\w\*/, '\1')  # strip \w word|...\w*
+        .gsub(/\\\+?w\s+([^|]+)\|[^\\]*\\\+?w\*/, '\1')  # strip \w word|...\w* and \+w word|...\+w*
         .gsub(/\\\+?[a-z]+\*?/i, "")      # strip remaining markers
         .gsub(/\|[^\\]*/,  "")             # strip params
         .gsub(/[¶]/, "")

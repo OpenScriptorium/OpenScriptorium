@@ -29,7 +29,7 @@ module Importers
       "JUD" => "jude", "REV" => "revelation"
     }.freeze
 
-    STRONGS_WORD_RE = /\\w\s+([^|]+)\|strong="G?(\d+)"\\w\*/
+    STRONGS_WORD_RE = /\\\+?w\s+([^|]+)\|strong="G?(\d+)"\\\+?w\*/
 
     def initialize(dir: nil, **opts)
       super(**opts)
@@ -132,7 +132,7 @@ module Importers
       end
 
       # Body text: strip USFM markup
-      body = usfm.gsub(/\\w\s+([^|]+)\|[^\\]*\\w\*/, '\1')
+      body = usfm.gsub(/\\\+?w\s+([^|]+)\|[^\\]*\\\+?w\*/, '\1')
                   .gsub(/\\[a-z+*]+/i, "")
                   .gsub(/\|[^\\]*/, "")
                   .gsub(/[¶]/, "")
