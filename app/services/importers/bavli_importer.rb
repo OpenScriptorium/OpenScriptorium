@@ -25,52 +25,54 @@ module Importers
   class BavliImporter < BaseImporter
     DEFAULT_DIR = Rails.root.join("tmp/sefaria")
 
-    # Tractate metadata: [sefaria_slug, our_slug, hebrew_title, sbl_abbr, seder, start_daf]
-    # start_daf is 2 for all standard tractates (Talmud begins on daf 2a)
+    # Tractate metadata: [sefaria_slug, our_slug, hebrew_title, sbl_abbr, seder]
+    # Sefaria arrays always index from daf 1: index 0 = daf 1a, index 1 = 1b, etc.
+    # Most tractates start on 2a (index 2); Tamid starts on 25b (index 49).
+    # The formula is always: daf = (index / 2) + 1, amud = a if even else b.
     TRACTATES = [
       # Seder Zeraim
-      ["berakhot",      "berakhot",      "ברכות",         "Ber.",     "zeraim",    2],
+      ["berakhot",      "berakhot",      "ברכות",         "Ber.",     "zeraim"],
       # Seder Moed
-      ["shabbat",       "shabbat",       "שבת",          "Shab.",    "moed",      2],
-      ["eruvin",        "eruvin",        "עירובין",        "Eruv.",    "moed",      2],
-      ["pesachim",      "pesachim",      "פסחים",         "Pes.",     "moed",      2],
-      ["rosh_hashanah", "rosh-hashanah", "ראש השנה",      "Rosh Hash.", "moed",    2],
-      ["yoma",          "yoma",          "יומא",          "Yoma",     "moed",      2],
-      ["sukkah",        "sukkah",        "סוכה",          "Suk.",     "moed",      2],
-      ["beitzah",       "beitzah",       "ביצה",          "Betz.",    "moed",      2],
-      ["taanit",        "taanit",        "תענית",         "Taan.",    "moed",      2],
-      ["megillah",      "megillah",      "מגילה",         "Meg.",     "moed",      2],
-      ["moed_katan",    "moed-katan",    "מועד קטן",      "Moed Kat.", "moed",     2],
-      ["chagigah",      "chagigah",      "חגיגה",         "Chag.",    "moed",      2],
+      ["shabbat",       "shabbat",       "שבת",          "Shab.",    "moed"],
+      ["eruvin",        "eruvin",        "עירובין",        "Eruv.",    "moed"],
+      ["pesachim",      "pesachim",      "פסחים",         "Pes.",     "moed"],
+      ["rosh_hashanah", "rosh-hashanah", "ראש השנה",      "Rosh Hash.", "moed"],
+      ["yoma",          "yoma",          "יומא",          "Yoma",     "moed"],
+      ["sukkah",        "sukkah",        "סוכה",          "Suk.",     "moed"],
+      ["beitzah",       "beitzah",       "ביצה",          "Betz.",    "moed"],
+      ["taanit",        "taanit",        "תענית",         "Taan.",    "moed"],
+      ["megillah",      "megillah",      "מגילה",         "Meg.",     "moed"],
+      ["moed_katan",    "moed-katan",    "מועד קטן",      "Moed Kat.", "moed"],
+      ["chagigah",      "chagigah",      "חגיגה",         "Chag.",    "moed"],
       # Seder Nashim
-      ["yevamot",       "yevamot",       "יבמות",         "Yev.",     "nashim",    2],
-      ["ketubot",       "ketubot",       "כתובות",        "Ket.",     "nashim",    2],
-      ["nedarim",       "nedarim",       "נדרים",         "Ned.",     "nashim",    2],
-      ["nazir",         "nazir",         "נזיר",          "Naz.",     "nashim",    2],
-      ["sotah",         "sotah",         "סוטה",          "Sot.",     "nashim",    2],
-      ["gittin",        "gittin",        "גיטין",         "Git.",     "nashim",    2],
-      ["kiddushin",     "kiddushin",     "קידושין",       "Kidd.",    "nashim",    2],
+      ["yevamot",       "yevamot",       "יבמות",         "Yev.",     "nashim"],
+      ["ketubot",       "ketubot",       "כתובות",        "Ket.",     "nashim"],
+      ["nedarim",       "nedarim",       "נדרים",         "Ned.",     "nashim"],
+      ["nazir",         "nazir",         "נזיר",          "Naz.",     "nashim"],
+      ["sotah",         "sotah",         "סוטה",          "Sot.",     "nashim"],
+      ["gittin",        "gittin",        "גיטין",         "Git.",     "nashim"],
+      ["kiddushin",     "kiddushin",     "קידושין",       "Kidd.",    "nashim"],
       # Seder Nezikin
-      ["bava_kamma",    "bava-kamma",    "בבא קמא",      "B. Kam.",  "nezikin",   2],
-      ["bava_metzia",   "bava-metzia",   "בבא מציעא",     "B. Metz.", "nezikin",   2],
-      ["bava_batra",    "bava-batra",    "בבא בתרא",      "B. Bat.",  "nezikin",   2],
-      ["sanhedrin",     "sanhedrin",     "סנהדרין",       "Sanh.",    "nezikin",   2],
-      ["makkot",        "makkot",        "מכות",          "Mak.",     "nezikin",   2],
-      ["shevuot",       "shevuot",       "שבועות",        "Shev.",    "nezikin",   2],
-      ["avodah_zarah",  "avodah-zarah",  "עבודה זרה",     "Av. Zar.", "nezikin",   2],
-      ["horayot",       "horayot",       "הוריות",        "Hor.",     "nezikin",   2],
+      ["bava_kamma",    "bava-kamma",    "בבא קמא",      "B. Kam.",  "nezikin"],
+      ["bava_metzia",   "bava-metzia",   "בבא מציעא",     "B. Metz.", "nezikin"],
+      ["bava_batra",    "bava-batra",    "בבא בתרא",      "B. Bat.",  "nezikin"],
+      ["sanhedrin",     "sanhedrin",     "סנהדרין",       "Sanh.",    "nezikin"],
+      ["makkot",        "makkot",        "מכות",          "Mak.",     "nezikin"],
+      ["shevuot",       "shevuot",       "שבועות",        "Shev.",    "nezikin"],
+      ["avodah_zarah",  "avodah-zarah",  "עבודה זרה",     "Av. Zar.", "nezikin"],
+      ["horayot",       "horayot",       "הוריות",        "Hor.",     "nezikin"],
       # Seder Kodashim
-      ["zevachim",      "zevachim",      "זבחים",         "Zev.",     "kodashim",  2],
-      ["menachot",      "menachot",      "מנחות",         "Men.",     "kodashim",  2],
-      ["chullin",       "chullin",       "חולין",         "Chul.",    "kodashim",  2],
-      ["bekhorot",      "bekhorot",      "בכורות",        "Bekh.",    "kodashim",  2],
-      ["arakhin",       "arakhin",       "ערכין",         "Arakh.",   "kodashim",  2],
-      ["temurah",       "temurah",       "תמורה",         "Tem.",     "kodashim",  2],
-      ["keritot",       "keritot",       "כריתות",        "Ker.",     "kodashim",  2],
-      ["meilah",        "meilah",        "מעילה",         "Meil.",    "kodashim",  2],
-      ["tamid",         "tamid",         "תמיד",          "Tam.",     "kodashim", 25],
+      ["zevachim",      "zevachim",      "זבחים",         "Zev.",     "kodashim"],
+      ["menachot",      "menachot",      "מנחות",         "Men.",     "kodashim"],
+      ["chullin",       "chullin",       "חולין",         "Chul.",    "kodashim"],
+      ["bekhorot",      "bekhorot",      "בכורות",        "Bekh.",    "kodashim"],
+      ["arakhin",       "arakhin",       "ערכין",         "Arakh.",   "kodashim"],
+      ["temurah",       "temurah",       "תמורה",         "Tem.",     "kodashim"],
+      ["keritot",       "keritot",       "כריתות",        "Ker.",     "kodashim"],
+      ["meilah",        "meilah",        "מעילה",         "Meil.",    "kodashim"],
+      ["tamid",         "tamid",         "תמיד",          "Tam.",     "kodashim"],
       # Seder Tahorot
-      ["niddah",        "niddah",        "נידה",          "Nidd.",    "tahorot",   2],
+      ["niddah",        "niddah",        "נידה",          "Nidd.",    "tahorot"],
     ].freeze
 
     SEDER_TITLES = {
@@ -120,8 +122,8 @@ module Importers
       @tosafot_work = ensure_work("tosafot-bavli", "Tosafot on Talmud Bavli",
                                   "תוספות על התלמוד", @pd, "commentary")
 
-      TRACTATES.each do |sefaria_slug, slug, he_title, sbl_abbr, seder, start_daf|
-        import_tractate(sefaria_slug, slug, he_title, sbl_abbr, seder, start_daf)
+      TRACTATES.each do |sefaria_slug, slug, he_title, sbl_abbr, seder|
+        import_tractate(sefaria_slug, slug, he_title, sbl_abbr, seder)
       end
 
       [@gemara_work, @rashi_work, @tosafot_work].each do |w|
@@ -166,14 +168,14 @@ module Importers
       end
     end
 
-    def import_tractate(sefaria_slug, slug, he_title, sbl_abbr, seder, start_daf)
+    def import_tractate(sefaria_slug, slug, he_title, sbl_abbr, seder)
       canonical_work = ensure_canonical_work(slug, he_title, sbl_abbr, seder)
 
       # Import Gemara
       gemara_path = File.join(@dir, "gemara", "#{sefaria_slug}.json")
       if File.exist?(gemara_path)
         data = JSON.parse(File.read(gemara_path))
-        import_gemara(canonical_work, data["text"], start_daf)
+        import_gemara(canonical_work, data["text"])
         bump(:tractates_gemara)
       end
 
@@ -181,7 +183,7 @@ module Importers
       rashi_path = File.join(@dir, "rashi", "#{sefaria_slug}.json")
       if File.exist?(rashi_path)
         data = JSON.parse(File.read(rashi_path))
-        import_commentary(canonical_work, @rashi_work, data["text"], start_daf, "rashi")
+        import_commentary(canonical_work, @rashi_work, data["text"], "rashi")
         bump(:tractates_rashi)
       end
 
@@ -189,7 +191,7 @@ module Importers
       tosafot_path = File.join(@dir, "tosafot", "#{sefaria_slug}.json")
       if File.exist?(tosafot_path)
         data = JSON.parse(File.read(tosafot_path))
-        import_commentary(canonical_work, @tosafot_work, data["text"], start_daf, "tosafot")
+        import_commentary(canonical_work, @tosafot_work, data["text"], "tosafot")
         bump(:tractates_tosafot)
       end
     end
@@ -209,11 +211,11 @@ module Importers
       cw
     end
 
-    def import_gemara(canonical_work, text_array, start_daf)
+    def import_gemara(canonical_work, text_array)
       text_array.each_with_index do |amud_segments, index|
         next unless amud_segments.is_a?(Array) && amud_segments.any?
 
-        daf = (index / 2) + start_daf
+        daf = (index / 2) + 1
         amud = (index % 2 == 0) ? 1 : 2
 
         amud_segments.each_with_index do |segment_html, seg_idx|
@@ -252,11 +254,11 @@ module Importers
       end
     end
 
-    def import_commentary(canonical_work, commentary_work, text_array, start_daf, layer)
+    def import_commentary(canonical_work, commentary_work, text_array, layer)
       text_array.each_with_index do |amud_data, index|
         next unless amud_data.is_a?(Array) && amud_data.any?
 
-        daf = (index / 2) + start_daf
+        daf = (index / 2) + 1
         amud = (index % 2 == 0) ? 1 : 2
 
         amud_data.each_with_index do |comments, seg_idx|
