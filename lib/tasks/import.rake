@@ -130,4 +130,9 @@ namespace :import do
   task bavli: :environment do
     Importers::BavliImporter.new.call
   end
+
+  desc "Import Sefaria cross-reference links (Talmud↔Tanakh, Talmud↔Talmud)"
+  task sefaria_links: :environment do
+    Importers::SefariaLinksImporter.new.call
+  end
 end

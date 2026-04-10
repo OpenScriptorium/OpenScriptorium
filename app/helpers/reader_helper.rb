@@ -198,7 +198,8 @@ module ReaderHelper
     "bsb_inline"     => "BSB editorial",
     "openbible"      => "OpenBible.info",
     "tsk"            => "Treasury of Scripture Knowledge",
-    "sefaria_links"  => "Sefaria links"
+    "sefaria_links"  => "Sefaria links",
+    "sefaria"        => "Sefaria"
   }.freeze
 
   def xref_dataset_label(slug)
@@ -223,6 +224,55 @@ module ReaderHelper
                          .for_source_ord(canonical_ref.canonical_work_id, canonical_ref.ord)
                          .includes(target_canonical_work: {})
                          .to_a
+  end
+
+  # Reverse cross-references: passages that link TO this verse.
+  def reverse_cross_references_for(canonical_ref)
+    datasets = current_xref_datasets
+    return [] if datasets.empty? || canonical_ref.nil?
+
+    @reverse_xref_cache ||= {}
+    key = [canonical_ref.id, datasets]
+    return @reverse_xref_cache[key] if @reverse_xref_cache.key?(key)
+
+    @reverse_xref_cache[key] = CrossReference
+                                 .approved
+                                 .where(source_dataset: datasets)
+                                 .for_target_ord(canonical_ref.canonical_work_id, canonical_ref.ord)
+                                 .includes(source_canonical_work: {})
+                                 .to_a
+  end
+
+  # Format a reverse cross-reference's SOURCE as an SBL-style citation.
+  def format_xref_source(xref)
+    cw = xref.source_canonical_work
+    start_ord = xref.source_range.begin
+    end_ord   = xref.source_range.end - 1
+    refs = CanonicalRef.where(canonical_work_id: cw.id, ord: [start_ord, end_ord]).index_by(&:ord)
+    s = refs[start_ord]
+    e = refs[end_ord]
+    return cw.display_title unless s
+    abbr = cw.sbl_abbreviation.presence || cw.display_title
+    if e.nil? || s.id == e.id
+      cw.format_citation(s.hierarchy)
+    elsif s.hierarchy[0] == e.hierarchy[0]
+      "#{abbr} #{s.hierarchy[0]}:#{s.hierarchy[1]}–#{e.hierarchy[1]}"
+    else
+      "#{abbr} #{s.hierarchy[0]}:#{s.hierarchy[1]}–#{e.hierarchy[0]}:#{e.hierarchy[1]}"
+    end
+  end
+
+  # Returns a reader-link path for a reverse xref's source.
+  def xref_source_path(xref)
+    cw = xref.source_canonical_work
+    start_ord = xref.source_range.begin
+    start_ref = CanonicalRef.where(canonical_work_id: cw.id, ord: start_ord).first
+    return "#" unless start_ref
+    chapter = start_ref.hierarchy[0]
+    work_slug = @work && @work.work_units.joins(:canonical_ref)
+                              .where(canonical_refs: { canonical_work_id: cw.id })
+                              .exists? ? @work.slug : "bsb"
+    reader_chapter_path(work_slug, cw.book_key, chapter, anchor: "v#{start_ref.hierarchy[1]}")
   end
 
   # Format a cross-reference's target as an SBL-style citation
