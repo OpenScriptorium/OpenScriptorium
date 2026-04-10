@@ -28,7 +28,9 @@ export default class extends Controller {
   static targets = ["row", "empty", "summary", "badge", "details", "liveRegion"]
 
   connect() {
+    this._isConnect = true
     this.apply()
+    this._isConnect = false
   }
 
   apply() {
@@ -127,6 +129,11 @@ export default class extends Controller {
     features.forEach((f) => params.append("features[]", f))
 
     const next = url.pathname + (params.toString() ? `?${params.toString()}` : "")
+    // Skip URL sync during connect() — the page already has the
+    // right URL from the server response or Turbo cache restore.
+    // Calling replaceState during connect would overwrite the
+    // history entry that the back button needs.
+    if (this._isConnect) return
     window.history.replaceState(null, "", next)
   }
 }
