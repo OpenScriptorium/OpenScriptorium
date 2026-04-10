@@ -115,4 +115,9 @@ namespace :import do
   task brenton_notes: :environment do
     Importers::BrentonNotesImporter.new.call
   end
+
+  desc "Import WEBBE (World English Bible British Edition with Deuterocanon, PD)"
+  task webbe: :environment do
+    Importers::WebbeImporter.new.call
+  end
 end
