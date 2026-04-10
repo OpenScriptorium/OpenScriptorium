@@ -73,21 +73,23 @@
 
     <div class="grid sm:grid-cols-3 gap-x-8 gap-y-10 font-serif">
       <article>
-        <h3 class="text-lg text-[var(--color-ink)] mb-2">Scripture in three languages</h3>
+        <h3 class="text-lg text-[var(--color-ink)] mb-2">Scripture in many traditions</h3>
         <p class="text-[var(--color-ink-soft)] leading-relaxed text-sm">
-          The Berean Standard Bible in English; the Westminster Leningrad
-          Codex for the Hebrew Bible; Nestle&rsquo;s 1904 and the
-          Robinson&ndash;Pierpont Byzantine Textform for the Greek New
-          Testament; Rahlfs&rsquo; Septuagint and Brenton&rsquo;s English
-          translation of it for the deuterocanon and the Old Greek
-          tradition. Every verse aligns to the same canonical reference
-          so they can be read
+          The Westminster Leningrad Codex and JPS 1917 for the Hebrew
+          Bible; Nestle&rsquo;s 1904 and the Robinson&ndash;Pierpont
+          Byzantine Textform for the Greek New Testament; Rahlfs&rsquo;
+          Septuagint and Brenton&rsquo;s English translation; the Berean
+          Standard Bible, the King James Version with the Apocrypha,
+          and the Lutherbibel 1912 in modern translation. Every verse
+          aligns to the same canonical reference so they can be read
           <%= link_to "in parallel", parallel_chapter_path("genesis", 1, works: "bsb,wlc"),
                 class: "underline decoration-dotted hover:text-[var(--color-link)]" %>.
         </p>
         <p class="mt-3 text-xs text-[var(--color-ink-soft)] italic">
-          Six scripture works loaded. Cross-scheme verse alignment
-          (LXX&nbsp;↔&nbsp;MT&nbsp;↔&nbsp;KJV) live via TVTMS.
+          Nine scripture works loaded; the Clementine Vulgate, Louis
+          Segond, the full Patriarchal Bible, and the William Davidson
+          Talmud are next. Cross-scheme alignment (LXX&nbsp;↔&nbsp;MT&nbsp;↔&nbsp;KJV&nbsp;↔&nbsp;German)
+          handled by TVTMS.
         </p>
       </article>
 
@@ -109,11 +111,22 @@
 
         <figure class="mb-3 pl-3 border-l-2 border-[var(--color-rule)]">
           <blockquote class="text-[var(--color-ink-soft)] text-sm leading-snug">
-            <p>&hellip;Write the vision, and make it plain upon tables,
-            that a man may read it swiftly.</p>
+            <p>Assemble the people, the men and the women and the
+            little ones, and thy stranger that is within thy gates,
+            that they may hear, and that they may learn&hellip;</p>
           </blockquote>
           <figcaption class="text-xs italic mt-0.5 text-[var(--color-ink-soft)]">
-            &mdash; Habakkuk 2:2 (JPS 1917)
+            &mdash; Deuteronomy 31:12 (JPS 1917)
+          </figcaption>
+        </figure>
+
+        <figure class="mb-3 pl-3 border-l-2 border-[var(--color-rule)]">
+          <blockquote class="text-[var(--color-ink-soft)] text-sm leading-snug">
+            <p>&hellip;Write down the vision and make it plain on
+            tablets, so that a herald may run with it.</p>
+          </blockquote>
+          <figcaption class="text-xs italic mt-0.5 text-[var(--color-ink-soft)]">
+            &mdash; Habakkuk 2:2 (BSB)
           </figcaption>
         </figure>
 

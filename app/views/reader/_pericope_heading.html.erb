@@ -6,20 +6,38 @@
 
     For Hebrew works (WLC, etc.) we show only the Hebrew name.
     For English/other works (JPS 1917, future LXX/Brenton parallels)
-    we show the English transliteration. %>
+    we show the English transliteration.
+
+    The type ("pericope" / "section" / "heading" / "parashah") is
+    encoded only by visual hierarchy — type label text was too noisy.
+    The type is exposed via `title=` and `aria-label` for accessibility
+    and hover affordance. %>
 <% show_hebrew_only = @work&.language == "he" %>
+<%
+  type_classes = {
+    "section"   => { wrap: "mt-10 mb-4", text: "text-lg",  weight: "font-semibold", glyph: "§" },
+    "pericope"  => { wrap: "mt-8 mb-3",  text: "text-base", weight: "font-medium",   glyph: "¶" },
+    "parashah"  => { wrap: "mt-8 mb-3",  text: "text-base", weight: "font-medium",   glyph: "¶" },
+    "haftarah"  => { wrap: "mt-8 mb-3",  text: "text-base", weight: "font-medium",   glyph: "¶" },
+    "lectionary" => { wrap: "mt-6 mb-3", text: "text-base", weight: "font-medium",   glyph: "¶" },
+    "heading"   => { wrap: "mt-5 mb-2",  text: "text-sm",   weight: "font-normal italic", glyph: "›" }
+  }
+%>
 <% Array(pericopes).each do |p| %>
+  <% s = type_classes[p.pericope_type] || type_classes["pericope"] %>
   <% range = pericope_range_label(p) %>
-  <div class="my-8 first:mt-0 col-span-full text-[var(--color-ink-soft)] font-serif">
-    <p class="text-base">
-      <em class="not-italic uppercase text-[10px] tracking-wider mr-2"><%= p.pericope_type.humanize %></em>
+  <div class="<%= s[:wrap] %> first:mt-0 col-span-full font-serif">
+    <p class="<%= s[:text] %> <%= s[:weight] %> text-[var(--color-ink)] flex items-baseline gap-x-2 flex-wrap"
+       title="<%= p.pericope_type.humanize %>"
+       aria-label="<%= p.pericope_type.humanize %>: <%= p.name %>">
+      <span class="text-[var(--color-ink-soft)] font-normal not-italic select-none" aria-hidden="true"><%= s[:glyph] %></span>
       <% if show_hebrew_only && p.native_name.present? %>
-        <span class="font-hebrew text-xl text-[var(--color-ink)]" lang="he" dir="rtl"><%= p.native_name %></span>
+        <span class="font-hebrew" lang="he" dir="rtl"><%= p.native_name %></span>
       <% else %>
-        <span class="italic text-[var(--color-ink)]"><%= p.name %></span>
+        <span><%= p.name %></span>
       <% end %>
       <% if range %>
-        <span class="text-xs ml-2"><%= range %></span>
+        <span class="text-xs font-normal not-italic text-[var(--color-ink-soft)]"><%= range %></span>
       <% end %>
     </p>
   </div>

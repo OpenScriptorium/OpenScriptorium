@@ -231,7 +231,7 @@ module Importers
           native_title: "The Holy Bible, Conteyning the Old Testament, and the New",
           work_type: "scripture_translation",
           language: "en",
-          tradition: "kjv",
+          traditions: ["χ-protestant"],
           genre: "translation",
           license: @license,
           default_versification_scheme: @kjv_scheme,

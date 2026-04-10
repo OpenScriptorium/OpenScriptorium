@@ -53,6 +53,7 @@
           <aside class="verse-notes" aria-label="marginal notes">
             <%= render_verse_marginal_notes(notes, note_offset) %>
           </aside>
+          <%= render "verse_xrefs", verse_unit: unit %>
         </div>
         <% note_offset += notes.size %>
       <% end %>
@@ -72,6 +73,7 @@
                   dir: "ltr" %>
           </sup><%= unit.body %>
         </p>
+        <%= render "verse_xrefs", verse_unit: unit %>
       <% end %>
     </article>
   <% end %>
@@ -88,7 +90,7 @@
           class: "text-[var(--color-link)] hover:underline" %>
   </nav>
 
-  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)]">
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2">
     <p>
       <%= @work.title %>
       <% if @work.license %>
@@ -98,5 +100,6 @@
         <% end %>
       <% end %>
     </p>
+    <%= render "xref_picker" %>
   </footer>
 </div>

@@ -52,4 +52,16 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::Luther1912Importer.new(download: download).call
   end
+
+  desc "Import OpenBible.info cross-references (CC BY 4.0, ~344k links)"
+  task openbible_xrefs: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::OpenbibleXrefsImporter.new(download: download).call
+  end
+
+  desc "Import Treasury of Scripture Knowledge cross-references (CC BY-SA 4.0, ~305k links)"
+  task tsk: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::TskImporter.new(download: download).call
+  end
 end

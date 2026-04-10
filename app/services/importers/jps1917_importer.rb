@@ -250,7 +250,7 @@ module Importers
           native_title: "The Holy Scriptures According to the Masoretic Text — A New Translation",
           work_type: "scripture_translation",
           language: "en",
-          tradition: "jewish_english",
+          traditions: ["jewish"],
           genre: "translation",
           license: @license,
           default_versification_scheme: @mt_scheme,

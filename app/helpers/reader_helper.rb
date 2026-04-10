@@ -156,6 +156,99 @@ module ReaderHelper
     units.any? { |u| u.work_unit_notes.any? }
   end
 
+  # ----------------------------------------------------------------
+  # Cross-reference rendering
+  # ----------------------------------------------------------------
+
+  # The set of cross-reference datasets the current visitor has opted
+  # into. Stored as a comma-separated string in the `xref_datasets`
+  # cookie (or in users.preferences once auth is wired up). Default
+  # is empty — cross-references are opt-in so the default reading
+  # experience stays uncluttered.
+  def current_xref_datasets
+    raw = cookies[:xref_datasets].to_s
+    raw.split(",").map(&:strip).reject(&:empty?)
+  end
+
+  # All datasets currently present in cross_references, used to drive
+  # the picker UI. Cached per-request via @available_xref_datasets so
+  # we don't requery on every helper call.
+  def available_xref_datasets
+    @available_xref_datasets ||= CrossReference.distinct.pluck(:source_dataset).compact.sort
+  end
+
+  # Display labels for known xref datasets — falls back to a
+  # humanized version of the slug for anything we haven't tagged.
+  XREF_DATASET_LABELS = {
+    "bsb_inline"     => "BSB editorial",
+    "openbible"      => "OpenBible.info",
+    "tsk"            => "Treasury of Scripture Knowledge",
+    "sefaria_links"  => "Sefaria links"
+  }.freeze
+
+  def xref_dataset_label(slug)
+    XREF_DATASET_LABELS[slug] || slug.to_s.tr("_", " ").capitalize
+  end
+
+  # Returns the cross_references whose source range overlaps the
+  # given canonical_ref's ord, filtered by the user's selected
+  # datasets. Empty array if no datasets are selected — keeps the
+  # default reader uncluttered.
+  def cross_references_for(canonical_ref)
+    datasets = current_xref_datasets
+    return [] if datasets.empty? || canonical_ref.nil?
+
+    @xref_cache ||= {}
+    key = [canonical_ref.id, datasets]
+    return @xref_cache[key] if @xref_cache.key?(key)
+
+    @xref_cache[key] = CrossReference
+                         .approved
+                         .where(source_dataset: datasets)
+                         .for_source_ord(canonical_ref.canonical_work_id, canonical_ref.ord)
+                         .includes(target_canonical_work: {})
+                         .to_a
+  end
+
+  # Format a cross-reference's target as an SBL-style citation
+  # ("John 1:1–5"). The target_range is an int4range over
+  # canonical_refs.ord; we resolve the start and end ords to
+  # canonical_refs and format their hierarchies.
+  def format_xref_target(xref)
+    cw = xref.target_canonical_work
+    start_ord = xref.target_range.begin
+    end_ord   = xref.target_range.end - 1
+    refs = CanonicalRef.where(canonical_work_id: cw.id, ord: [start_ord, end_ord]).index_by(&:ord)
+    s = refs[start_ord]
+    e = refs[end_ord]
+    return cw.display_title unless s
+    abbr = cw.sbl_abbreviation.presence || cw.display_title
+    if e.nil? || s.id == e.id
+      "#{abbr} #{s.hierarchy[0]}:#{s.hierarchy[1]}"
+    elsif s.hierarchy[0] == e.hierarchy[0]
+      "#{abbr} #{s.hierarchy[0]}:#{s.hierarchy[1]}–#{e.hierarchy[1]}"
+    else
+      "#{abbr} #{s.hierarchy[0]}:#{s.hierarchy[1]}–#{e.hierarchy[0]}:#{e.hierarchy[1]}"
+    end
+  end
+
+  # Returns a reader-link path for a cross-reference target. Uses the
+  # current Work's slug if it has work_units in the target's
+  # canonical_work, otherwise falls back to BSB (the default English
+  # work). The fallback is so xrefs to OT books from a NT-only work
+  # still resolve to a readable page.
+  def xref_target_path(xref)
+    cw = xref.target_canonical_work
+    start_ord = xref.target_range.begin
+    start_ref = CanonicalRef.where(canonical_work_id: cw.id, ord: start_ord).first
+    return "#" unless start_ref
+    chapter = start_ref.hierarchy[0]
+    work_slug = @work && @work.work_units.joins(:canonical_ref)
+                              .where(canonical_refs: { canonical_work_id: cw.id })
+                              .exists? ? @work.slug : "bsb"
+    reader_chapter_path(work_slug, cw.book_key, chapter, anchor: "v#{start_ref.hierarchy[1]}")
+  end
+
   # Human-readable verse-range label for a pericope, computed from its
   # int4range over canonical_refs.ord. Returns e.g. "Gen 6:9–11:32"
   # or nil if the range can't be resolved.

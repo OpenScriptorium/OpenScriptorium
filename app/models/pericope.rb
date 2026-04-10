@@ -24,6 +24,7 @@ class Pericope < ApplicationRecord
     jewish_liturgical
     hebrew_textcritical
     nrsv_editorial
+    bsb_editorial
     rcl_lectionary
     roman_catholic_lectionary
     byzantine_lectionary

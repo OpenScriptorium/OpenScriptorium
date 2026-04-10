@@ -138,7 +138,7 @@ module Importers
           title: "Berean Standard Bible",
           work_type: "scripture_translation",
           language: "en",
-          tradition: "modern_protestant",
+          traditions: ["χ-protestant"],
           genre: "translation",
           license: license,
           default_versification_scheme: VersificationScheme.find_by(code: "KJV"),

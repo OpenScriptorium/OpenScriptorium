@@ -207,7 +207,7 @@ module Importers
           native_title: "Septuaginta",
           work_type: "scripture_original",
           language: "el-koine",
-          tradition: "septuagint",
+          traditions: ["χ-orthodox", "academic"],
           genre: "original",
           license: @license,
           default_versification_scheme: @lxx_scheme,

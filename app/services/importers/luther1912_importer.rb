@@ -180,7 +180,7 @@ module Importers
           native_title: "Die Bibel oder die ganze Heilige Schrift des Alten und Neuen Testaments nach der Übersetzung Martin Luthers",
           work_type: "scripture_translation",
           language: "de",
-          tradition: "luther",
+          traditions: ["χ-protestant"],
           genre: "translation",
           license: @license,
           default_versification_scheme: @kjv_scheme,

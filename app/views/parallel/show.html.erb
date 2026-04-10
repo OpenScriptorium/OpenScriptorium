@@ -114,12 +114,13 @@
     </nav>
   <% end %>
 
-  <footer class="mt-12 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-1">
+  <footer class="mt-12 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2">
     <% @works.each do |w| %>
       <p>
         <%= w.title %>
         <% if w.license %> · <%= w.license.name %><% end %>
       </p>
     <% end %>
+    <%= render "reader/xref_picker" %>
   </footer>
 </div>

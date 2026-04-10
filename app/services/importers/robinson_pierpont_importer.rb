@@ -133,7 +133,7 @@ module Importers
           native_title: "Ἡ Καινὴ Διαθήκη ἐν τῇ ἀρχαίᾳ Ἑλληνικῇ — Βυζαντινός Τύπος",
           work_type: "scripture_original",
           language: "el-koine",
-          tradition: "byzantine_text",
+          traditions: ["χ-orthodox"],
           genre: "original",
           license: @license,
           default_versification_scheme: @kjv_scheme,

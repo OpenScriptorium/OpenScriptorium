@@ -99,6 +99,21 @@ module Importers
         "nestle1904" => ensure_nestle1904_work
       }
 
+      # Existing BSB Work created by BsbImporter from bsb.txt. We
+      # extend it here with per-word data, alignment to the source
+      # languages, footnotes, section headings, and cross-references —
+      # all from the same Berean tables file. The BSB Work itself
+      # must already exist; this importer doesn't create it.
+      @bsb_work = Work.find_by(slug: "bsb")
+      tag_bsb_with_pericope_tradition!
+      reset_bsb_features!
+
+      # State for the heading scanner — open Pericope rows are flushed
+      # when a new heading at the same hierarchy level appears, and
+      # again at end-of-import for any still open. Keys are heading
+      # class strings ("hdg", "subhdg", "suphdg", "pshdg").
+      @open_headings = {}
+
       # Cache canonical_works by slug to avoid 750k lookups
       @canonical_work_cache = {}
 
@@ -144,7 +159,10 @@ module Importers
         end
       end
 
+      flush_open_headings!
+
       @works.each_value { |w| w.update!(last_imported_at: Time.current, source_revision: source_revision_for_file) }
+      @bsb_work&.update!(last_imported_at: Time.current, source_revision: source_revision_for_file)
     end
 
     private
@@ -173,7 +191,7 @@ module Importers
           native_title: "תורה נביאים וכתובים",
           work_type: "scripture_original",
           language: "he",
-          tradition: "jewish",
+          traditions: ["jewish"],
           genre: "original",
           license: @license,
           default_versification_scheme: @kjv_scheme,
@@ -194,7 +212,7 @@ module Importers
           native_title: "Η ΚΑΙΝΗ ΔΙΑΘΗΚΗ",
           work_type: "scripture_original",
           language: "el-koine",
-          tradition: "critical_text",
+          traditions: ["academic"],
           genre: "original",
           license: @license,
           default_versification_scheme: @kjv_scheme,
@@ -283,6 +301,13 @@ module Importers
 
         Word.insert_all(word_attrs) if word_attrs.any?
 
+        # BSB-side: this same row set carries the English equivalents
+        # in column 19, the section headings in column 14, the
+        # footnotes in column 22, and the cross-references in column
+        # 15. Process them all here while we still hold the verse's
+        # row set in memory.
+        process_bsb_side!(canonical_work, canonical_ref, ordered) if @bsb_work
+
         bump(:verses_processed)
         bump(:words_processed, word_attrs.size)
       end
@@ -291,6 +316,416 @@ module Importers
         $stdout.puts "[BsbTablesImporter] #{@stats[:verses_processed]} verses, #{@stats[:words_processed]} words, #{@stats[:lemmas_created] || 0} lemmas"
         $stdout.flush
       end
+    end
+
+    # ============================================================
+    # BSB-side processing
+    # ============================================================
+    # The Berean tables file is BSB's own data — every row pairs one
+    # source-language word with the English BSB phrase that translates
+    # it. Each verse pass below ingests:
+    #
+    #   * BSB Words — one row per English word (col 19), tagged with
+    #     the source-language Strong's of the row it came from.
+    #   * AlignmentGroup — one per source row, linking the source
+    #     word(s) to the BSB English word(s) on that same row.
+    #   * WorkUnitNote — one per row that has a footnote in col 22,
+    #     classified by the note text shape ("Cited in" =
+    #     cross_reference, "Literally" / "Or" = translation, "MT;
+    #     Syriac" / similar = textual).
+    #   * Cross-reference rows — col 15 carries an HTML link list
+    #     attached to the verse start; we parse the URLs and create
+    #     CrossReference rows at the canonical layer (lighting up XRF
+    #     for every work that aligns to these refs, not just BSB).
+    #   * Section headings — col 14 marks the START of a named
+    #     pericope. We track open headings per class and flush them
+    #     when a new heading at the same level arrives.
+    def process_bsb_side!(canonical_work, canonical_ref, rows)
+      bsb_unit = WorkUnit.find_by(work_id: @bsb_work.id, canonical_ref_id: canonical_ref.id)
+      unless bsb_unit
+        bump(:bsb_unit_missing)
+        return
+      end
+
+      # The source-language Words for this verse, in `ordered` row
+      # order — the existing process_verse loop just inserted them in
+      # exactly that order with position = idx + 1, so we can zip
+      # them by index. Look them up once instead of per-row.
+      source_unit = WorkUnit
+                      .where(canonical_ref_id: canonical_ref.id)
+                      .where(work_id: @works.values.map(&:id))
+                      .first
+      source_words_by_position = if source_unit
+        Word.where(work_unit_id: source_unit.id).order(:position).pluck(:position, :id).to_h
+      else
+        {}
+      end
+
+      # 0) Extract paragraph + red-letter markup from the verse's rows.
+      #    Col 16 = "Par" (paragraph marker, non-empty on first word of
+      #    a new paragraph). Col 18 = "begQ" (beginning of a quotation
+      #    — red-letter / OT-in-NT marker). Col 21 = "endQ" (end of
+      #    quotation). We store these in the work_unit's markup JSONB
+      #    so the reader can render paragraph breaks and red-letter text.
+      has_paragraph = rows.any? { |r| r[15].to_s.strip.present? }
+      red_letter_words = []
+      in_quote = false
+      bsb_sort_idx = 0
+      rows.sort_by { |r| r[2].to_i }.each do |r|
+        phrase = (r[18] || "").strip
+        next if phrase.empty? || phrase == "-"
+        if r[17].to_s.strip.present?  # begQ
+          in_quote = true
+        end
+        if in_quote
+          phrase.split(/\s+/).each do |_tok|
+            bsb_sort_idx += 1
+            red_letter_words << bsb_sort_idx
+          end
+        else
+          bsb_sort_idx += phrase.split(/\s+/).size
+        end
+        if r[20].to_s.strip.present?  # endQ
+          in_quote = false
+        end
+      end
+
+      markup = bsb_unit.markup || {}
+      markup["paragraph"] = true if has_paragraph
+      markup["red_letter_positions"] = red_letter_words if red_letter_words.any?
+      if markup != (bsb_unit.markup || {})
+        bsb_unit.update_column(:markup, markup)
+      end
+
+      # 1) Per-row English words → BSB Word rows + AlignmentGroups
+      bsb_word_position = 1
+      rows.each_with_index do |r, row_idx|
+        # 2) Footnote on this row first (independent of whether
+        #    there's an English phrase — some footnotes attach to
+        #    untranslated rows).
+        if (fn_html = r[21].presence)
+          create_bsb_footnote(bsb_unit, fn_html, (r[18] || "").strip, row_idx)
+        end
+
+        english_phrase = (r[18] || "").strip
+        next if english_phrase.empty?
+        next if english_phrase == "-"  # untranslated source word marker
+
+        tokens = english_phrase.split(/\s+/).reject(&:empty?)
+        next if tokens.empty?
+
+        # Strong's of the source word on this row — Hebrew is col 11,
+        # Greek is col 12 (zero-indexed: 10 / 11). The bsb_tables
+        # source layout puts both columns on the same row, with one
+        # populated and the other blank.
+        source_strongs = (r[10].presence || r[11].presence)
+        source_lang    = r[4].to_s.strip  # "Hebrew", "Aramaic", or "Greek"
+        source_lemma   = source_strongs.present? ? lookup_lemma_for_strongs(source_lang, source_strongs) : nil
+        bsb_word_records = tokens.map do |tok|
+          rec = {
+            work_id:        @bsb_work.id,
+            work_unit_id:   bsb_unit.id,
+            position:       bsb_word_position,
+            surface:        tok,
+            normalized:     tok.downcase.gsub(/[^\p{L}\p{N}\u2019'\-]/u, ""),
+            lemma_id:       source_lemma&.id,
+            morph_code:     nil,
+            strongs_number: source_strongs,
+            import_run_id:  @import_run.id,
+            notes:          { source_word: r[5], translit: r[7] }.compact,
+            created_at:     Time.current,
+            updated_at:     Time.current
+          }
+          bsb_word_position += 1
+          rec
+        end
+
+        bsb_ids = Word.insert_all(bsb_word_records, returning: %w[id]).rows.flatten
+
+        # Source word for this row by position (1-based) → its id.
+        src_word_id = source_words_by_position[row_idx + 1]
+        if src_word_id && bsb_ids.any?
+          ag = AlignmentGroup.create!(
+            canonical_ref_id: canonical_ref.id,
+            source_work_id:   source_unit.work_id,
+            target_work_id:   @bsb_work.id,
+            alignment_type:   "literal",
+            confidence:       1.0,
+            import_run_id:    @import_run.id
+          )
+          AlignmentGroupMember.create!(
+            alignment_group_id: ag.id, word_id: src_word_id, role: "source", position: 0,
+            import_run_id: @import_run.id
+          )
+          bsb_ids.each_with_index do |bid, i|
+            AlignmentGroupMember.create!(
+              alignment_group_id: ag.id, word_id: bid, role: "target", position: i,
+              import_run_id: @import_run.id
+            )
+          end
+          bump(:alignment_groups_created)
+        end
+      end
+
+      # 3) Cross-references attached to this verse (col 15 — only the
+      #    first row of the verse carries them).
+      first_row = rows.first
+      if first_row && (xref_html = first_row[14].presence)
+        process_bsb_xrefs!(canonical_work, canonical_ref, xref_html)
+      end
+
+      # 4) Section headings (col 14 — column index 13). Each row that
+      #    opens a new heading flushes any open heading at the same
+      #    class level and starts a new one. Final headings flush at
+      #    end of import.
+      rows.each do |r|
+        hdg_html = r[13].to_s
+        next if hdg_html.empty?
+        scan_heading_html(canonical_work, canonical_ref, hdg_html)
+      end
+    end
+
+    # ------------------------------------------------------------
+    # Idempotency: wipe BSB-side rows for a fresh re-import. Doing
+    # this once at the start (rather than per-verse) is dramatically
+    # faster on the 80,000-verse re-run path.
+    # ------------------------------------------------------------
+    def reset_bsb_features!
+      return unless @bsb_work
+      bsb_unit_ids = WorkUnit.where(work_id: @bsb_work.id).pluck(:id)
+
+      # Delete in foreign-key order:
+      #   AlignmentGroupMember → AlignmentGroup → Word
+      ag_ids = AlignmentGroup.where(target_work_id: @bsb_work.id).pluck(:id)
+      AlignmentGroupMember.where(alignment_group_id: ag_ids).delete_all if ag_ids.any?
+      AlignmentGroup.where(id: ag_ids).delete_all if ag_ids.any?
+      Word.where(work_id: @bsb_work.id).delete_all
+
+      WorkUnitNote.where(work_unit_id: bsb_unit_ids).delete_all
+      Pericope.where(source_dataset: "bsb").delete_all
+      CrossReference.where(source_dataset: "bsb_inline").delete_all
+      bump(:bsb_features_reset)
+    end
+
+    def tag_bsb_with_pericope_tradition!
+      return unless @bsb_work
+      unless @bsb_work.pericope_traditions.include?("bsb_editorial")
+        @bsb_work.pericope_traditions = (@bsb_work.pericope_traditions + ["bsb_editorial"]).uniq
+        stamp(@bsb_work)
+        @bsb_work.save!
+      end
+    end
+
+    # Look up the source-language Lemma for a given Strong's number,
+    # so BSB English words can carry their source lemma_id.
+    LANG_TO_BCP47 = { "Hebrew" => "he", "Aramaic" => "arc", "Greek" => "el-koine" }.freeze
+
+    def lookup_lemma_for_strongs(lang, strongs)
+      key = [lang, strongs]
+      return @strongs_lemma_cache[key] if @strongs_lemma_cache&.key?(key)
+      @strongs_lemma_cache ||= {}
+      bcp47 = LANG_TO_BCP47[lang]
+      work_ids = bcp47 == "el-koine" ? [@works["nestle1904"]&.id].compact : [@works["wlc"]&.id].compact
+      lemma_id = Word.where(work_id: work_ids, strongs_number: strongs)
+                      .where.not(lemma_id: nil)
+                      .limit(1).pick(:lemma_id)
+      @strongs_lemma_cache[key] = lemma_id ? Lemma.find(lemma_id) : nil
+    end
+
+    # ------------------------------------------------------------
+    # Footnote classification + insertion
+    # ------------------------------------------------------------
+    FOOTNOTE_CITATION_RE   = /\ACited in\b/
+    FOOTNOTE_LITERAL_RE    = /\A(?:Literally|Lit\.)\b/
+    FOOTNOTE_OR_RE         = /\AOr\b/
+    FOOTNOTE_TEXTUAL_RE    = /\A(?:MT|LXX|DSS|Syriac|Vulgate|Samaritan|Targum)\b[;,]/i
+
+    def create_bsb_footnote(bsb_unit, fn_html, english_phrase, row_idx)
+      body = strip_html(fn_html).strip
+      return if body.empty?
+
+      type = case body
+             when FOOTNOTE_CITATION_RE then "cross_reference"
+             when FOOTNOTE_LITERAL_RE  then "translation"
+             when FOOTNOTE_OR_RE       then "translation"
+             when FOOTNOTE_TEXTUAL_RE  then "textual"
+             else                          "explanation"
+             end
+
+      note = WorkUnitNote.new(
+        work_unit_id:    bsb_unit.id,
+        position_in_unit: row_idx,
+        note_type:       type,
+        anchor_text:     english_phrase.strip,
+        body:            body,
+        import_run_id:   @import_run.id
+      )
+      note.save!
+      bump(:bsb_footnotes_created)
+    end
+
+    # ------------------------------------------------------------
+    # Cross-reference parsing
+    # ------------------------------------------------------------
+    # Col 15 looks like:
+    #   <br /><span class=|cross|>(<a href =|../john/1.htm|>John 1:1–5</a>; <a href =|../hebrews/11.htm|>Hebrews 11:1–3</a>)</span>
+    # The display text is the canonical reference; we re-parse it to
+    # find the target canonical_ref. The href is just for the BSB
+    # website — we ignore it.
+    XREF_LINK_RE = /<a[^>]*>([^<]+)<\/a>/
+
+    def process_bsb_xrefs!(source_cw, source_ref, xref_html)
+      links = xref_html.scan(XREF_LINK_RE).flatten
+      links.each do |display|
+        begin
+          parsed = parse_xref_display(display.strip)
+          unless parsed
+            bump(:bsb_xrefs_unparsed)
+            next
+          end
+
+          target_slug = BOOK_SLUGS[parsed[:book]]
+          unless target_slug
+            bump(:bsb_xrefs_unknown_book)
+            next
+          end
+          target_cw = (@canonical_work_cache[target_slug] ||= CanonicalWork.find_by(slug: target_slug))
+          next unless target_cw
+
+          target_start = ord_for_hierarchy(target_cw, parsed[:start_ch], parsed[:start_v])
+          target_end   = ord_for_hierarchy(target_cw, parsed[:end_ch],   parsed[:end_v])
+          unless target_start && target_end
+            bump(:bsb_xrefs_no_target_ord)
+            next
+          end
+
+          CrossReference.create!(
+            source_canonical_work_id: source_cw.id,
+            source_range:             (source_ref.ord...(source_ref.ord + 1)),
+            target_canonical_work_id: target_cw.id,
+            target_range:             (target_start...(target_end + 1)),
+            # BSB's editorial cross-references are general "see also"
+            # links — they don't classify whether the relationship is
+            # quotation, allusion, fulfillment, etc. "parallels" is
+            # the umbrella we use; if a future dataset (e.g. GNT
+            # marginal apparatus) tags relationship type explicitly we
+            # can map to the more specific terms then.
+            relationship_type:        "parallels",
+            confidence:               1.0,
+            source_dataset:           "bsb_inline",
+            status:                   "approved",
+            import_run_id:            @import_run.id
+          )
+          bump(:bsb_xrefs_created)
+        rescue => e
+          bump(:bsb_xrefs_failed)
+          Rails.logger.warn "[BsbTablesImporter] xref failed: #{display.inspect} (#{e.class}: #{e.message})"
+        end
+      end
+    end
+
+    # Display formats we accept:
+    #   "John 1:1"                 single verse
+    #   "John 1:1–5"               same-chapter range (en-dash)
+    #   "1 Chronicles 15:29–16:3"  cross-chapter range
+    XREF_DISPLAY_RE = /\A
+      (?<book>(?:[1-3]\s)?[A-Z][A-Za-z ]+?)\s+
+      (?<ch1>\d+):(?<v1>\d+)
+      (?:[\u2013\-](?:(?<ch2>\d+):)?(?<v2>\d+))?
+    \z/x
+
+    def parse_xref_display(s)
+      m = XREF_DISPLAY_RE.match(s) or return nil
+      {
+        book:        m[:book].strip,
+        start_ch:    m[:ch1].to_i,
+        start_v:     m[:v1].to_i,
+        end_ch:      (m[:ch2] || m[:ch1]).to_i,
+        end_v:       (m[:v2] || m[:v1]).to_i
+      }
+    end
+
+    def ord_for_hierarchy(canonical_work, chapter, verse)
+      CanonicalRef
+        .where(canonical_work_id: canonical_work.id, hierarchy: [chapter, verse])
+        .pick(:ord)
+    end
+
+    # ------------------------------------------------------------
+    # Heading scanner / pericope creation
+    # ------------------------------------------------------------
+    HEADING_TAG_RE = /<p\s+class=\|(?<cls>[a-z]+)\|>(?<text>[^<]*)/
+
+    HEADING_TYPE_FOR_CLASS = {
+      "suphdg" => "section",
+      "hdg"    => "pericope",
+      "pshdg"  => "pericope",
+      "subhdg" => "heading"
+    }.freeze
+
+    def scan_heading_html(canonical_work, canonical_ref, html)
+      html.scan(HEADING_TAG_RE) do |cls, text|
+        type = HEADING_TYPE_FOR_CLASS[cls] or next
+        text = text.strip
+        next if text.empty?
+
+        # Flush any open heading of the SAME class — its range ends
+        # one ord before this new one starts (i.e. it covered up to
+        # the previous verse).
+        if (open = @open_headings[cls])
+          flush_heading!(open, canonical_ref.ord)
+        end
+
+        @open_headings[cls] = {
+          canonical_work_id: canonical_work.id,
+          name:              text,
+          pericope_type:     type,
+          source_class:      cls,
+          start_ord:         canonical_ref.ord,
+          sequence_number:   (@stats[:bsb_pericopes_started] || 0) + 1
+        }
+        bump(:bsb_pericopes_started)
+      end
+    end
+
+    def flush_heading!(open, next_start_ord)
+      end_ord = next_start_ord - 1
+      return if end_ord < open[:start_ord]
+
+      Pericope.create!(
+        canonical_work_id: open[:canonical_work_id],
+        source_dataset:    "bsb",
+        tradition:         "bsb_editorial",
+        name:              open[:name],
+        pericope_type:     open[:pericope_type],
+        sequence_number:   open[:sequence_number],
+        canonical_range:   (open[:start_ord]...(end_ord + 1)),
+        description:       "BSB section heading (#{open[:source_class]})",
+        import_run_id:     @import_run.id
+      )
+      bump(:bsb_pericopes_created)
+    end
+
+    def flush_open_headings!
+      @open_headings.each_value do |open|
+        # Final flush — extend to the last canonical_ref of the book.
+        last_ord = CanonicalRef.where(canonical_work_id: open[:canonical_work_id]).maximum(:ord)
+        next unless last_ord
+        flush_heading!(open, last_ord + 1)
+      end
+      @open_headings = {}
+    end
+
+    # ------------------------------------------------------------
+    # Misc helpers
+    # ------------------------------------------------------------
+    def source_unit_id_to_work_id(unit_id)
+      @unit_to_work ||= {}
+      @unit_to_work[unit_id] ||= WorkUnit.where(id: unit_id).pick(:work_id)
+    end
+
+    def strip_html(s)
+      s.to_s.gsub(/<[^>]+>/, "").gsub("&nbsp;", " ").gsub("&amp;", "&").gsub(/\s+/, " ").strip
     end
 
     def parse_ref(ref_str)

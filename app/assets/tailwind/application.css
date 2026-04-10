@@ -326,6 +326,53 @@ html.dark .dropcap-hero {
   color: #c84849;
 }
 
+/* Red-letter / words-of-Christ highlighting.
+ *
+ * Three color options so readers can pick what they find most readable:
+ * red (traditional), green (gentle on the eyes), blue (high contrast).
+ * Each has a light-mode and dark-mode variant tuned for readability
+ * against the respective background — not neon, not washed out, just
+ * a clear tonal shift from the body text.
+ *
+ * The active color is set via the `data-red-letter` attribute on the
+ * reader article element: "red", "green", "blue", or absent = off.
+ * Verses with red-letter words wrap them in <span class="rl">.
+ */
+:root {
+  --rl-red:   #9b2226;
+  --rl-green: #3a6b35;
+  --rl-blue:  #1f4d8a;
+}
+.dark {
+  --rl-red:   #e8857a;
+  --rl-green: #8fc18a;
+  --rl-blue:  #7ab0e8;
+}
+
+[data-red-letter="red"]   .rl { color: var(--rl-red); }
+[data-red-letter="green"] .rl { color: var(--rl-green); }
+[data-red-letter="blue"]  .rl { color: var(--rl-blue); }
+
+/* Works-index filter badges. The badge wraps a hidden checkbox; the
+ * Stimulus controller toggles `is-active` on every change. */
+.filter-badge.is-active {
+  background-color: var(--color-ink);
+  color: var(--color-page);
+  border-color: var(--color-ink);
+}
+
+/* The site navbar is sticky at the top with `h-14` (3.5rem). Without
+ * scroll-padding, anchor links to verses (e.g. /bsb/john/1#v1) land
+ * with the verse number tucked behind the navbar. Adding the offset
+ * to the html element fixes both ID-anchor navigation and
+ * programmatic scrollIntoView.
+ *
+ * The 1rem cushion above the verse keeps it visually below the rule
+ * line rather than flush against it. */
+html {
+  scroll-padding-top: 4.5rem;
+}
+
 /* SIL fonts ----------------------------------------------------------------
  * @font-face declarations live in app/assets/stylesheets/fonts.css
  * (loaded via the Propshaft asset pipeline). Font files belong in

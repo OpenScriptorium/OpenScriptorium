@@ -1,0 +1,32 @@
+<%# Cross-reference dataset picker.
+    A small disclosure that lets the visitor toggle which xref
+    datasets are active. Selection is stored in the `xref_datasets`
+    cookie via the xref-picker Stimulus controller, which reloads the
+    page on change so the inline xrefs in each verse pick up the new
+    state. Default: no datasets selected (the reader stays
+    uncluttered until the user opts in). %>
+<% selected = current_xref_datasets %>
+<% available = available_xref_datasets %>
+<% return if available.empty? %>
+<details class="xref-picker text-xs font-serif text-[var(--color-ink-soft)]"
+         data-controller="xref-picker"
+         <%= "open" if selected.any? %>>
+  <summary class="cursor-pointer hover:text-[var(--color-ink)] select-none">
+    Cross-references<% if selected.any? %>: <span class="not-italic"><%= selected.size %> active</span><% else %>: <span class="italic">off</span><% end %>
+    <span class="font-sans">▾</span>
+  </summary>
+
+  <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+    <% available.each do |slug| %>
+      <% checked = selected.include?(slug) %>
+      <label class="cursor-pointer flex items-center gap-1.5">
+        <input type="checkbox"
+               value="<%= slug %>"
+               <%= "checked" if checked %>
+               data-action="change->xref-picker#toggle"
+               class="accent-[var(--color-ink)]" />
+        <span><%= xref_dataset_label(slug) %></span>
+      </label>
+    <% end %>
+  </div>
+</details>

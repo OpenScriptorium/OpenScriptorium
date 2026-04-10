@@ -1,6 +1,7 @@
 <% content_for :title, "Works" %>
 
-<div class="max-w-5xl mx-auto py-12 px-5">
+<div class="max-w-5xl mx-auto py-12 px-5"
+     data-controller="works-filter">
   <header class="border-b border-[var(--color-rule)] pb-6 mb-10">
     <h1 class="font-serif text-4xl text-[var(--color-ink)]">Works</h1>
     <p class="mt-3 text-[var(--color-ink-soft)] italic font-serif">
@@ -9,62 +10,64 @@
   </header>
 
   <%# ============================================================
-    # Filter form — collapsed by default behind a small "filter" link.
-    # Selects use bare browser styling, feature filter shows only the
-    # abbreviations as toggleable badges (full names appear in the
-    # legend below the works list). Submits via plain GET so URLs are
-    # shareable; auto-submits on change for live feel.
+    # Filter form — client-side via the works-filter Stimulus
+    # controller. The form's GET action is preserved as a no-JS
+    # fallback (Rails server-side filter still works), but with
+    # JavaScript on, every change is intercepted and applied
+    # locally with no server roundtrip.
     # ============================================================ %>
   <% any_active = @selected_features.any? || @selected_language || @selected_tradition || @selected_type %>
-  <details class="mb-6 group" <%= "open" if any_active %>>
+  <details class="mb-6" <%= "open" if any_active %>>
     <summary class="flex items-baseline justify-between cursor-pointer text-xs uppercase tracking-wider text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] select-none">
       <span>
         Filter
-        <% if any_active %>
-          <span class="ml-2 normal-case tracking-normal italic text-[var(--color-ink)]">
-            (<%= [@selected_language, @selected_tradition, @selected_type, *@selected_features].compact.join(", ") %>)
-          </span>
-        <% end %>
+        <span class="ml-2 normal-case tracking-normal italic text-[var(--color-ink)]"
+              data-works-filter-target="summary"
+              <%= "hidden" unless any_active %>>
+          <%= any_active ? "(#{[@selected_language, @selected_tradition, @selected_type, *@selected_features].compact.join(", ")})" : "" %>
+        </span>
       </span>
       <span class="not-italic font-sans">↕</span>
     </summary>
 
     <%= form_with url: works_path, method: :get, local: true,
-          data: { turbo_action: "advance", controller: "auto-submit" },
           class: "mt-4 font-serif text-sm space-y-3" do |f| %>
       <div class="flex flex-wrap items-baseline gap-x-6 gap-y-3 text-[var(--color-ink-soft)]">
         <span>
           <%= f.select :language, [["any language", ""]] + @facet_languages.map { |l| [l, l] },
                 { selected: @selected_language },
                 class: "bg-transparent border-0 border-b border-dotted border-[var(--color-rule)] hover:border-[var(--color-ink)] focus:outline-none focus:border-[var(--color-ink)] py-0.5 pr-4 cursor-pointer",
-                data: { action: "change->auto-submit#submit" } %>
+                data: { action: "change->works-filter#apply" } %>
         </span>
         <span>
           <%= f.select :tradition, [["any tradition", ""]] + @facet_traditions.map { |t| [t.tr("_", " "), t] },
                 { selected: @selected_tradition },
                 class: "bg-transparent border-0 border-b border-dotted border-[var(--color-rule)] hover:border-[var(--color-ink)] focus:outline-none focus:border-[var(--color-ink)] py-0.5 pr-4 cursor-pointer",
-                data: { action: "change->auto-submit#submit" } %>
+                data: { action: "change->works-filter#apply" } %>
         </span>
         <span>
           <%= f.select :type, [["any type", ""]] + @facet_types.map { |t| [Work::WORK_TYPE_LABELS[t] || t.tr("_", " "), t] },
                 { selected: @selected_type },
                 class: "bg-transparent border-0 border-b border-dotted border-[var(--color-rule)] hover:border-[var(--color-ink)] focus:outline-none focus:border-[var(--color-ink)] py-0.5 pr-4 cursor-pointer",
-                data: { action: "change->auto-submit#submit" } %>
+                data: { action: "change->works-filter#apply" } %>
         </span>
-        <% if any_active %>
-          <%= link_to "clear", works_path,
-                class: "text-xs italic underline decoration-dotted hover:text-[var(--color-link)]" %>
-        <% end %>
+        <button type="button"
+                data-action="works-filter#clear"
+                class="text-xs italic underline decoration-dotted hover:text-[var(--color-link)] bg-transparent border-0 cursor-pointer p-0">
+          clear
+        </button>
       </div>
 
       <fieldset class="flex flex-wrap items-center gap-1.5">
         <% Work::FEATURE_DEFINITIONS.each do |abbr, _predicate, label, _desc| %>
           <% checked = @selected_features.include?(abbr) %>
           <label title="<%= label %>"
-                 class="cursor-pointer text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5 border transition-colors
-                        <%= checked ? 'bg-[var(--color-ink)] text-[var(--color-page)] border-[var(--color-ink)]' : 'border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]' %>">
+                 data-works-filter-target="badge"
+                 class="filter-badge cursor-pointer text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5 border transition-colors
+                        border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]
+                        <%= 'is-active' if checked %>">
             <%= check_box_tag "features[]", abbr, checked,
-                  data: { action: "change->auto-submit#submit" },
+                  data: { action: "change->works-filter#apply" },
                   class: "sr-only" %>
             <%= abbr %>
           </label>
@@ -73,16 +76,20 @@
     <% end %>
   </details>
 
-  <% if @works.empty? %>
-    <p class="font-serif italic text-[var(--color-ink-soft)] text-sm py-8 text-center">
-      No works match these filters.
-    </p>
-  <% end %>
+  <p data-works-filter-target="empty" hidden
+     class="font-serif italic text-[var(--color-ink-soft)] text-sm py-8 text-center">
+    No works match these filters.
+  </p>
 
   <ul class="divide-y divide-[var(--color-rule)]">
     <% @works.each do |work| %>
-      <% flags = work.feature_flags %>
-      <li class="py-4">
+      <% flags = @feature_flags_by_work[work.id] || [] %>
+      <li class="py-4"
+          data-works-filter-target="row"
+          data-language="<%= work.language %>"
+          data-traditions="<%= work.traditions.join(' ') %>"
+          data-work-type="<%= work.work_type %>"
+          data-features="<%= flags.join(' ') %>">
         <%= link_to work_path(work.slug), class: "block hover:underline" do %>
           <div class="flex items-baseline justify-between gap-4">
             <h2 class="font-serif text-2xl text-[var(--color-ink)]"><%= work.title %></h2>
@@ -97,6 +104,7 @@
           <p class="text-sm text-[var(--color-ink-soft)] mt-1">
             <%= work.work_type_label %>
             <% if work.language.present? %> · <span class="uppercase tracking-wide"><%= work.language %></span><% end %>
+            <% if work.traditions.any? %> · <%= work.traditions.join(", ") %><% end %>
             <% if work.license %> · <%= work.license.name %><% end %>
           </p>
         <% end %>

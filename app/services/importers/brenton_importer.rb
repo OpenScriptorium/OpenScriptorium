@@ -166,7 +166,7 @@ module Importers
           native_title: "The Septuagint Version of the Old Testament: According to the Vatican Text, Translated into English",
           work_type: "scripture_translation",
           language: "en",
-          tradition: "lxx_translation",
+          traditions: ["χ-orthodox"],
           genre: "translation",
           license: @license,
           default_versification_scheme: @lxx_scheme,
