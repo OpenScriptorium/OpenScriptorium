@@ -22,6 +22,15 @@ export default class extends Controller {
     window.location.reload()
   }
 
+  toggleApparatus(event) {
+    const on = event.target.checked
+    this.setCookie("apparatus", on ? "on" : "", 365)
+    // Toggle visibility of all apparatus entries on the page
+    document.querySelectorAll(".verse-apparatus").forEach(el => {
+      el.classList.toggle("hidden", !on)
+    })
+  }
+
   setCookie(name, value, days) {
     const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString()
     const encoded = encodeURIComponent(value)

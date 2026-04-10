@@ -28,24 +28,39 @@
 <% end %>
 
 <%# --- Red-letter / words of Christ --- %>
-<% rl_mode = cookies[:red_letter].to_s %>
-<% rl_on = %w[on accessible].include?(rl_mode) %>
-<div class="text-xs font-serif text-[var(--color-ink-soft)] flex items-center gap-x-3 flex-wrap"
-     data-controller="red-letter">
-  <label class="cursor-pointer flex items-center gap-1.5">
-    <input type="checkbox" name="red_letter" value="on"
-           <%= "checked" if rl_on %>
-           data-action="change->red-letter#apply"
-           class="accent-[var(--color-ink)]" />
-    <span>Words of Christ</span>
-  </label>
-  <% if rl_on %>
+<% if @work.has_red_letter? %>
+  <% rl_mode = cookies[:red_letter].to_s %>
+  <% rl_on = %w[on accessible].include?(rl_mode) %>
+  <div class="text-xs font-serif text-[var(--color-ink-soft)] flex items-center gap-x-3 flex-wrap"
+       data-controller="red-letter">
     <label class="cursor-pointer flex items-center gap-1.5">
+      <input type="checkbox" name="red_letter" value="on"
+             <%= "checked" if rl_on %>
+             data-action="change->red-letter#apply"
+             class="accent-[var(--color-ink)]" />
+      <span>Words of Christ</span>
+    </label>
+    <label class="cursor-pointer flex items-center gap-1.5 <%= 'hidden' unless rl_on %>"
+           data-red-letter-target="underlineLabel">
       <input type="checkbox" name="red_letter_underline" value="accessible"
              <%= "checked" if rl_mode == "accessible" %>
              data-action="change->red-letter#toggleUnderline"
              class="accent-[var(--color-ink)]" />
       <span>also underline</span>
     </label>
-  <% end %>
-</div>
+  </div>
+<% end %>
+
+<%# --- Apparatus toggle --- %>
+<% if @show_apparatus %>
+  <% app_on = cookies[:apparatus].to_s == "on" %>
+  <div class="text-xs font-serif text-[var(--color-ink-soft)] flex items-center gap-x-3 flex-wrap">
+    <label class="cursor-pointer flex items-center gap-1.5">
+      <input type="checkbox" name="apparatus" value="on"
+             <%= "checked" if app_on %>
+             data-action="change->xref-picker#toggleApparatus"
+             class="accent-[var(--color-ink)]" />
+      <span>Critical apparatus</span>
+    </label>
+  </div>
+<% end %>

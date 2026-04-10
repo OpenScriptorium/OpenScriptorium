@@ -70,7 +70,7 @@ module ReaderHelper
   # is still visually associated.
   def render_verse_body_with_anchors(unit, notes, base_index = 0)
     body = unit.body.dup
-    return (red_letter_enabled? ? apply_red_letter_spans(body, unit.markup&.dig("red_letter_positions")).html_safe : body.html_safe) if notes.empty?
+    return (render_red_letter_spans? ? apply_red_letter_spans(body, unit.markup&.dig("red_letter_positions")).html_safe : body.html_safe) if notes.empty?
 
     matches = []
     trailing = []
@@ -108,7 +108,7 @@ module ReaderHelper
     # naively split on whitespace because the body now contains HTML
     # tags. Instead, walk the string tracking tag depth and wrap each
     # top-level text word at a red-letter position.
-    if red_letter_enabled? && has_red_letter?(unit)
+    if render_red_letter_spans? && has_red_letter?(unit)
       body = apply_red_letter_to_html(body, unit.markup["red_letter_positions"])
     end
 
@@ -292,6 +292,14 @@ module ReaderHelper
   # Accepts both "on" (color only) and "accessible" (color + underline).
   def red_letter_enabled?
     %w[on accessible].include?(cookies[:red_letter].to_s.strip)
+  end
+
+  # Whether to render red-letter spans in the HTML. Always true when
+  # the work has red-letter data — the CSS [data-red-letter] attribute
+  # controls visibility, so spans are harmless when the toggle is off.
+  # This lets the JS toggle work instantly without a page reload.
+  def render_red_letter_spans?
+    @work&.has_red_letter?
   end
 
   # Returns true if the work_unit has red-letter markup and ALL of

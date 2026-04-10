@@ -8,7 +8,8 @@
     automatically whenever it exists. %>
 <% variant_units = @show_apparatus ? apparatus_for(verse_unit.canonical_ref) : [] %>
 <% if variant_units.any? %>
-  <div class="verse-apparatus mt-1 ml-6 text-xs text-[var(--color-ink-soft)] font-serif"
+  <% app_visible = cookies[:apparatus].to_s == "on" %>
+  <div class="verse-apparatus mt-1 ml-6 text-xs text-[var(--color-ink-soft)] font-serif <%= 'hidden' unless app_visible %>"
        aria-label="critical apparatus">
     <% variant_units.each do |vu| %>
       <p class="apparatus-entry mb-0.5">
