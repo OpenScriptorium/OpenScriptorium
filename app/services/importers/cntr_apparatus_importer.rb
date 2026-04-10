@@ -55,7 +55,7 @@ module Importers
     }.freeze
 
     # CNTR transcription file classes and their subdirectories
-    MS_CLASSES = %w[class-1 class-2 class-3 class-4].freeze
+    MS_CLASSES = ["class 1", "class 2", "class 3", "critical texts"].freeze
 
     def initialize(download: true, **opts)
       super(**opts)
@@ -170,7 +170,7 @@ module Importers
     def load_base_texts!
       WorkUnit.where(work_id: @sr_work.id)
               .where.not(canonical_ref_id: nil)
-              .select(:canonical_ref_id, :body)
+              .select(:id, :canonical_ref_id, :body)
               .find_each do |wu|
         @base_text_cache[wu.canonical_ref_id] = normalize_koine(wu.body)
       end
@@ -331,10 +331,12 @@ module Importers
         stamp(vu)
         vu.save!
 
-        # For idempotency, clear old readings from a previous run of this importer
-        if vu.readings.any?
-          ReadingWitness.where(reading_id: vu.reading_ids).delete_all
-          vu.readings.delete_all
+        # For idempotency, clear old readings from a previous run
+        old_reading_ids = Reading.where(variant_unit_id: vu.id).pluck(:id)
+        if old_reading_ids.any?
+          vu.update_column(:base_reading_id, nil)
+          ReadingWitness.where(reading_id: old_reading_ids).delete_all
+          Reading.where(id: old_reading_ids).delete_all
         end
 
         # Base reading (the SR text)

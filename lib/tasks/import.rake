@@ -100,4 +100,9 @@ namespace :import do
   task crampon: :environment do
     Importers::CramponImporter.new.call
   end
+
+  desc "Import the Clementine Vulgate (Latin, PD, 78 books with deuterocanon)"
+  task vulgate: :environment do
+    Importers::VulgateImporter.new.call
+  end
 end
