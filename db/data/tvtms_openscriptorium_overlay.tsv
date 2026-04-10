@@ -1041,5 +1041,25 @@ German	Psa.142:5	Psa.142:4	Renumber verse					openscriptorium_overlay
 German	Psa.142:6	Psa.142:5	Renumber verse					openscriptorium_overlay
 German	Psa.142:7	Psa.142:6	Renumber verse					openscriptorium_overlay
 German	Psa.142:8	Psa.142:7	Renumber verse					openscriptorium_overlay
+German	Psa.54:1	Psa.54:Title	Renumber title			Luther 1912 numbers the superscription as v1-v2		openscriptorium_overlay
+German	Psa.54:2	Psa.54:Title	Renumber title					openscriptorium_overlay
+German	Psa.54:3	Psa.54:1	Renumber verse					openscriptorium_overlay
+German	Psa.54:4	Psa.54:2	Renumber verse					openscriptorium_overlay
+German	Psa.54:5	Psa.54:3	Renumber verse					openscriptorium_overlay
+German	Psa.54:6	Psa.54:4	Renumber verse					openscriptorium_overlay
+German	Psa.54:7	Psa.54:5	Renumber verse					openscriptorium_overlay
+German	Psa.54:8	Psa.54:6	Renumber verse					openscriptorium_overlay
+German	Psa.54:9	Psa.54:7	Renumber verse					openscriptorium_overlay
+German	Psa.64:1	Psa.64:Title	Renumber title			Luther 1912 numbers the superscription as v1		openscriptorium_overlay
+German	Psa.64:2	Psa.64:1	Renumber verse					openscriptorium_overlay
+German	Psa.64:3	Psa.64:2	Renumber verse					openscriptorium_overlay
+German	Psa.64:4	Psa.64:3	Renumber verse					openscriptorium_overlay
+German	Psa.64:5	Psa.64:4	Renumber verse					openscriptorium_overlay
+German	Psa.64:6	Psa.64:5	Renumber verse					openscriptorium_overlay
+German	Psa.64:7	Psa.64:6	Renumber verse					openscriptorium_overlay
+German	Psa.64:8	Psa.64:7	Renumber verse					openscriptorium_overlay
+German	Psa.64:9	Psa.64:8	Renumber verse					openscriptorium_overlay
+German	Psa.64:10	Psa.64:9	Renumber verse					openscriptorium_overlay
+German	Psa.64:11	Psa.64:10	Renumber verse					openscriptorium_overlay
 German	3Jn.1:15	3Jn.1:14	MergedPrev verse			Luther 1912 splits KJV 3 John 14 (closing greeting) into v14 + v15		openscriptorium_overlay
 German	Rev.12:18	Rev.13:1	Renumber verse			Luther 1912 (and NA28) place 'And I stood upon the sand of the sea' at end of ch12, not start of ch13		openscriptorium_overlay
