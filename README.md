@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="app/assets/images/letters/dropcap-S.svg" width="120" alt="Open Scriptorium">
+</p>
+
 # Open Scriptorium
 
 An open reading room for scripture and the voices that have read it.
