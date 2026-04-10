@@ -69,6 +69,8 @@ module Importers
                         .pluck("canonical_refs.canonical_work_id")
       nestle_cr_ids = CanonicalRef.where(canonical_work_id: nestle_cw_ids).pluck(:id)
       old_vus = VariantUnit.where(canonical_ref_id: nestle_cr_ids)
+      # Null out base_reading_id first to break the FK cycle
+      old_vus.update_all(base_reading_id: nil)
       Reading.where(variant_unit_id: old_vus.select(:id)).delete_all
       old_vus.delete_all
 
