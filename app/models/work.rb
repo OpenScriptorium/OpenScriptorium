@@ -91,7 +91,8 @@ class Work < ApplicationRecord
     ["PRS", :has_parsing?,    "Parsing",    "morphological analysis per word"],
     ["ALN", :has_alignment?,  "Alignment",  "Macula-style word-level alignment to source-language texts"],
     ["PRC", :has_pericopes?,  "Pericopes",  "named passage groupings (parashot, BHS pericopes, lectionaries…)"],
-    ["QUO", :has_red_letter?, "Quotations", "words of Christ marked for red-letter display"]
+    ["QUO", :has_red_letter?, "Quotations", "words of Christ marked for red-letter display"],
+    ["APP", :has_apparatus?,  "Apparatus",  "critical apparatus with manuscript witnesses and variant readings"]
   ].freeze
 
   def feature_flags
@@ -127,5 +128,11 @@ class Work < ApplicationRecord
 
   def has_red_letter?
     work_units.where("markup ? :key", key: "red_letter_positions").exists?
+  end
+
+  def has_apparatus?
+    canonical_work_ids = work_units.joins(:canonical_ref).distinct.pluck("canonical_refs.canonical_work_id")
+    return false if canonical_work_ids.empty?
+    VariantUnit.where(canonical_ref_id: CanonicalRef.where(canonical_work_id: canonical_work_ids).select(:id)).exists?
   end
 end
