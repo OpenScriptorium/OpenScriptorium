@@ -2,6 +2,7 @@ class ReaderController < ApplicationController
   allow_unauthenticated_access only: [:book, :chapter, :verse, :range, :cross_chapter_range]
 
   before_action :load_work_and_book
+  before_action :set_apparatus_flag
 
   # /:work_slug/:book_slug — book overview
   def book
@@ -157,6 +158,10 @@ class ReaderController < ApplicationController
   #
   # Falls back to a direct slug lookup so /rahlfs-lxx/joshua-vaticanus-b
   # and similar explicit-slug URLs still work.
+  def set_apparatus_flag
+    @show_apparatus = @work.has_apparatus?
+  end
+
   def load_work_and_book
     @work = Work.find_by!(slug: params[:work_slug])
 

@@ -6,7 +6,7 @@
     canonical_ref — the default reader view stays uncluttered.
     Unlike cross-references (opt-in), apparatus data is shown
     automatically whenever it exists. %>
-<% variant_units = apparatus_for(verse_unit.canonical_ref) %>
+<% variant_units = @show_apparatus ? apparatus_for(verse_unit.canonical_ref) : [] %>
 <% if variant_units.any? %>
   <div class="verse-apparatus mt-1 ml-6 text-xs text-[var(--color-ink-soft)] font-serif"
        aria-label="critical apparatus">
