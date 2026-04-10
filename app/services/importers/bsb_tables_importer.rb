@@ -191,7 +191,7 @@ module Importers
           native_title: "תורה נביאים וכתובים",
           work_type: "scripture_original",
           language: "he",
-          traditions: ["jewish"],
+          traditions: ["ש"],
           genre: "original",
           license: @license,
           default_versification_scheme: @kjv_scheme,
