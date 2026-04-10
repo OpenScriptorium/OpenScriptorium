@@ -68,6 +68,11 @@ namespace :import do
     Importers::RahlfsMorphImporter.new.call
   end
 
+  desc "Import the CNTR Statistical Restoration Greek NT (CC BY 4.0)"
+  task cntr_sr: :environment do
+    Importers::CntrSrImporter.new.call
+  end
+
   desc "Import OpenBible.info cross-references (CC BY 4.0, ~344k links)"
   task openbible_xrefs: :environment do
     download = ENV["DOWNLOAD"] != "false"
