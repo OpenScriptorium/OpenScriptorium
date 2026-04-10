@@ -105,4 +105,9 @@ namespace :import do
   task vulgate: :environment do
     Importers::VulgateImporter.new.call
   end
+
+  desc "Import the 1904 Patriarchal Greek NT (Orthodox, PD, with Strong's)"
+  task patriarchal_nt: :environment do
+    Importers::PatriarchalNtImporter.new.call
+  end
 end
