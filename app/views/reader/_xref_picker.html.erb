@@ -1,12 +1,12 @@
-<%# Reader settings — cross-references + red-letter color.
-    Both stored as cookies, applied via Stimulus controllers. %>
+<%# Reader settings — cross-references + red-letter + apparatus.
+    All stored as cookies, applied via Stimulus controllers. %>
+<div data-controller="xref-picker">
 
 <%# --- Cross-references --- %>
 <% selected = current_xref_datasets %>
 <% available = available_xref_datasets %>
 <% if available.any? %>
   <details class="text-xs font-serif text-[var(--color-ink-soft)]"
-           data-controller="xref-picker"
            <%= "open" if selected.any? %>>
     <summary class="cursor-pointer hover:text-[var(--color-ink)] select-none">
       Cross-references<% if selected.any? %>: <span class="not-italic"><%= selected.size %> active</span><% else %>: <span class="italic">off</span><% end %>
@@ -64,3 +64,5 @@
     </label>
   </div>
 <% end %>
+
+</div>

@@ -14,8 +14,9 @@ import { Controller } from "@hotwired/stimulus"
 // without coupling the reader views to a frame layout.
 export default class extends Controller {
   toggle(event) {
+    const details = this.element.querySelector("details")
     const checked = Array.from(
-      this.element.querySelectorAll("input[type='checkbox']:checked")
+      details.querySelectorAll("input[type='checkbox']:checked")
     ).map((c) => c.value)
 
     this.setCookie("xref_datasets", checked.join(","), 365)
