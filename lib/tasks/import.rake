@@ -110,4 +110,9 @@ namespace :import do
   task patriarchal_nt: :environment do
     Importers::PatriarchalNtImporter.new.call
   end
+
+  desc "Add Brenton's translator footnotes from the USFM edition"
+  task brenton_notes: :environment do
+    Importers::BrentonNotesImporter.new.call
+  end
 end
