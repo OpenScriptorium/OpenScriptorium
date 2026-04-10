@@ -95,7 +95,14 @@ module ReaderHelper
              body[(start + len)..]
     end
 
-    trailing.each { |idx| body << marker_html(idx) }
+    # Notes with no anchor text: wrap the entire verse body so the
+    # whole verse highlights on hover (e.g. Brenton's LXX notes).
+    if trailing.any? && matches.empty?
+      body = %(<span class="annot annot-verse" data-annot="#{trailing.first}">#{body}</span>)
+      trailing.each { |idx| body << marker_html(idx) }
+    else
+      trailing.each { |idx| body << marker_html(idx) }
+    end
 
     # Apply red-letter wrapping AFTER anchor insertion. We can't
     # naively split on whitespace because the body now contains HTML
