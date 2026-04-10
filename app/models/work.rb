@@ -131,6 +131,10 @@ class Work < ApplicationRecord
   end
 
   def has_apparatus?
+    # APP only applies to source-language texts (scripture_original),
+    # not translations. The apparatus records textual variants in the
+    # source manuscript tradition, not in translations of it.
+    return false unless work_type == "scripture_original"
     canonical_work_ids = work_units.joins(:canonical_ref).distinct.pluck("canonical_refs.canonical_work_id")
     return false if canonical_work_ids.empty?
     VariantUnit.where(canonical_ref_id: CanonicalRef.where(canonical_work_id: canonical_work_ids).select(:id)).exists?

@@ -95,4 +95,9 @@ namespace :import do
   task nestle_apparatus: :environment do
     Importers::NestleApparatusImporter.new.call
   end
+
+  desc "Import the Crampon 1904 French Catholic Bible (PD, 73 books with deuterocanon)"
+  task crampon: :environment do
+    Importers::CramponImporter.new.call
+  end
 end
