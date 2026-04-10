@@ -335,7 +335,7 @@ html.dark .dropcap-hero {
  * the `rl` class on the verse <p> or on individual <span>s.
  */
 [data-red-letter] .rl { color: #9b2226; }
-html.dark [data-red-letter] .rl { color: #c84849; }
+html.dark [data-red-letter] .rl { color: #d65c5e; }
 
 /* Works-index filter badges. The badge wraps a hidden checkbox; the
  * Stimulus controller toggles `is-active` on every change. */

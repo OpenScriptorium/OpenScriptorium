@@ -53,6 +53,11 @@ namespace :import do
     Importers::Luther1912Importer.new(download: download).call
   end
 
+  desc "Add Strong's numbers and lemmas to the KJV from kaiserlik/kjv"
+  task kjv_strongs: :environment do
+    Importers::KjvStrongsImporter.new.call
+  end
+
   desc "Import OpenBible.info cross-references (CC BY 4.0, ~344k links)"
   task openbible_xrefs: :environment do
     download = ENV["DOWNLOAD"] != "false"

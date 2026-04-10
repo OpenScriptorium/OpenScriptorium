@@ -4,11 +4,11 @@
 <% wrapper_max = has_notes ? "max-w-5xl" : "max-w-3xl" %>
 
 <div class="<%= wrapper_max %> mx-auto px-5 py-12">
-  <nav class="text-sm text-[var(--color-ink-soft)] mb-4">
+  <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
     <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
-    &raquo;
+    <span aria-hidden="true">&raquo;</span>
     <%= link_to @canonical_work.display_title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
-    &raquo;
+    <span aria-hidden="true">&raquo;</span>
     <span><%= @range_label %></span>
   </nav>
 

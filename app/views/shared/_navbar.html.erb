@@ -2,13 +2,13 @@
   <div class="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-x-6">
     <%# Brand: small drop-cap mark + wordmark %>
     <%= link_to root_path, class: "flex items-center gap-x-2 group" do %>
-      <%= inline_svg "dropcap-S", class: "dropcap-nav" %>
+      <span aria-hidden="true"><%= inline_svg "dropcap-S", class: "dropcap-nav" %></span>
       <span class="font-serif text-lg text-[var(--color-ink)] tracking-tight">
         Open Scriptorium
       </span>
     <% end %>
 
-    <nav class="flex items-center gap-x-1 sm:gap-x-4 text-sm font-serif">
+    <nav aria-label="Main" class="flex items-center gap-x-1 sm:gap-x-4 text-sm font-serif">
       <%= link_to "Read",         works_path,
             class: "px-2 py-1 text-[var(--color-ink)] hover:text-[var(--color-link)]" %>
       <%= link_to "Scholars",     appeal_to_scholars_path,

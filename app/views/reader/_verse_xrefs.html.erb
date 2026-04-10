@@ -8,7 +8,7 @@
 <% xrefs = cross_references_for(verse_unit.canonical_ref) %>
 <% if xrefs.any? %>
   <p class="verse-xrefs mt-1 ml-6 text-xs text-[var(--color-ink-soft)] font-serif italic">
-    <span class="not-italic mr-1">↪</span>
+    <span class="not-italic mr-1" aria-hidden="true">↪</span>
     <% xrefs.each_with_index do |xref, i| %><%= "·" if i > 0 %>
       <%= link_to format_xref_target(xref), xref_target_path(xref),
             class: "underline decoration-dotted hover:text-[var(--color-link)] not-italic",

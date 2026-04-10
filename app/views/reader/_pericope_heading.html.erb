@@ -26,9 +26,13 @@
 <% Array(pericopes).each do |p| %>
   <% s = type_classes[p.pericope_type] || type_classes["pericope"] %>
   <% range = pericope_range_label(p) %>
+  <% heading_tag = case p.pericope_type
+                    when "section"    then "h2"
+                    when "heading"    then "h4"
+                    else "h3"
+                    end %>
   <div class="<%= s[:wrap] %> first:mt-0 col-span-full font-serif">
-    <p class="<%= s[:text] %> <%= s[:weight] %> text-[var(--color-ink)] flex items-baseline gap-x-2 flex-wrap"
-       title="<%= p.pericope_type.humanize %>"
+    <<%= heading_tag %> class="<%= s[:text] %> <%= s[:weight] %> text-[var(--color-ink)] flex items-baseline gap-x-2 flex-wrap"
        aria-label="<%= p.pericope_type.humanize %>: <%= p.name %>">
       <span class="text-[var(--color-ink-soft)] font-normal not-italic select-none" aria-hidden="true"><%= s[:glyph] %></span>
       <% if show_hebrew_only && p.native_name.present? %>
@@ -39,6 +43,6 @@
       <% if range %>
         <span class="text-xs font-normal not-italic text-[var(--color-ink-soft)]"><%= range %></span>
       <% end %>
-    </p>
+    </<%= heading_tag %>>
   </div>
 <% end %>

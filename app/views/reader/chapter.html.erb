@@ -4,11 +4,11 @@
 <% wrapper_max = has_notes ? "max-w-5xl" : "max-w-3xl" %>
 
 <div class="<%= wrapper_max %> mx-auto px-5 py-12">
-  <nav class="text-sm text-[var(--color-ink-soft)] mb-4">
+  <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
     <%= link_to @work.title, work_path(@work.slug), class: "hover:underline" %>
-    &raquo;
+    <span aria-hidden="true">&raquo;</span>
     <%= link_to @canonical_work.display_title, reader_book_path(@work.slug, @canonical_work.slug), class: "hover:underline" %>
-    &raquo;
+    <span aria-hidden="true">&raquo;</span>
     <span>Chapter <%= @chapter %></span>
   </nav>
 
@@ -49,7 +49,8 @@
               <%= link_to verse_n,
                     reader_verse_path(@work.slug, @canonical_work.slug, @chapter, verse_n),
                     class: "hover:underline decoration-dotted",
-                    dir: "ltr" %>
+                    dir: "ltr",
+                    "aria-label": "Verse #{verse_n}" %>
             </sup><%= render_verse_body_with_anchors(unit, notes, note_offset) %>
           </p>
           <aside class="verse-notes" aria-label="marginal notes">
@@ -74,7 +75,8 @@
             <%= link_to verse_n,
                   reader_verse_path(@work.slug, @canonical_work.slug, @chapter, verse_n),
                   class: "hover:underline decoration-dotted",
-                  dir: "ltr" %>
+                  dir: "ltr",
+                  "aria-label": "Verse #{verse_n}" %>
           </sup><%= render_body_with_red_letter(unit) %>
         </p>
         <%= render "verse_xrefs", verse_unit: unit %>
@@ -82,7 +84,7 @@
     </article>
   <% end %>
 
-  <nav class="mt-10 flex justify-between text-sm font-serif">
+  <nav aria-label="Chapter navigation" class="mt-10 flex justify-between text-sm font-serif">
     <% prev_ch = @chapter - 1 %>
     <% next_ch = @chapter + 1 %>
     <% if prev_ch > 0 %>

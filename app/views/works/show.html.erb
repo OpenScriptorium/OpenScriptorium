@@ -7,7 +7,7 @@
     </p>
     <h1 class="font-serif text-4xl text-[var(--color-ink)] mt-1"><%= @work.title %></h1>
     <% if @work.native_title.present? %>
-      <p class="text-2xl font-serif text-[var(--color-ink-soft)] mt-2"><%= @work.native_title %></p>
+      <p class="text-2xl font-serif text-[var(--color-ink-soft)] mt-2" lang="<%= @work.language %>"><%= @work.native_title %></p>
     <% end %>
 
     <% if @work.description.present? %>

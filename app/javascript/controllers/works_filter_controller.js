@@ -25,7 +25,7 @@ import { Controller } from "@hotwired/stimulus"
 // Clear button: `data-action="works-filter#clear"` resets all
 // inputs and unhides every row.
 export default class extends Controller {
-  static targets = ["row", "empty", "summary", "badge", "details"]
+  static targets = ["row", "empty", "summary", "badge", "details", "liveRegion"]
 
   connect() {
     this.apply()
@@ -57,6 +57,12 @@ export default class extends Controller {
 
     if (this.hasEmptyTarget) {
       this.emptyTarget.hidden = visibleCount > 0
+    }
+
+    if (this.hasLiveRegionTarget) {
+      this.liveRegionTarget.textContent = visibleCount > 0
+        ? "Showing " + visibleCount + " works"
+        : "No works match these filters"
     }
 
     this.refreshBadgeStyles(features)

@@ -8,7 +8,7 @@
 
     <%# Decorative illuminated initial — the same S as the navbar/favicon %>
     <div class="hidden sm:block">
-      <%= inline_svg "dropcap-S", class: "dropcap-hero" %>
+      <span aria-hidden="true"><%= inline_svg "dropcap-S", class: "dropcap-hero" %></span>
     </div>
 
     <div>
@@ -46,7 +46,7 @@
       The beginning
     </p>
 
-    <p class="font-hebrew text-3xl sm:text-4xl text-[var(--color-ink)] leading-loose" lang="he">
+    <p class="font-hebrew text-3xl sm:text-4xl text-[var(--color-ink)] leading-loose" lang="he" dir="rtl">
       בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ׃
     </p>
     <p class="mt-2 text-sm text-[var(--color-ink-soft)] italic font-serif">
@@ -55,7 +55,7 @@
 
     <hr class="my-8 border-[var(--color-rule)] w-16 mx-auto">
 
-    <p class="font-greek text-3xl sm:text-4xl text-[var(--color-ink)] leading-loose">
+    <p class="font-greek text-3xl sm:text-4xl text-[var(--color-ink)] leading-loose" lang="grc">
       Ἐν ἀρχῇ ἦν ὁ λόγος.
     </p>
     <p class="mt-2 text-sm text-[var(--color-ink-soft)] italic font-serif">
