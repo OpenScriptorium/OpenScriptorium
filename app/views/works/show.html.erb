@@ -26,13 +26,15 @@
   <h2 class="font-serif text-xl text-[var(--color-ink)] mb-4">Books</h2>
 
   <% grouped = @canonical_works.group_by(&:testament)
-     ot    = grouped["ot"]    || []
-     nt    = grouped["nt"]    || []
-     other = @canonical_works.reject { |cw| %w[ot nt].include?(cw.testament) } %>
+     ot          = grouped["ot"]           || []
+     deuterocanon = grouped["deuterocanon"] || []
+     nt          = grouped["nt"]           || []
+     rest        = @canonical_works.reject { |cw| %w[ot nt deuterocanon].include?(cw.testament) } %>
 
-  <% [["Hebrew Bible / Old Testament", ot],
-      ["New Testament",                 nt],
-      ["Other",                          other]].each do |label, books| %>
+  <% [["Hebrew Bible / Old Testament",         ot],
+      ["Deuterocanon / Apocrypha",              deuterocanon],
+      ["New Testament",                         nt],
+      ["Other",                                  rest]].each do |label, books| %>
     <% next if books.empty? %>
     <h3 class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)] mt-6 mb-2"><%= label %></h3>
     <ul class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 font-serif">
