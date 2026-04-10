@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/assets/images/letters/dropcap-S.png" width="120" alt="Open Scriptorium">
+  <img src="https://git.sr.ht/~sethkush/openscriptorium/blob/master/app/assets/images/letters/dropcap-S.png" width="120" alt="Open Scriptorium">
 </p>
 
 # Open Scriptorium
