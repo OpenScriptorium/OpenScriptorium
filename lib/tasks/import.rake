@@ -90,4 +90,9 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::CntrApparatusImporter.new(download: download).call
   end
+
+  desc "Import Nestle 1904 apparatus from WHNU-guided DjVu extraction (PD)"
+  task nestle_apparatus: :environment do
+    Importers::NestleApparatusImporter.new.call
+  end
 end
