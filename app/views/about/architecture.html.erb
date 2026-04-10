@@ -29,7 +29,8 @@
     <li>
       <strong>Works</strong> are concrete documents: a translation, a
       source-language edition, a commentary, a lexicon. Each work has a
-      license, a language, and a list of <em>work units</em>.
+      license, a language, one or more <em>traditions</em>, and a list
+      of <em>work units</em>.
     </li>
     <li>
       <strong>Work units</strong> are the smallest addressable piece of any
@@ -73,6 +74,17 @@
     at one verse, a chapter, or a whole book.
   </p>
 
+  <p>
+    The corpus currently carries <strong>682,741</strong> cross-references
+    across three datasets: BSB inline references (1,139), OpenBible.info
+    (344,798), and Treasury of Scripture Knowledge (336,804). Each dataset
+    is tagged with a <code>source_dataset</code> string, and each
+    cross-reference row carries a <code>note</code> column for editorial
+    commentary. The reader footer exposes a cross-reference picker that
+    lets users opt into which datasets to display; the default is off, so
+    the reading experience stays clean unless you want the references.
+  </p>
+
   <figure class="not-prose my-10">
     <%= render "shared/diagram_xrefs" %>
     <figcaption class="text-xs text-[var(--color-ink-soft)] italic mt-2 text-center">
@@ -106,14 +118,26 @@
   </p>
 
   <ul>
-    <li><code>psalms</code> &mdash; KJV scheme &mdash; used by BSB, WLC, Robinson-Pierpont</li>
+    <li><code>psalms</code> &mdash; KJV scheme &mdash; used by BSB, KJV, WLC, Robinson-Pierpont</li>
     <li><code>psalms-lxx</code> &mdash; LXX scheme &mdash; used by Rahlfs, Brenton</li>
+    <li><code>psalms-german</code> &mdash; German scheme &mdash; used by Lutherbibel 1912</li>
     <li><code>jeremiah-lxx</code>, <code>job-lxx</code> &mdash; LXX scheme &mdash; reordered / shorter</li>
     <li><code>daniel-theodotion</code>, <code>bel-and-the-dragon-theodotion</code>,
         <code>susanna-theodotion</code> &mdash; alternative Greek recensions</li>
     <li><code>joshua-vaticanus-b</code>, <code>judges-vaticanus-b</code>,
         <code>tobit-sinaiticus</code> &mdash; alternative manuscript recensions</li>
+    <li><code>3-john-german</code>, <code>revelation-german</code> &mdash;
+        German verse-numbering divergences (Lutherbibel 1912)</li>
   </ul>
+
+  <p>
+    German-scheme canonical works exist because the Lutherbibel tradition
+    has verse-numbering divergences that don&rsquo;t map to any of the
+    standard TVTMS schemes. A local TVTMS overlay file
+    (<code>db/data/tvtms_openscriptorium_overlay.tsv</code>) supplies the
+    German&thinsp;&rarr;&thinsp;KJV verse mappings for these books,
+    processed by the same TVTMS importer that handles the upstream data.
+  </p>
 
   <p>
     Each of these shares a <code>book_key</code> with its primary
@@ -214,6 +238,32 @@
     <li><strong>identity fallback</strong> &mdash; no mapping row exists at all: assumes identity (most verses agree across schemes), looking up the same hierarchy in a target-scheme canonical_work that shares this <code>book_key</code>, or falling through to <code>self</code> if no scheme-specific work exists for the book.</li>
   </ul>
 
+  <h2>Tradition taxonomy</h2>
+
+  <p>
+    Every work carries a <code>traditions</code> column &mdash; a
+    string array (GIN-indexed) rather than a scalar &mdash; because
+    many texts belong to more than one tradition. Values use a
+    lowercase-chi (&chi;) prefix for Christian sub-traditions:
+  </p>
+
+  <ul>
+    <li><code>&chi;-orthodox</code>, <code>&chi;-catholic</code>,
+        <code>&chi;-protestant</code>, <code>&chi;-patristic</code>
+        &mdash; the four main Christian groupings</li>
+    <li><code>jewish</code> &mdash; Jewish tradition (WLC, JPS 1917)</li>
+    <li><code>academic</code> &mdash; non-confessional critical editions
+        (Rahlfs LXX, Nestle 1904, Robinson-Pierpont)</li>
+  </ul>
+
+  <p>
+    A work like the BSB is tagged <code>[&ldquo;&chi;-protestant&rdquo;]</code>;
+    Brenton&rsquo;s English LXX is
+    <code>[&ldquo;&chi;-orthodox&rdquo;, &ldquo;academic&rdquo;]</code>.
+    The array model lets the /works page filter by tradition without
+    creating join tables.
+  </p>
+
   <h2>Word-level alignment</h2>
 
   <p>
@@ -225,11 +275,14 @@
   </p>
 
   <p>
-    Each alignment group is a logical unit containing some source words and
-    some target words, supporting one-to-one, one-to-many, many-to-one,
-    many-to-many, and null alignments uniformly. This is how
-    interlinear-style displays and quotation matching (e.g. detecting NT
-    quotations of the LXX) will be powered.
+    The BSB currently has <strong>411,427</strong> alignment groups linking
+    English words to their Hebrew or Greek source words, along with
+    per-word Strong&rsquo;s numbers and lemmas. Each alignment group is a
+    logical unit containing some source words and some target words,
+    supporting one-to-one, one-to-many, many-to-one, many-to-many, and
+    null alignments uniformly. This is how interlinear-style displays and
+    quotation matching (e.g. detecting NT quotations of the LXX) will be
+    powered.
   </p>
 
   <figure class="not-prose my-10">
@@ -308,7 +361,13 @@
       bounds. Multiple pericope schemes coexist via
       <code>source_dataset</code>, so a single verse can belong to a
       Hebrew parashah, a Christian pericope, and a lectionary reading
-      simultaneously.
+      simultaneously. Each pericope also carries a
+      <code>tradition</code> string, and each work declares which
+      pericope traditions it participates in via
+      <code>pericope_traditions</code>. BSB section headings, for
+      example, use tradition <code>bsb_editorial</code> (3,002
+      headings). This keeps tradition-specific headings from bleeding
+      into works where they don&rsquo;t belong.
     </li>
     <li>
       <strong>variant_units / readings / reading_witnesses</strong>
@@ -318,6 +377,94 @@
       <code>ℵ²ᵃ B 16r col 2</code>.
     </li>
   </ul>
+
+  <h2>Feature flags on /works</h2>
+
+  <p>
+    The <code>/works</code> page displays small badges per work indicating
+    which features its data supports. These are computed from the data, not
+    declared by hand:
+  </p>
+
+  <ul>
+    <li><strong>NTS</strong> &mdash; translator/editor footnotes (<code>work_unit_notes</code>)</li>
+    <li><strong>LEM</strong> &mdash; lemma data on words</li>
+    <li><strong>STR</strong> &mdash; Strong&rsquo;s numbers on words</li>
+    <li><strong>PRS</strong> &mdash; morphological parsing on words</li>
+    <li><strong>ALN</strong> &mdash; word-level alignment groups</li>
+    <li><strong>PRC</strong> &mdash; pericope / section-heading data</li>
+  </ul>
+
+  <p>
+    A client-side JavaScript filter on the same page lets users narrow the
+    works list by language, traditions, work type, and feature flags &mdash;
+    no server roundtrip needed.
+  </p>
+
+  <h2><code>CanonicalWork#display_title</code></h2>
+
+  <p>
+    Many canonical works have titles with scheme parentheticals like
+    <code>Psalms (LXX)</code> or <code>3 John (German)</code>. The
+    <code>display_title</code> method strips these suffixes for reader-facing
+    display &mdash; breadcrumbs, chapter headings, and book lists show
+    &ldquo;Psalms&rdquo; rather than &ldquo;Psalms (LXX).&rdquo; The full
+    title remains in the database and in the schema reference.
+  </p>
+
+  <h2>Canonical ord monotonicity</h2>
+
+  <p>
+    The <code>ord</code> column on <code>canonical_refs</code> must be
+    monotonically increasing with respect to the <code>hierarchy</code>
+    array ordering within each <code>canonical_work</code>. This invariant
+    is what makes <code>int4range</code> overlap queries on cross-references
+    and pericopes correct &mdash; if ords are out of order, a range that
+    should cover &ldquo;Genesis 1:1&ndash;1:5&rdquo; might accidentally
+    include or exclude verses. Thirty-six canonical works were renumbered
+    after the initial import to fix non-monotonic ords introduced when
+    disputed or apocryphal verses were added after the initial numbering
+    pass.
+  </p>
+
+  <h2>BSB data features</h2>
+
+  <p>
+    The Berean Standard Bible import is the most feature-complete work in
+    the corpus. Beyond the verse text, it carries:
+  </p>
+
+  <ul>
+    <li><strong>4,854 translator footnotes</strong> as typed <code>work_unit_notes</code> rows</li>
+    <li><strong>3,002 section headings</strong> as pericopes (tradition <code>bsb_editorial</code>)</li>
+    <li><strong>411,427 alignment groups</strong> linking English words to Hebrew/Greek source words</li>
+    <li><strong>Per-word Strong&rsquo;s numbers and lemmas</strong></li>
+    <li><strong>Red-letter markup</strong> stored in <code>work_units.markup</code> (JSONB), not inline HTML</li>
+  </ul>
+
+  <h2>Current corpus</h2>
+
+  <p>
+    Nine works are currently loaded:
+  </p>
+
+  <ul>
+    <li>Berean Standard Bible (BSB) &mdash; English, full OT+NT</li>
+    <li>King James Version with Apocrypha &mdash; English, including 1611 marginalia</li>
+    <li>JPS 1917 Tanakh &mdash; English, with footnotes</li>
+    <li>Westminster Leningrad Codex (WLC) &mdash; Hebrew</li>
+    <li>Nestle 1904 GNT &mdash; Greek</li>
+    <li>Robinson-Pierpont Byzantine Textform &mdash; Greek</li>
+    <li>Rahlfs LXX 1935 &mdash; Greek</li>
+    <li>Brenton&rsquo;s English LXX &mdash; English</li>
+    <li>Lutherbibel 1912 &mdash; German</li>
+  </ul>
+
+  <p>
+    Planned imports include the Clementine Vulgate, Louis Segond 1910,
+    Patriarchal Bible (1904 Greek Orthodox), WEBBE, and the William
+    Davidson Talmud.
+  </p>
 
   <h2>Things to read next</h2>
 

@@ -63,6 +63,9 @@ class AboutController < ApplicationController
       work_units:             WorkUnit.count,
       words:                  Word.count,
       lemmas:                 Lemma.count,
+      cross_references:       CrossReference.count,
+      alignment_groups:       AlignmentGroup.count,
+      pericopes:              Pericope.count,
       versification_mappings: VersificationMapping.count
     }
   end

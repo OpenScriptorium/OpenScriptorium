@@ -70,7 +70,7 @@ module ReaderHelper
   # is still visually associated.
   def render_verse_body_with_anchors(unit, notes, base_index = 0)
     body = unit.body.dup
-    return body.html_safe if notes.empty?
+    return (red_letter_enabled? ? apply_red_letter_spans(body, unit.markup&.dig("red_letter_positions")).html_safe : body.html_safe) if notes.empty?
 
     matches = []
     trailing = []
@@ -96,6 +96,14 @@ module ReaderHelper
     end
 
     trailing.each { |idx| body << marker_html(idx) }
+
+    # Apply red-letter wrapping AFTER anchor insertion. We can't
+    # naively split on whitespace because the body now contains HTML
+    # tags. Instead, walk the string tracking tag depth and wrap each
+    # top-level text word at a red-letter position.
+    if red_letter_enabled? && has_red_letter?(unit)
+      body = apply_red_letter_to_html(body, unit.markup["red_letter_positions"])
+    end
 
     body.html_safe
   end
@@ -247,6 +255,101 @@ module ReaderHelper
                               .where(canonical_refs: { canonical_work_id: cw.id })
                               .exists? ? @work.slug : "bsb"
     reader_chapter_path(work_slug, cw.book_key, chapter, anchor: "v#{start_ref.hierarchy[1]}")
+  end
+
+  # ----------------------------------------------------------------
+  # Red-letter rendering
+  # ----------------------------------------------------------------
+
+  # True if the visitor has red-letter display enabled (cookie).
+  def red_letter_enabled?
+    cookies[:red_letter].to_s.strip == "on"
+  end
+
+  # Returns true if the work_unit has red-letter markup and ALL of
+  # its words are marked (i.e. the whole verse is Jesus speaking).
+  # Used to apply a single `rl` class to the whole verse element
+  # rather than per-word spans — simpler and works with the anchor
+  # renderer which doesn't support inline spans.
+  def fully_red_letter?(unit)
+    positions = unit.markup&.dig("red_letter_positions")
+    return false if positions.blank?
+    word_count = unit.body.to_s.split(/\s+/).size
+    positions.size >= word_count
+  end
+
+  # Returns true if the work_unit has ANY red-letter markup.
+  def has_red_letter?(unit)
+    unit.markup&.dig("red_letter_positions").present?
+  end
+
+  # Wraps words at the positions listed in the work_unit's
+  # markup["red_letter_positions"] in `<span class="rl">` so the
+  # CSS `[data-red-letter] .rl` rule can color them. The positions
+  # are 1-based indices into the whitespace-split body text.
+  # Returns the body string with rl spans inserted, or the original
+  # body if there are no red-letter positions.
+  def render_body_with_red_letter(unit)
+    positions = unit.markup&.dig("red_letter_positions")
+    body = unit.body.to_s
+    return body if positions.blank?
+
+    pos_set = positions.to_set
+    words = body.split(/(\s+)/)  # split preserving whitespace
+    word_idx = 0
+    result = words.map do |token|
+      if token.match?(/\S/)
+        word_idx += 1
+        if pos_set.include?(word_idx)
+          %(<span class="rl">#{ERB::Util.h(token)}</span>)
+        else
+          ERB::Util.h(token)
+        end
+      else
+        token  # whitespace, pass through
+      end
+    end
+    result.join.html_safe
+  end
+
+  # Wraps words at red-letter positions in `<span class="rl">`,
+  # operating on the raw body string (no HTML tags). Used for the
+  # simple non-notes rendering path.
+  def apply_red_letter_spans(body, positions)
+    return body if positions.blank?
+    pos_set = positions.to_set
+    words = body.split(/(\s+)/)
+    word_idx = 0
+    words.map do |token|
+      if token.match?(/\S/)
+        word_idx += 1
+        pos_set.include?(word_idx) ? %(<span class="rl">#{token}</span>) : token
+      else
+        token
+      end
+    end.join
+  end
+
+  # Like apply_red_letter_spans but operates on an HTML string that
+  # may contain tags (e.g. <span class="annot">). We scan the string
+  # for text nodes (outside tags), count visible words across the
+  # whole verse, and wrap the Nth word if its position is in the
+  # red-letter set. Tags pass through unmodified.
+  def apply_red_letter_to_html(html, positions)
+    return html if positions.blank?
+    pos_set = positions.to_set
+    word_idx = 0
+    # Split into tag-tokens and text-tokens
+    html.gsub(/([^<]+)|(<[^>]*>)/) do
+      if $2 # HTML tag — pass through
+        $2
+      else  # text node
+        $1.gsub(/(\S+)/) do |word|
+          word_idx += 1
+          pos_set.include?(word_idx) ? %(<span class="rl">#{word}</span>) : word
+        end
+      end
+    end
   end
 
   # Human-readable verse-range label for a pericope, computed from its

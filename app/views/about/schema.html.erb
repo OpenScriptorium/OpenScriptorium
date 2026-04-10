@@ -9,6 +9,15 @@
       <%= link_to "architecture overview", about_architecture_path, class: "underline decoration-dotted" %>
       explains how these tables fit together.
     </p>
+    <p class="mt-2 text-sm text-[var(--color-ink-soft)] font-serif">
+      Notable columns: <code class="font-mono text-xs">works.traditions</code>
+      is a string array (GIN-indexed) using the &chi;-prefix tradition
+      taxonomy. <code class="font-mono text-xs">pericopes.tradition</code>
+      enables tradition-aware section-heading filtering.
+      <code class="font-mono text-xs">canonical_refs.ord</code> is
+      guaranteed monotonic with hierarchy ordering within each canonical
+      work. See the architecture overview for details.
+    </p>
   </header>
 
   <%# Live corpus snapshot %>
@@ -17,7 +26,7 @@
       Currently in the corpus
     </h2>
 
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mb-8 text-sm font-serif">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-3 mb-8 text-sm font-serif">
       <% @corpus_totals.each do |key, value| %>
         <div>
           <p class="text-2xl text-[var(--color-ink)] font-mono"><%= number_with_delimiter(value) %></p>

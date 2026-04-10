@@ -328,30 +328,14 @@ html.dark .dropcap-hero {
 
 /* Red-letter / words-of-Christ highlighting.
  *
- * Three color options so readers can pick what they find most readable:
- * red (traditional), green (gentle on the eyes), blue (high contrast).
- * Each has a light-mode and dark-mode variant tuned for readability
- * against the respective background — not neon, not washed out, just
- * a clear tonal shift from the body text.
- *
- * The active color is set via the `data-red-letter` attribute on the
- * reader article element: "red", "green", "blue", or absent = off.
- * Verses with red-letter words wrap them in <span class="rl">.
+ * Uses the same garnet as the illuminated dropcap-S so the words of
+ * Christ feel integrated with the site's visual identity. Activated
+ * via `data-red-letter` attribute on the reader article element
+ * (present = on, absent = off). Verses with red-letter words carry
+ * the `rl` class on the verse <p> or on individual <span>s.
  */
-:root {
-  --rl-red:   #9b2226;
-  --rl-green: #3a6b35;
-  --rl-blue:  #1f4d8a;
-}
-.dark {
-  --rl-red:   #e8857a;
-  --rl-green: #8fc18a;
-  --rl-blue:  #7ab0e8;
-}
-
-[data-red-letter="red"]   .rl { color: var(--rl-red); }
-[data-red-letter="green"] .rl { color: var(--rl-green); }
-[data-red-letter="blue"]  .rl { color: var(--rl-blue); }
+[data-red-letter] .rl { color: #9b2226; }
+html.dark [data-red-letter] .rl { color: #c84849; }
 
 /* Works-index filter badges. The badge wraps a hidden checkbox; the
  * Stimulus controller toggles `is-active` on every change. */
