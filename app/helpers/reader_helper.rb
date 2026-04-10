@@ -299,7 +299,9 @@ module ReaderHelper
   # controls visibility, so spans are harmless when the toggle is off.
   # This lets the JS toggle work instantly without a page reload.
   def render_red_letter_spans?
-    @work&.has_red_letter?
+    return false unless @work
+    @render_rl_spans = @work.has_red_letter? unless defined?(@render_rl_spans)
+    @render_rl_spans
   end
 
   # Returns true if the work_unit has red-letter markup and ALL of

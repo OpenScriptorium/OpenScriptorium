@@ -28,7 +28,7 @@
 <% end %>
 
 <%# --- Red-letter / words of Christ --- %>
-<% if @work.has_red_letter? %>
+<% if @work&.has_red_letter? %>
   <% rl_mode = cookies[:red_letter].to_s %>
   <% rl_on = %w[on accessible].include?(rl_mode) %>
   <div class="text-xs font-serif text-[var(--color-ink-soft)] flex items-center gap-x-3 flex-wrap"
