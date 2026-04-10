@@ -84,4 +84,10 @@ namespace :import do
     download = ENV["DOWNLOAD"] != "false"
     Importers::TskImporter.new(download: download).call
   end
+
+  desc "Import critical apparatus from CNTR manuscript transcriptions (CC BY-SA 4.0)"
+  task cntr_apparatus: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::CntrApparatusImporter.new(download: download).call
+  end
 end
