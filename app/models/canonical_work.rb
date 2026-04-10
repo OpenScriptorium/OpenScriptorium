@@ -28,8 +28,8 @@ class CanonicalWork < ApplicationRecord
            foreign_key: :target_canonical_work_id,
            dependent: :destroy
 
-  TESTAMENTS = %w[ot nt deuterocanon pseudepigrapha apostolic_father patristic other].freeze
-  CITATION_FORMATS = %w[scripture hierarchical].freeze
+  TESTAMENTS = %w[ot nt deuterocanon pseudepigrapha apostolic_father patristic rabbinic other].freeze
+  CITATION_FORMATS = %w[scripture hierarchical talmud].freeze
 
   validates :slug, presence: true, uniqueness: true,
                    format: { with: /\A[a-z0-9-]+\z/ }
@@ -62,7 +62,7 @@ class CanonicalWork < ApplicationRecord
   # the breadcrumbs and headings. Use this everywhere a verse view,
   # chapter view, or book view shows the canonical_work to a reader.
   def display_title
-    title.sub(/\s*\((?:MT|KJV|LXX|German|Vulgate|Catholic|NRSV|Synodal|Orthodox)\)\s*\z/, "").strip.presence || title
+    title.sub(/\s*\((?:MT|KJV|LXX|German|Vulgate|Catholic|NRSV|Synodal|Orthodox|Bavli)\)\s*\z/, "").strip.presence || title
   end
 
   # Generate an SBL-style citation string from a hierarchy. Used by
@@ -81,6 +81,11 @@ class CanonicalWork < ApplicationRecord
       part ? "#{base}#{('a'.ord + part - 1).chr}" : base
     when "hierarchical"
       "#{abbr} #{hierarchy.join('.')}"
+    when "talmud"
+      daf   = hierarchy[0]
+      amud  = hierarchy[1] == 1 ? "a" : "b"
+      seg   = hierarchy[2]
+      seg ? "#{abbr} #{daf}#{amud}:#{seg}" : "#{abbr} #{daf}#{amud}"
     end
   end
 end

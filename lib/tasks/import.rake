@@ -120,4 +120,14 @@ namespace :import do
   task webbe: :environment do
     Importers::WebbeImporter.new.call
   end
+
+  desc "Add Ketiv/Qere notes + parashot to WLC from OSHB MAPM XML"
+  task oshb_features: :environment do
+    Importers::OshbFeaturesImporter.new.call
+  end
+
+  desc "Import Babylonian Talmud (Gemara + Rashi + Tosafot) from Sefaria export"
+  task bavli: :environment do
+    Importers::BavliImporter.new.call
+  end
 end
