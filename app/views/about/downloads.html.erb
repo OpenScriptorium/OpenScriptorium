@@ -1,0 +1,122 @@
+<% content_for :title, "Downloads & API — Open Scriptorium" %>
+
+<div class="max-w-3xl mx-auto px-5 py-12">
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-12">
+    <h1 class="font-serif text-3xl text-[var(--color-ink)]">Downloads & API</h1>
+    <p class="mt-3 text-[var(--color-ink-soft)] font-serif">
+      The entire corpus is freely available for download and programmatic
+      access. Every work carries its own license; check the
+      <code class="font-mono text-sm">/api/v1/works</code> endpoint or
+      the <%= link_to "works index", works_path,
+            class: "underline decoration-dotted hover:text-[var(--color-link)]" %>
+      for per-work license details.
+    </p>
+  </header>
+
+  <article class="font-serif text-[var(--color-ink)] leading-relaxed text-lg space-y-5
+                  [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:text-[var(--color-ink)] [&_h2]:mt-12 [&_h2]:mb-3
+                  [&_h2]:tracking-tight
+                  [&_h3]:font-serif [&_h3]:text-lg [&_h3]:text-[var(--color-ink)] [&_h3]:mt-8 [&_h3]:mb-2
+                  [&_p]:max-w-prose
+                  [&_code]:font-mono [&_code]:text-sm [&_code]:bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded">
+
+    <h2>Bulk downloads</h2>
+
+    <p>
+      Coming soon: full SQLite and CSV exports of the entire corpus,
+      updated nightly. In the meantime, the REST API below provides
+      complete programmatic access to all data.
+    </p>
+
+    <h2>REST API</h2>
+
+    <p>
+      All endpoints return JSON. No authentication required. No rate
+      limit yet, but please be reasonable. The base URL is:
+    </p>
+
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto"><%= request.base_url %>/api/v1/</pre>
+
+    <h3>List all works</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/works</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Returns every work in the corpus with its metadata, license, language,
+      traditions, and feature flags.
+    </p>
+
+    <h3>Work detail with book listing</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/works/:slug</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Example: <code>/api/v1/works/bsb</code> returns the BSB metadata
+      plus a list of all books (canonical works) with verse counts.
+    </p>
+
+    <h3>Verses (chapter or single verse)</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/works/:work/:book/:chapter
+GET /api/v1/works/:work/:book/:chapter/:verse</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Returns verse text, notes, and markup for a chapter or single verse.
+      Examples:
+    </p>
+    <ul class="text-sm text-[var(--color-ink-soft)] list-disc pl-6 space-y-1">
+      <li><code>/api/v1/works/bsb/genesis/1</code> &mdash; BSB Genesis 1</li>
+      <li><code>/api/v1/works/kjv/matthew/5/3</code> &mdash; KJV Matthew 5:3</li>
+      <li><code>/api/v1/works/wlc/genesis/1</code> &mdash; WLC Genesis 1 (Hebrew)</li>
+      <li><code>/api/v1/works/bavli/berakhot/2</code> &mdash; Gemara Berakhot daf 2</li>
+    </ul>
+
+    <h3>Cross-references</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/cross-references?book=:book&amp;chapter=:ch&amp;verse=:v</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Returns all cross-references whose source overlaps the given passage.
+      The <code>verse</code> parameter is optional; omitting it returns
+      cross-references for the entire chapter. Limited to 500 results.
+    </p>
+    <ul class="text-sm text-[var(--color-ink-soft)] list-disc pl-6 space-y-1">
+      <li><code>/api/v1/cross-references?book=genesis&amp;chapter=1&amp;verse=1</code></li>
+      <li><code>/api/v1/cross-references?book=berakhot&amp;chapter=2&amp;verse=1</code> &mdash; Talmud xrefs (daf=chapter, segment=verse)</li>
+    </ul>
+
+    <h3>Full-text search</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/search?q=:query&amp;work=:slug&amp;limit=:n</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Case-insensitive text search across all works (or a single work if
+      <code>work</code> is specified). Returns up to 100 results
+      (default 25). Examples:
+    </p>
+    <ul class="text-sm text-[var(--color-ink-soft)] list-disc pl-6 space-y-1">
+      <li><code>/api/v1/search?q=in+the+beginning</code></li>
+      <li><code>/api/v1/search?q=logos&amp;work=nestle1904</code></li>
+    </ul>
+
+    <h2>Licensing</h2>
+
+    <p>
+      Each work in the corpus has its own license (Public Domain,
+      CC BY-SA, etc.). The <code>/api/v1/works</code> endpoint includes
+      license details for every work. If you redistribute data from this
+      API, you must comply with the license of each work you include.
+      Most works are Public Domain; those that require attribution
+      have <code>attribution_required: true</code> in their license object.
+    </p>
+
+    <p>
+      The API itself and the Open Scriptorium source code are available
+      under the
+      <a href="https://git.sr.ht/~sethkush/openscriptorium"
+         class="underline decoration-dotted hover:text-[var(--color-link)]">ISC License</a>.
+    </p>
+
+    <h2>Feedback</h2>
+
+    <p>
+      Bug reports, feature requests, and API suggestions are welcome on
+      the
+      <a href="https://todo.sr.ht/~sethkush/OpenScriptorium"
+         class="underline decoration-dotted hover:text-[var(--color-link)]">issue tracker</a>
+      or the
+      <a href="https://lists.sr.ht/~sethkush/public-inbox"
+         class="underline decoration-dotted hover:text-[var(--color-link)]">mailing list</a>.
+    </p>
+  </article>
+</div>

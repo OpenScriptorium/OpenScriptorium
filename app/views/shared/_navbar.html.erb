@@ -21,6 +21,8 @@
             class: "px-2 py-1 text-[var(--color-ink)] hover:text-[var(--color-link)] hidden md:inline" %>
       <%= link_to "Schema",       about_schema_path,
             class: "px-2 py-1 text-[var(--color-ink)] hover:text-[var(--color-link)] hidden md:inline" %>
+      <%= link_to "API",          downloads_path,
+            class: "px-2 py-1 text-[var(--color-ink)] hover:text-[var(--color-link)] hidden sm:inline" %>
 
       <% if authenticated? %>
         <%= button_to "Sign out", session_path, method: :delete,

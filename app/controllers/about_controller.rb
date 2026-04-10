@@ -69,4 +69,7 @@ class AboutController < ApplicationController
       versification_mappings: VersificationMapping.count
     }
   end
+
+  def downloads
+  end
 end

@@ -72,6 +72,22 @@ Rails.application.routes.draw do
                                         constraints: { chapter: /\d+/ }
   end
 
+  # Downloads / API documentation
+  get "downloads", to: "about#downloads", as: :downloads
+
+  # JSON API
+  namespace :api do
+    namespace :v1 do
+      resources :works, only: [:index, :show], param: :slug
+      get "works/:work_slug/:book_slug/:chapter/:verse", to: "verses#show",
+          constraints: { chapter: /\d+/, verse: /\d+/ }
+      get "works/:work_slug/:book_slug/:chapter", to: "verses#show",
+          constraints: { chapter: /\d+/ }
+      get "cross-references", to: "cross_references#index"
+      get "search", to: "search#index"
+    end
+  end
+
   # Defines the root path route ("/")
   root "home#index"
 end
