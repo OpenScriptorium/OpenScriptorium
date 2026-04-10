@@ -63,6 +63,11 @@ namespace :import do
     Importers::SegondImporter.new.call
   end
 
+  desc "Add morphology and lemmas to Rahlfs LXX from CATSS parsed Septuagint"
+  task rahlfs_morph: :environment do
+    Importers::RahlfsMorphImporter.new.call
+  end
+
   desc "Import OpenBible.info cross-references (CC BY 4.0, ~344k links)"
   task openbible_xrefs: :environment do
     download = ENV["DOWNLOAD"] != "false"

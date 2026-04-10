@@ -60,6 +60,7 @@
             <%= render_verse_marginal_notes(notes, note_offset) %>
           </aside>
           <%= render "verse_xrefs", verse_unit: unit %>
+          <%= render "verse_apparatus", verse_unit: unit %>
         </div>
         <% note_offset += notes.size %>
       <% end %>
@@ -84,6 +85,7 @@
           </sup><%= render_body_with_red_letter(unit) %>
         </p>
         <%= render "verse_xrefs", verse_unit: unit %>
+        <%= render "verse_apparatus", verse_unit: unit %>
       <% end %>
     </article>
   <% end %>
