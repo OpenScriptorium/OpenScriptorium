@@ -132,7 +132,7 @@ class ReaderController < ApplicationController
 
     Pericope
       .where(canonical_work_id: @canonical_work.id, tradition: @work.pericope_traditions)
-      .where("lower(canonical_range) = ANY(ARRAY[?])", ords)
+      .where("lower(canonical_range) = ANY(ARRAY[?]::integer[])", ords)
       .ordered
       .each { |p| starts[p.canonical_range.begin] << p }
 
