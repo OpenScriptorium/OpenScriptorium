@@ -148,7 +148,7 @@ module Importers
           native_title: native_title,
           work_type: work_type,
           language: "arc",  # Aramaic (with Hebrew)
-          traditions: ["ש"],
+          traditions: ["ש-rabbinic"],
           genre: "commentary",
           license: license,
           default_versification_scheme: @bavli_scheme,
