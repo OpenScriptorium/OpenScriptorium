@@ -378,54 +378,46 @@ html {
 }
 
 /* Vilna Talmud daf layout ---------------------------------------------------
- * Single container. All Rashi in one block floated right. All Tosafot
- * in one block floated left. Gemara flows as continuous inline text
- * between them, wrapping around both commentary blocks naturally.
- * When commentary is shorter than Gemara, the text widens to fill.
+ * Based on Noah Liebman's CSS Talmud technique. A 3×3 grid where:
+ *   - Mishnah/Gemara occupies the center cell
+ *   - An <aside> spans ALL cells, containing both Rashi (floated) and
+ *     Tosafot (flowing text)
+ *   - Rashi floats right inside the aside, Tosafot flows around it
+ *   - A JS Stimulus controller inserts invisible floated spacers with
+ *     shape-outside to carve out the center Gemara space
+ *
+ * The result: Tosafot text wraps above, beside, and below the Gemara.
+ * Rashi runs down the right (inner) margin. The Gemara sits in the
+ * center, exactly like the printed Vilna page.
  * -------------------------------------------------------------------------- */
 
 .daf-page {
   direction: rtl;
   max-width: 60rem;
   margin: 0 auto;
-  line-height: 1.85;
-  font-size: 1.1rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: auto auto 1fr;
+  --col-gap: 1.25rem;
 }
 
-/* Simple mode: hide commentary */
-.daf-page[data-layout="simple"] .daf-rashi-block,
-.daf-page[data-layout="simple"] .daf-tosafot-block {
+/* Simple mode */
+.daf-page[data-layout="simple"] .daf-aside {
   display: none;
 }
-
-/* Rashi: one block, floated right (inner margin in RTL) */
-.daf-rashi-block {
-  float: right;
-  width: 28%;
-  margin-left: 1.25rem;
-  margin-bottom: 1rem;
-  padding-left: 1rem;
-  border-left: 1px solid var(--color-rule);
-  font-size: 0.8rem;
-  line-height: 1.55;
+.daf-page[data-layout="simple"] .daf-gemara {
+  grid-column: 1 / -1;
+  max-width: 45rem;
+  margin: 0 auto;
 }
 
-/* Tosafot: one block, floated left (outer margin in RTL) */
-.daf-tosafot-block {
-  float: left;
-  width: 28%;
-  margin-right: 1.25rem;
-  margin-bottom: 1rem;
-  padding-right: 1rem;
-  border-right: 1px solid var(--color-rule);
-  font-size: 0.8rem;
-  line-height: 1.55;
-}
-
-/* Gemara segments flow as continuous inline text */
-.daf-gemara-text {
+/* The Gemara block sits in the center of the grid */
+.daf-gemara {
+  grid-area: 2 / 2 / 3 / 3;
+  width: 22rem;
   font-size: 1.1rem;
   line-height: 1.85;
+  padding: 0.5rem 0;
 }
 
 .daf-gemara-segment {
@@ -434,7 +426,7 @@ html {
 
 .daf-gemara-mishnah {
   font-weight: 600;
-  font-size: 1.2em;
+  font-size: 1.15em;
 }
 
 .daf-mishnah-marker {
@@ -442,6 +434,38 @@ html {
   font-size: 0.85em;
   color: var(--color-accent);
   margin-inline-end: 0.3em;
+}
+
+/* The aside spans the entire grid — Tosafot flows as the base text,
+   Rashi floats right within it */
+.daf-aside {
+  grid-area: 1 / 1 / -1 / -1;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+/* Rashi floats right (inner margin in RTL) */
+.daf-rashi-block {
+  float: right;
+  width: calc(50% - var(--col-gap) / 2);
+  margin-left: var(--col-gap);
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--color-rule);
+}
+
+/* Spacers: invisible floated blocks that carve out the center
+   Gemara space so Tosafot text wraps around it. Inserted by JS. */
+.daf-spacer-right {
+  float: right;
+  clear: right;
+  width: calc(50% + var(--col-gap) / 2);
+  shape-outside: inset(0);
+}
+
+.daf-spacer-left {
+  float: left;
+  width: calc(50% + var(--col-gap) / 2);
+  shape-outside: inset(0);
 }
 
 /* Commentary styling */
@@ -465,24 +489,35 @@ html {
   padding-bottom: 0;
 }
 
-/* Clear floats */
-.daf-page::after {
-  content: "";
-  display: block;
-  clear: both;
+/* Tosafot section label */
+.daf-tosafot-section {
+  padding-right: 0.75rem;
+  border-right: 1px solid var(--color-rule);
 }
 
-/* Mobile: no floats, stack vertically */
+/* Mobile: simple stacked layout */
 @media (max-width: 48rem) {
-  .daf-rashi-block,
-  .daf-tosafot-block {
+  .daf-page {
+    display: block;
+  }
+  .daf-aside {
+    display: block;
+  }
+  .daf-rashi-block {
     float: none;
     width: 100%;
     margin: 1rem 0;
     padding: 0.75rem;
-    padding-inline-start: 1rem;
     border: none;
     border-inline-start: 2px solid var(--color-rule);
+  }
+  .daf-spacer-right,
+  .daf-spacer-left {
+    display: none;
+  }
+  .daf-gemara {
+    width: 100%;
+    margin: 1rem 0;
   }
 }
 

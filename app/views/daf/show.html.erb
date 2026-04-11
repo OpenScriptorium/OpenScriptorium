@@ -27,46 +27,56 @@
   </header>
 
   <% daf_layout = cookies[:daf_layout].presence || "vilna" %>
-  <article class="daf-page font-hebrew" dir="rtl" lang="arc" data-layout="<%= daf_layout %>">
+  <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
+  <% all_tosafot = @segments.flat_map { |s| s[:tosafot] } %>
 
-    <%# All Rashi — one floated block %>
-    <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
-    <% if all_rashi.any? %>
-      <aside class="daf-rashi-block">
-        <% all_rashi.each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <span class="daf-dh"><%= dh %></span>
-              <span class="daf-commentary-body"> – <%= body %></span>
-            <% else %>
-              <span class="daf-commentary-body"><%= entry.body %></span>
-            <% end %>
-          </div>
-        <% end %>
-      </aside>
-    <% end %>
+  <article class="daf-page font-hebrew" dir="rtl" lang="arc" data-layout="<%= daf_layout %>"
+           data-controller="daf-layout">
 
-    <%# All Tosafot — one floated block %>
-    <% all_tosafot = @segments.flat_map { |s| s[:tosafot] } %>
-    <% if all_tosafot.any? %>
-      <aside class="daf-tosafot-block">
-        <% all_tosafot.each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <span class="daf-dh"><%= dh %></span>
-              <span class="daf-commentary-body"> – <%= body %></span>
-            <% else %>
-              <span class="daf-commentary-body"><%= entry.body %></span>
-            <% end %>
-          </div>
-        <% end %>
-      </aside>
-    <% end %>
+    <%# The aside spans the entire grid. Rashi floats right inside it.
+        Tosafot is the flowing base text. JS spacers carve out the
+        center space so Tosafot wraps around the Gemara. %>
+    <aside class="daf-aside">
 
-    <%# Gemara — continuous inline text flowing around the floats %>
-    <div class="daf-gemara-text">
+      <%# Rashi — floated right (inner margin in RTL) %>
+      <% if all_rashi.any? %>
+        <div class="daf-rashi-block">
+          <% all_rashi.each do |entry| %>
+            <div class="daf-commentary-entry">
+              <% dh, body = split_commentary(entry.body) %>
+              <% if dh %>
+                <span class="daf-dh"><%= dh %></span>
+                <span class="daf-commentary-body"> – <%= body %></span>
+              <% else %>
+                <span class="daf-commentary-body"><%= entry.body %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%# Tosafot — flows as the base text of the aside, wrapping
+          around both the floated Rashi and the center Gemara spacers %>
+      <% if all_tosafot.any? %>
+        <div class="daf-tosafot-section">
+          <% all_tosafot.each do |entry| %>
+            <div class="daf-commentary-entry">
+              <% dh, body = split_commentary(entry.body) %>
+              <% if dh %>
+                <span class="daf-dh"><%= dh %></span>
+                <span class="daf-commentary-body"> – <%= body %></span>
+              <% else %>
+                <span class="daf-commentary-body"><%= entry.body %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+    </aside>
+
+    <%# Gemara — center grid cell %>
+    <div class="daf-gemara">
       <% @segments.each do |seg| %>
         <span class="daf-gemara-segment <%= 'daf-gemara-mishnah' if seg[:mishnah] %>"
               id="seg-<%= seg[:ref].hierarchy[2] %>"><% if seg[:mishnah] %><span class="daf-mishnah-marker">מתני׳</span> <% end %><%= seg[:gemara].body %></span>
