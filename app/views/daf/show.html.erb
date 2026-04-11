@@ -24,6 +24,10 @@
   <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
   <% all_tosafot = @segments.flat_map { |s| s[:tosafot] } %>
 
+  <%# Force font preload — invisible text triggers browser to download fonts %>
+  <span style="font-family:Vilna;position:absolute;opacity:0;">א</span>
+  <span style="font-family:Rashi;position:absolute;opacity:0;">א</span>
+
   <%# daf-renderer target container %>
   <div id="daf-container" style="max-width:56rem;margin:0 auto;" data-controller="daf-layout"></div>
 

@@ -4,9 +4,12 @@ import dafRenderer from "daf-renderer"
 
 export default class extends Controller {
   connect() {
-    // Wait for fonts to load before rendering — the spacer math
-    // depends on accurate text measurements
-    document.fonts.ready.then(() => this.render())
+    // document.fonts.ready resolves when all fonts used on the page
+    // are loaded. The hidden spans in the view force the browser to
+    // start downloading Vilna and Rashi fonts immediately.
+    document.fonts.ready.then(() => {
+      setTimeout(() => this.render(), 100)
+    })
   }
 
   render() {
