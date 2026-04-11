@@ -47,6 +47,14 @@ Rails.application.routes.draw do
       as: :parallel_chapter,
       constraints: { chapter: /\d+/ }
 
+  # Talmud daf view: /bavli/berakhot/2a
+  # Constraint matches daf+amud (e.g. "2a", "63b") — must come before
+  # the generic /:work_slug scope so it isn't swallowed as a book_slug.
+  scope "/:work_slug" do
+    get "/:book_slug/:daf", to: "daf#show", as: :daf,
+        constraints: { daf: /\d+[ab]/ }
+  end
+
   scope "/:work_slug" do
     get "/:book_slug",                  to: "reader#book",    as: :reader_book
 

@@ -1,0 +1,102 @@
+<% content_for :title, "#{@canonical_work.title} #{@daf_label} — #{@gemara_work.title}" %>
+
+<div class="max-w-6xl mx-auto px-5 py-12">
+  <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
+    <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
+      <li><%= link_to @gemara_work.title, work_path(@gemara_work.slug), class: "hover:underline" %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li><%= link_to @canonical_work.title, reader_book_path(@gemara_work.slug, @canonical_work.slug), class: "hover:underline" %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li aria-current="page"><%= @daf_label %></li>
+    </ol>
+  </nav>
+
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10 text-center">
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]"><%= @gemara_work.title %></p>
+    <h1 class="font-hebrew text-3xl text-[var(--color-ink)] mt-1" lang="he" dir="rtl">
+      <%= @canonical_work.title %>
+    </h1>
+    <p class="text-lg text-[var(--color-ink-soft)] font-serif mt-1">
+      Daf <%= @daf_label %>
+    </p>
+    <div class="mt-2 flex justify-center gap-4 text-sm text-[var(--color-ink-soft)]">
+      <span class="font-serif italic">Rashi ←</span>
+      <span class="font-serif">Gemara</span>
+      <span class="font-serif italic">→ Tosafot</span>
+    </div>
+  </header>
+
+  <article class="daf-page font-hebrew" dir="rtl" lang="arc">
+    <% @segments.each do |seg| %>
+      <div class="daf-segment" id="seg-<%= seg[:ref].hierarchy[2] %>">
+
+        <%# Rashi (inner margin = right column in RTL) %>
+        <div class="daf-rashi">
+          <% seg[:rashi].each do |entry| %>
+            <div class="daf-commentary-entry">
+              <% dh, body = split_commentary(entry.body) %>
+              <% if dh %>
+                <span class="daf-dh"><%= dh %></span>
+                <span class="daf-commentary-body"> – <%= body %></span>
+              <% else %>
+                <span class="daf-commentary-body"><%= entry.body %></span>
+              <% end %>
+            </div>
+          <% end %>
+          <% if seg[:rashi].empty? %>
+            <span class="text-[var(--color-ink-soft)] text-xs opacity-50">&nbsp;</span>
+          <% end %>
+        </div>
+
+        <%# Gemara (center column) %>
+        <div class="daf-gemara <%= 'daf-gemara-mishnah' if seg[:mishnah] %>">
+          <% if seg[:mishnah] %>
+            <span class="daf-mishnah-marker" aria-label="Mishnah">מתני׳</span>
+          <% end %>
+          <%= seg[:gemara].body %>
+        </div>
+
+        <%# Tosafot (outer margin = left column in RTL) %>
+        <div class="daf-tosafot">
+          <% seg[:tosafot].each do |entry| %>
+            <div class="daf-commentary-entry">
+              <% dh, body = split_commentary(entry.body) %>
+              <% if dh %>
+                <span class="daf-dh"><%= dh %></span>
+                <span class="daf-commentary-body"> – <%= body %></span>
+              <% else %>
+                <span class="daf-commentary-body"><%= entry.body %></span>
+              <% end %>
+            </div>
+          <% end %>
+          <% if seg[:tosafot].empty? %>
+            <span class="text-[var(--color-ink-soft)] text-xs opacity-50">&nbsp;</span>
+          <% end %>
+        </div>
+
+      </div>
+    <% end %>
+  </article>
+
+  <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
+    <% if @prev_daf %>
+      <%= link_to "← #{daf_label(*@prev_daf)}",
+            daf_nav_path(@gemara_work.slug, @canonical_work.slug, *@prev_daf),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% else %><span></span><% end %>
+
+    <% if @next_daf %>
+      <%= link_to "#{daf_label(*@next_daf)} →",
+            daf_nav_path(@gemara_work.slug, @canonical_work.slug, *@next_daf),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% else %><span></span><% end %>
+  </nav>
+
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-1">
+    <p>
+      <%= @gemara_work.title %> · <%= @gemara_work.license.name %>
+      <% if @rashi_work %> · Rashi (<%= @rashi_work.license.name %>)<% end %>
+      <% if @tosafot_work %> · Tosafot (<%= @tosafot_work.license.name %>)<% end %>
+    </p>
+  </footer>
+</div>
