@@ -24,46 +24,28 @@
   <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
   <% all_tosafot = @segments.flat_map { |s| s[:tosafot] } %>
 
-  <article class="daf-page font-hebrew" dir="rtl" lang="arc" data-controller="daf-layout">
+  <%# daf-renderer target container %>
+  <div id="daf-container" style="max-width:56rem;margin:0 auto;" data-controller="daf-layout"></div>
 
-    <%# Rashi — floated right (inner margin in RTL) %>
-    <% if all_rashi.any? %>
-      <div class="daf-rashi">
-        <% all_rashi.each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <b><%= dh %></b> – <i><%= body %></i>
-            <% else %>
-              <i><%= entry.body %></i>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# Tosafot — floated left (outer margin in RTL) %>
-    <% if all_tosafot.any? %>
-      <div class="daf-tosafot">
-        <% all_tosafot.each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <b><%= dh %></b> – <i><%= body %></i>
-            <% else %>
-              <i><%= entry.body %></i>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# Gemara — flows around the floats %>
-    <% @segments.each do |seg| %>
-      <span id="seg-<%= seg[:ref].hierarchy[2] %>" style="<%= 'font-weight:bold;font-size:1.15em;' if seg[:mishnah] %>"><% if seg[:mishnah] %><span style="color:var(--color-accent);font-weight:700;">מתני׳</span> <% end %><%= seg[:gemara].body %> </span>
-    <% end %>
-
-  </article>
+  <%# Hidden data for JS to read %>
+  <script type="application/json" id="daf-data"><%= {
+    gemara: @segments.map { |s|
+      body = s[:gemara].body
+      if s[:mishnah]
+        "<b>מתני׳</b> #{body}"
+      else
+        body
+      end
+    }.join(" "),
+    rashi: all_rashi.map { |e|
+      dh, body = split_commentary(e.body)
+      dh ? "<b>#{dh}</b> – #{body}" : e.body
+    }.join(" "),
+    tosafot: all_tosafot.map { |e|
+      dh, body = split_commentary(e.body)
+      dh ? "<b>#{dh}</b> – #{body}" : e.body
+    }.join(" ")
+  }.to_json.html_safe %></script>
 
   <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
     <% if @prev_daf %>

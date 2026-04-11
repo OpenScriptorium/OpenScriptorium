@@ -72,3 +72,28 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* Mekorot fonts (SIL OFL 1.1) — Talmud Vilna page layout
+ * Mekorot-Vilna: square Hebrew for Gemara/Mishnah center text
+ * Mekorot-Rashi: semi-cursive for Rashi/Tosafot commentary */
+@font-face {
+  font-family: "Vilna";
+  src: url("Mekorot-Vilna.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vilna";
+  src: url("Mekorot-Vilna-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Rashi";
+  src: url("Mekorot-Rashi.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
