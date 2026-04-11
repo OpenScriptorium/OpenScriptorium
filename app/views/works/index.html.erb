@@ -97,7 +97,10 @@
           data-features="<%= flags.join(' ') %>">
         <%= link_to work_path(work.slug), class: "block hover:underline" do %>
           <div class="flex items-baseline justify-between gap-4">
-            <h2 class="font-serif text-2xl text-[var(--color-ink)]"><%= work.title %></h2>
+            <h2 class="font-serif text-2xl text-[var(--color-ink)]">
+              <span class="sr-only">(<%= language_name(work.language) %>)</span>
+              <%= work.title %>
+            </h2>
             <% if flags.any? %>
               <span class="flex flex-wrap gap-1 text-[10px] font-mono tracking-wider text-[var(--color-ink-soft)] shrink-0">
                 <% flags.each do |abbr| %>

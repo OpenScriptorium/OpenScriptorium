@@ -2,6 +2,16 @@ module ReaderHelper
   # Language metadata for the reader UI. Maps a Work's BCP-47 language
   # tag to the right CSS classes (font + size + line height) and
   # HTML attributes (lang, dir).
+  LANGUAGE_NAMES = {
+    "en" => "English", "he" => "Hebrew", "arc" => "Aramaic",
+    "el-koine" => "Koine Greek", "el" => "Greek", "la" => "Latin",
+    "de" => "German", "fr" => "French",
+  }.freeze
+
+  def language_name(code)
+    LANGUAGE_NAMES[code] || code
+  end
+
   LANGUAGE_PRESENTATION = {
     "he"       => { font: "font-hebrew", size: "text-3xl", leading: "leading-loose", dir: "rtl" },
     "arc"      => { font: "font-hebrew", size: "text-3xl", leading: "leading-loose", dir: "rtl" },
