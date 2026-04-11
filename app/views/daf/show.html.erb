@@ -1,9 +1,9 @@
-<% content_for :title, "#{@canonical_work.title} #{@daf_label} — #{@gemara_work.title}" %>
+<% content_for :title, "#{@canonical_work.title} #{@daf_label} — Talmud Bavli" %>
 
-<div class="max-w-6xl mx-auto px-5 py-12">
+<div class="max-w-6xl mx-auto px-5 py-12" data-controller="daf-layout">
   <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
     <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
-      <li><%= link_to @gemara_work.title, work_path(@gemara_work.slug), class: "hover:underline" %></li>
+      <li><%= link_to "Talmud", works_path, class: "hover:underline" %></li>
       <li><span aria-hidden="true">&raquo;</span></li>
       <li><%= link_to @canonical_work.title, reader_book_path(@gemara_work.slug, @canonical_work.slug), class: "hover:underline" %></li>
       <li><span aria-hidden="true">&raquo;</span></li>
@@ -12,7 +12,7 @@
   </nav>
 
   <header class="border-b border-[var(--color-rule)] pb-6 mb-10 text-center">
-    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]"><%= @gemara_work.title %></p>
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">Talmud Bavli</p>
     <h1 class="font-hebrew text-3xl text-[var(--color-ink)] mt-1" lang="he" dir="rtl">
       <%= @canonical_work.title %>
     </h1>
@@ -29,7 +29,17 @@
   <span style="font-family:Rashi;position:absolute;opacity:0;">א</span>
 
   <%# daf-renderer target container %>
-  <div id="daf-container" style="max-width:56rem;margin:0 auto;position:relative;" data-controller="daf-layout"></div>
+  <div id="daf-container" style="max-width:56rem;margin:0 auto;position:relative;"></div>
+
+  <%# Simple view (shown when Vilna is toggled off) %>
+  <div id="daf-simple" class="font-hebrew max-w-3xl mx-auto" dir="rtl" lang="arc" style="display:none;">
+    <% @segments.each do |seg| %>
+      <p class="mb-3 leading-relaxed" style="font-family:Vilna,serif;font-size:15px;line-height:24px;<%= 'font-weight:bold;' if seg[:mishnah] %>">
+        <% if seg[:mishnah] %><span style="color:var(--color-accent);font-weight:700;">מתני׳</span> <% end %>
+        <%= seg[:gemara].body %>
+      </p>
+    <% end %>
+  </div>
 
   <%# Hidden data for JS to read %>
   <script type="application/json" id="daf-data"><%= {
@@ -68,8 +78,7 @@
   <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2">
     <% layout_mode = cookies[:daf_layout].to_s %>
     <% vilna_on = layout_mode != "simple" %>
-    <div data-controller="daf-layout"
-         class="flex items-center gap-x-3 font-serif">
+    <div class="flex items-center gap-x-3 font-serif">
       <label class="cursor-pointer flex items-center gap-1.5">
         <input type="checkbox" name="daf_layout"
                <%= "checked" if vilna_on %>
