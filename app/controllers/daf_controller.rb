@@ -26,6 +26,9 @@ class DafController < ApplicationController
       }
     end
 
+    # Margin commentaries (Rashash, Maharsha, Gilyon HaShas, etc.)
+    @margin_works = fetch_margin_commentaries
+
     compute_navigation
   end
 
@@ -79,6 +82,21 @@ class DafController < ApplicationController
       .order("canonical_refs.ord, work_units.label")
       .includes(:canonical_ref)
       .to_a
+  end
+
+  MARGIN_SLUGS = %w[
+    rashash-bavli maharsha-halachot maharsha-agadot
+    gilyon-hashas chokhmat-shlomo hagahot-yaavetz piskei-tosafot
+  ].freeze
+
+  def fetch_margin_commentaries
+    MARGIN_SLUGS.filter_map do |slug|
+      work = Work.find_by(slug: slug)
+      next unless work
+      units = fetch_units(work)
+      next if units.empty?
+      { work: work, units: units }
+    end
   end
 
   def compute_navigation

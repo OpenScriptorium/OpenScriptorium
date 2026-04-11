@@ -423,6 +423,56 @@ html {
   }
 }
 
+/* Five-column Vilna wrapper ------------------------------------------------
+ * Narrow margin strips flanking the three-column daf-renderer center.
+ * Matches the printed Vilna page: Ein Mishpat/Piskei Tosafot on the
+ * outer edges, Rashash/Maharsha/Gilyon on the inner edges.
+ * -------------------------------------------------------------------------- */
+
+.daf-vilna-wrapper {
+  display: flex;
+  direction: rtl;
+  gap: 0.5rem;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.daf-margin-strip {
+  flex: 0 0 7.5rem;
+  font-family: Rashi, serif;
+  font-size: 9px;
+  line-height: 14px;
+  color: var(--color-ink-soft);
+  overflow: hidden;
+}
+
+.daf-margin-right { order: 1; }
+#daf-container { order: 2; flex: 1; min-width: 0; }
+.daf-margin-left { order: 3; }
+
+.daf-margin-title {
+  font-weight: 700;
+  font-size: 8px;
+  text-align: center;
+  margin: 0.5rem 0 0.25rem;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-rule);
+  padding-bottom: 0.15rem;
+}
+
+.daf-margin-section { margin-bottom: 0.75rem; }
+
+.daf-margin-entry { margin-bottom: 0.2rem; }
+
+@media (max-width: 64rem) {
+  .daf-margin-strip { display: none; }
+  .daf-vilna-wrapper { max-width: 56rem; }
+}
+
+@media (max-width: 48rem) {
+  .daf-vilna-wrapper { display: block; }
+}
+
 /* SIL fonts ----------------------------------------------------------------
  * @font-face declarations live in app/assets/stylesheets/fonts.css
  * (loaded via the Propshaft asset pipeline). Font files belong in
