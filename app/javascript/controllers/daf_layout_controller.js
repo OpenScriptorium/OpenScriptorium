@@ -21,15 +21,7 @@ export default class extends Controller {
     if (!container) return
 
     try {
-      const renderer = dafRenderer("#daf-container", {
-        contentWidth: "850px",
-        mainWidth: "42%",
-        padding: { vertical: "8px", horizontal: "14px" },
-        fontFamily: { inner: "Rashi", outer: "Rashi", main: "Vilna" },
-        direction: "rtl",
-        fontSize: { main: "17", side: "12" },
-        lineHeight: { main: "28", side: "19" }
-      })
+      const renderer = dafRenderer("#daf-container")
 
       setTimeout(() => {
         renderer.render(data.gemara, data.rashi, data.tosafot, "a")
