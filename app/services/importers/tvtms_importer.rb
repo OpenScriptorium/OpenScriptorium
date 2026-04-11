@@ -22,14 +22,18 @@ module Importers
   #   SourceType, SourceRef, StandardRef, Action, NoteMarker,
   #   Reversification Note, Versification Note, Ancient Versions, Tests
   #
-  # Each row says: "in tradition X, the verse numbered Y is the same
-  # passage as KJV verse Z (subject to the conditional Tests column,
-  # which we currently ignore for simplicity)."
+  # Each row carries a Tests column containing conditional expressions
+  # like `Psa.3:9=Last & Psa.3:TextBeforeV1=NotExist`. We evaluate
+  # these tests against the canonical_ref verse structure of each
+  # scheme we care about (MT, LXX, German). A row produces a mapping
+  # for every scheme whose verse data satisfies its tests, regardless
+  # of the SourceType label. This means a Hebrew-tagged row whose
+  # tests also match the German tradition's verse structure will
+  # produce German→KJV mappings automatically — no per-tradition
+  # overlay files needed.
   #
-  # We filter for the rows that produce useful versification_mappings:
-  # rows where SourceType identifies a single tradition (Greek*, Hebrew,
-  # Latin) AND where SourceRef differs from StandardRef. Identity rows
-  # are skipped — the parallel reader's #equivalent_in helper assumes
+  # Identity rows (SourceRef == StandardRef with "Keep verse") are
+  # skipped — the parallel reader's #equivalent_in helper assumes
   # identity unless a mapping says otherwise.
   class TvtmsImporter < BaseImporter
     SOURCE_URL = "https://raw.githubusercontent.com/STEPBible/STEPBible-Data/master/" \
@@ -40,7 +44,6 @@ module Importers
 
     DATA_START_MARKER = "#DataStart(Expanded)"
     CONDENSED_START_MARKER = "#DataStart(Condensed)"
-    OVERLAY_PATH = Rails.root.join("db/data/tvtms_openscriptorium_overlay.tsv")
 
     # USFM/OSIS book code → canonical_works.book_key.
     # Greek-tradition rows for divergent books look up an LXX-specific
@@ -220,8 +223,17 @@ module Importers
       @mt_scheme     = VersificationScheme.find_by!(code: "MT")
       @german_scheme = VersificationScheme.find_by!(code: "German")
 
+      # The schemes we evaluate TVTMS tests against. Each Expanded row's
+      # Tests column is evaluated for every scheme here; matching schemes
+      # get a versification_mapping created.
+      @target_schemes = [@lxx_scheme, @mt_scheme, @german_scheme]
+
       # Cache canonical_works by (slug → CanonicalWork)
       @canonical_work_cache = {}
+
+      # Pre-build in-memory verse structure so test evaluation doesn't
+      # hit the database per-row.
+      build_verse_structure_cache!
 
       # Wipe and re-create. Mappings are derived purely from the source
       # file, so a fresh load is the simplest idempotency story.
@@ -262,45 +274,50 @@ module Importers
         process_row(line.split("\t", -1))
       end
 
-      load_openscriptorium_overlay!
-
       expand_chapter_renumbers!
 
       Rails.logger.info "[TvtmsImporter] done — #{report}"
     end
 
-    # Load db/data/tvtms_openscriptorium_overlay.tsv after the upstream
-    # TVTMS data. The overlay extends the upstream German rows with
-    # mappings for passages where Luther 1912's verse boundaries
-    # diverge from KJV but the upstream STEPBible coverage doesn't have
-    # rows. Format is identical to upstream TVTMS — same column order
-    # — but the file is committed to the repo and only contains
-    # `German` rows. Lines starting with `#` are comments.
+    # Build an in-memory cache of verse structure for every canonical_work
+    # that participates in a versification scheme we care about. This
+    # lets the test evaluator answer questions like "is Psa.3:9 the last
+    # verse in chapter 3?" without hitting the database per-row.
     #
-    # Overlay rows fail soft: if a German canonical_ref doesn't exist
-    # yet (because Luther1912Importer hasn't run yet to create the
-    # `*-german` canonical_works), the row is skipped and counted in
-    # `:overlay_missing_source_canonical_ref`. The user re-runs
-    # `import:tvtms` after `import:luther1912` to populate the German
-    # mappings.
-    def load_openscriptorium_overlay!
-      return unless File.exist?(OVERLAY_PATH)
+    # Structure:
+    #   @verse_max[canonical_work_id][chapter] = max_verse_number
+    #   @verse_set[canonical_work_id][chapter] = Set{verse_numbers}
+    #   @subverse_set[[canonical_work_id, chapter, verse]] = Set{part_numbers}
+    def build_verse_structure_cache!
+      relevant_cw_ids = CanonicalWork
+                          .where(versification_scheme: [@kjv_scheme, @lxx_scheme, @mt_scheme, @german_scheme])
+                          .or(CanonicalWork.where(versification_scheme: nil))
+                          .pluck(:id)
 
-      seen_header = false
-      File.foreach(OVERLAY_PATH) do |line|
-        line = line.chomp
-        next if line.empty?
-        next if line.start_with?("#")
+      @verse_max = {}   # { cw_id => { chapter => max_verse } }
+      @verse_set = {}   # { cw_id => { chapter => Set[verses] } }
+      @subverse_set = {} # { [cw_id, chapter, verse] => Set[parts] }
 
-        if line.start_with?("SourceType\t")
-          seen_header = true
-          next
+      CanonicalRef
+        .where(canonical_work_id: relevant_cw_ids)
+        .where("array_length(hierarchy, 1) = 2")
+        .pluck(:canonical_work_id, Arel.sql("hierarchy[1]"), Arel.sql("hierarchy[2]"))
+        .each do |cw_id, ch, v|
+          @verse_max[cw_id] ||= {}
+          @verse_set[cw_id] ||= {}
+          @verse_max[cw_id][ch] = [@verse_max[cw_id][ch] || 0, v].max
+          (@verse_set[cw_id][ch] ||= Set.new) << v
         end
-        next unless seen_header
 
-        process_row(line.split("\t", -1))
-        bump(:overlay_rows_processed)
-      end
+      CanonicalRef
+        .where(canonical_work_id: relevant_cw_ids)
+        .where("array_length(hierarchy, 1) = 3")
+        .pluck(:canonical_work_id, Arel.sql("hierarchy[1]"), Arel.sql("hierarchy[2]"), Arel.sql("hierarchy[3]"))
+        .each do |cw_id, ch, v, part|
+          (@subverse_set[[cw_id, ch, v]] ||= Set.new) << part
+        end
+
+      Rails.logger.info "[TvtmsImporter] verse cache: #{@verse_max.size} canonical_works"
     end
 
     # TVTMS optimizes its file by emitting a SINGLE "Renumber verse" row
@@ -414,6 +431,116 @@ module Importers
       end
     end
 
+    # ── TVTMS Test Expression Evaluator ──────────────────────────────
+    #
+    # The Expanded section's Tests column contains `&`-joined conditions
+    # like `Psa.3:9=Last & Psa.3:TextBeforeV1=NotExist`. Each condition
+    # probes the verse structure of the Bible being imported. We evaluate
+    # these against our canonical_ref data for each target scheme.
+    #
+    # Supported conditions (see TVTMS documentation, lines 106-127):
+    #   Ref.C:V=Last           V is the highest verse in chapter C
+    #   Ref.C:V=Exist          verse V exists in chapter C
+    #   Ref.C:V=NotExist       verse V does NOT exist in chapter C
+    #   Ref.C:V.N=Exist        subverse N of V exists
+    #   Ref.C:V.N=NotExist     subverse N of V doesn't exist
+    #   Ref.C:TextBeforeV1=…   canonical text (psalm title) before v1
+    #   Ref.C:V>Ref.C:W        word-count comparison (unevaluable)
+    #   Ref.C:V<Ref.C:W        word-count comparison (unevaluable)
+    #
+    # Word-count comparisons require the actual text and are skipped
+    # (treated as passing). They're rare and always combined with
+    # structural tests that provide the real disambiguation.
+
+    # Returns true if all conditions in `test_expr` pass for `scheme`.
+    # Empty/blank tests pass unconditionally.
+    def evaluate_tests(test_expr, scheme)
+      return true if test_expr.blank?
+
+      conditions = test_expr.split(/\s*&\s*/)
+      conditions.all? { |cond| evaluate_condition(cond.strip, scheme) != false }
+    end
+
+    # Evaluate a single TVTMS test condition. Returns:
+    #   true  — condition satisfied
+    #   false — condition NOT satisfied (row doesn't apply to this scheme)
+    #   nil   — condition unevaluable (word count, unknown format) — pass
+    def evaluate_condition(cond, scheme)
+      # TextBeforeV1: "Psa.3:TextBeforeV1=Exist" / "=NotExist"
+      # For non-KJV schemes (MT, LXX, German), psalm titles are numbered
+      # as v1, so TextBeforeV1 is always NotExist. KJV is always the
+      # target scheme, never a source, so we only evaluate non-KJV here.
+      if (m = cond.match(/\A(\w+)\.(\d+):TextBeforeV1=(Exist|NotExist)\z/))
+        return m[3] == "NotExist"
+      end
+
+      # Ref.C:V=Last — verse V is the last (highest) in chapter C
+      if (m = cond.match(/\A(\w+)\.(\d+):(\d+)=Last\z/))
+        book, ch, v = m[1], m[2].to_i, m[3].to_i
+        cw = resolve_canonical_work_for_test(book, scheme)
+        return nil unless cw
+        max = @verse_max.dig(cw.id, ch)
+        return max == v
+      end
+
+      # Ref.C:V=Exist — verse V has text in chapter C
+      if (m = cond.match(/\A(\w+)\.(\d+):(\d+)=Exist\z/))
+        book, ch, v = m[1], m[2].to_i, m[3].to_i
+        cw = resolve_canonical_work_for_test(book, scheme)
+        return nil unless cw
+        return @verse_set.dig(cw.id, ch)&.include?(v) || false
+      end
+
+      # Ref.C:V=NotExist
+      if (m = cond.match(/\A(\w+)\.(\d+):(\d+)=NotExist\z/))
+        book, ch, v = m[1], m[2].to_i, m[3].to_i
+        cw = resolve_canonical_work_for_test(book, scheme)
+        return nil unless cw
+        return !(@verse_set.dig(cw.id, ch)&.include?(v))
+      end
+
+      # Ref.C:V.N=Exist — subverse part N exists
+      if (m = cond.match(/\A(\w+)\.(\d+):(\d+)\.(\d+)=Exist\z/))
+        book, ch, v, sv = m[1], m[2].to_i, m[3].to_i, m[4].to_i
+        cw = resolve_canonical_work_for_test(book, scheme)
+        return nil unless cw
+        return @subverse_set[[cw.id, ch, v]]&.include?(sv) || false
+      end
+
+      # Ref.C:V.N=NotExist
+      if (m = cond.match(/\A(\w+)\.(\d+):(\d+)\.(\d+)=NotExist\z/))
+        book, ch, v, sv = m[1], m[2].to_i, m[3].to_i, m[4].to_i
+        cw = resolve_canonical_work_for_test(book, scheme)
+        return nil unless cw
+        return !(@subverse_set[[cw.id, ch, v]]&.include?(sv))
+      end
+
+      # Word-count comparisons, Exist*N, and anything else — unevaluable
+      nil
+    end
+
+    # Resolve a TVTMS book code (e.g. "Psa") to the correct
+    # canonical_work for a given scheme, using the same divergent-book
+    # maps as lookup_canonical_ref. Returns nil if the canonical_work
+    # doesn't exist (e.g. German scheme but Luther hasn't been imported).
+    def resolve_canonical_work_for_test(book_code, scheme)
+      base_key = BOOK_CODE_TO_KEY[book_code]
+      return nil unless base_key
+
+      slug =
+        if scheme == @lxx_scheme && LXX_DIVERGENT_BOOKS.key?(base_key)
+          LXX_DIVERGENT_BOOKS[base_key]
+        elsif scheme == @mt_scheme && MT_DIVERGENT_BOOKS.key?(base_key)
+          MT_DIVERGENT_BOOKS[base_key]
+        elsif scheme == @german_scheme && GERMAN_DIVERGENT_BOOKS.key?(base_key)
+          GERMAN_DIVERGENT_BOOKS[base_key]
+        else
+          base_key
+        end
+
+      @canonical_work_cache[slug] ||= CanonicalWork.find_by(slug: slug)
+    end
+
     private
 
     def ensure_source_present!
@@ -522,35 +649,7 @@ module Importers
       source_ref    = fields[1].to_s.strip
       standard_ref  = fields[2].to_s.strip
       action        = fields[3].to_s.strip
-
-      # We only care about rows tagged with the specific source-tradition
-      # convention used by the texts we actually host.
-      #
-      # TVTMS encodes several Greek conventions and uses inconsistent
-      # word ordering for combined-tradition labels (`Latin+Greek` vs
-      # `Greek+Latin` for the same kind of rule).
-      #
-      # Our Rahlfs/CCAT data follows the **title-as-v1** convention
-      # (Ps 9 has 39 verses, with the title numbered as v1) — TVTMS
-      # tags those rules with the bare token `Greek` (in any position
-      # of a `+`-joined label). The alternative `Greek2` token marks
-      # the title-merged convention (NETS / Brenton, Ps 9 = 38 verses)
-      # and would produce an off-by-one error against our data.
-      #
-      # Matching strategy: split the source-type label on `+` and check
-      # whether any part is exactly `Greek` (for LXX) or exactly
-      # `Hebrew` (for MT). This catches `Greek`, `Latin+Greek`,
-      # `Greek+Latin`, `Hebrew+Greek`, `Hebrew+Latin+Greek`, etc.,
-      # while excluding `Greek2`, `Greek3`, `GreekIntegrated`,
-      # `Eng-KJV+...`, and other variants. A combined `Hebrew+Greek`
-      # row produces mappings in *both* schemes because the rule
-      # applies to both traditions simultaneously.
-      tokens = source_type.split("+").map(&:strip)
-      from_schemes = []
-      from_schemes << @lxx_scheme    if tokens.include?("Greek")
-      from_schemes << @mt_scheme     if tokens.include?("Hebrew")
-      from_schemes << @german_scheme if tokens.include?("German")
-      return if from_schemes.empty?
+      test_expr     = fields[8].to_s.strip
 
       return if source_ref.blank? || standard_ref.blank?
 
@@ -579,7 +678,19 @@ module Importers
         return
       end
 
-      from_schemes.each do |from_scheme|
+      # Evaluate the Tests column against each target scheme's verse
+      # structure. A row produces mappings for every scheme whose
+      # canonical data satisfies the tests.
+      matching_schemes = @target_schemes.select do |scheme|
+        evaluate_tests(test_expr, scheme)
+      end
+
+      if matching_schemes.empty?
+        bump(:tests_no_scheme_matched)
+        return
+      end
+
+      matching_schemes.each do |from_scheme|
         from_ref = lookup_canonical_ref(source_parsed, from_scheme)
         unless from_ref
           bump(:missing_source_canonical_ref)
@@ -593,10 +704,10 @@ module Importers
             next
           end
 
-          # Idempotency: a single TVTMS/overlay run can encode the same
-          # logical (from, to, type) twice via two slightly different
-          # action rows (e.g. "Renumber verse" + "Concatenation" pair
-          # for the same target). Use find_or_create to dedupe.
+          # Idempotency: a single TVTMS run can encode the same logical
+          # (from, to, type) twice via two slightly different action rows
+          # (e.g. "Renumber verse" + "Concatenation" pair for the same
+          # target). Use find_or_create to dedupe.
           attrs = {
             from_scheme_id:        from_scheme.id,
             from_canonical_ref_id: from_ref.id,
