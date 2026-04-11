@@ -19,11 +19,6 @@
     <p class="text-lg text-[var(--color-ink-soft)] font-serif mt-1">
       Daf <%= @daf_label %>
     </p>
-    <div class="mt-2 flex justify-center gap-4 text-sm text-[var(--color-ink-soft)]">
-      <span class="font-serif italic">Rashi ←</span>
-      <span class="font-serif">Gemara</span>
-      <span class="font-serif italic">→ Tosafot</span>
-    </div>
   </header>
 
   <% daf_layout = cookies[:daf_layout].presence || "vilna" %>
