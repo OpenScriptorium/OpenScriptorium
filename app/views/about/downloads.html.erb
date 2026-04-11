@@ -41,11 +41,19 @@
       cross-references file. Useful for spreadsheets, R, Python,
       or any tool that reads CSV.
     </p>
-    <p class="text-sm">
-      Available in <code>/downloads/csv/</code>: one file per work
-      slug (e.g. <code>bsb.csv</code>, <code>wlc.csv</code>) plus
-      <code>cross_references.csv</code>.
-    </p>
+    <% csv_dir = Rails.root.join("public/downloads/csv") %>
+    <% if csv_dir.exist? %>
+      <ul class="text-sm space-y-1 mt-3">
+        <% Dir.glob(csv_dir.join("*.csv")).sort.each do |path| %>
+          <% fname = File.basename(path) %>
+          <li>
+            <a href="/downloads/csv/<%= fname %>"
+               class="text-[var(--color-link)] hover:underline font-mono"><%= fname %></a>
+            <span class="text-[var(--color-ink-soft)]">(<%= number_to_human_size(File.size(path)) %>)</span>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
 
     <h2>REST API</h2>
 
