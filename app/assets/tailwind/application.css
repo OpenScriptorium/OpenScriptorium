@@ -383,46 +383,55 @@ html {
  * columns align across segments in a single parent grid.
  * -------------------------------------------------------------------------- */
 
+/* Vilna layout: three independent flowing columns */
 .daf-page {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
-  column-gap: 1.5rem;
+  display: flex;
   direction: rtl;
+  gap: 1.5rem;
 }
 
-.daf-segment {
-  display: contents;
+/* Hide commentary columns when simple mode is active */
+.daf-page[data-layout="simple"] .daf-rashi,
+.daf-page[data-layout="simple"] .daf-tosafot {
+  display: none;
+}
+.daf-page[data-layout="simple"] .daf-gemara {
+  border: none;
+  padding-inline: 0;
+  max-width: 50rem;
+  margin: 0 auto;
 }
 
 .daf-rashi {
-  grid-column: 1;
+  flex: 1;
   font-size: 0.9rem;
   line-height: 1.7;
-  padding-block: 0.75rem;
 }
 
 .daf-gemara {
-  grid-column: 2;
+  flex: 1.4;
   font-size: 1.15rem;
   line-height: 1.85;
   border-inline-start: 1px solid var(--color-rule);
   border-inline-end: 1px solid var(--color-rule);
   padding-inline: 1rem;
-  padding-block: 0.75rem;
 }
 
 .daf-tosafot {
-  grid-column: 3;
+  flex: 1;
   font-size: 0.9rem;
   line-height: 1.7;
-  padding-block: 0.75rem;
+}
+
+.daf-gemara-segment + .daf-gemara-segment {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dotted var(--color-rule);
 }
 
 .daf-gemara-mishnah {
   font-weight: 600;
   font-size: 1.25rem;
-  border-inline-start-color: var(--color-accent);
-  border-inline-start-width: 3px;
 }
 
 .daf-mishnah-marker {
@@ -450,15 +459,7 @@ html {
 /* Mobile: stack Gemara first, then Rashi, then Tosafot */
 @media (max-width: 64rem) {
   .daf-page {
-    grid-template-columns: 1fr;
-  }
-  .daf-segment {
-    display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--color-rule);
   }
   .daf-gemara {
     order: 1;
