@@ -16,7 +16,16 @@
     # JavaScript on, every change is intercepted and applied
     # locally with no server roundtrip.
     # ============================================================ %>
-  <% any_active = @selected_features.any? || @selected_language || @selected_tradition || @selected_type %>
+  <%
+    any_active = @selected_features.any? || @selected_languages.any? || @selected_traditions.any? || @selected_types.any?
+    badge_class = "filter-badge cursor-pointer text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5 border transition-colors border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
+    tradition_labels = {
+      "χ" => "χ: Christian", "χ-orthodox" => "χ-orthodox", "χ-catholic" => "χ-catholic",
+      "χ-protestant" => "χ-protestant", "χ-patristic" => "χ-patristic",
+      "ש" => "ש: Jewish", "ש-rabbinic" => "ש-rabbinic", "ש-hellenistic" => "ש-hellenistic",
+      "academic" => "academic"
+    }
+  %>
   <details class="mb-6" <%= "open" if any_active %>>
     <summary class="flex items-baseline justify-between cursor-pointer text-xs uppercase tracking-wider text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] select-none">
       <span>
@@ -24,7 +33,7 @@
         <span class="ml-2 normal-case tracking-normal italic text-[var(--color-ink)]"
               data-works-filter-target="summary"
               <%= "hidden" unless any_active %>>
-          <%= any_active ? "(#{[@selected_language, @selected_tradition, @selected_type, *@selected_features].compact.join(", ")})" : "" %>
+          <%= any_active ? "(#{[*@selected_languages, *@selected_traditions, *@selected_types, *@selected_features].join(", ")})" : "" %>
         </span>
       </span>
       <span class="not-italic font-sans">↕</span>
@@ -32,44 +41,59 @@
 
     <%= form_with url: works_path, method: :get, local: true,
           class: "mt-4 font-serif text-sm space-y-3" do |f| %>
-      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-3 text-[var(--color-ink-soft)]">
-        <span>
-          <%= f.select :language, [["any language", ""]] + @facet_languages.map { |l| ["#{l}: #{language_name(l)}", l] },
-                { selected: @selected_language },
-                class: "bg-transparent border-0 border-b border-dotted border-[var(--color-rule)] hover:border-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)] focus:border-[var(--color-ink)] py-0.5 pr-4 cursor-pointer",
-                "aria-label": "Filter by language",
-                data: { action: "change->works-filter#apply" } %>
-        </span>
-        <span>
-          <%= f.select :tradition, [["any tradition", ""]] + @facet_traditions.map { |t| [t.tr("_", " "), t] },
-                { selected: @selected_tradition },
-                class: "bg-transparent border-0 border-b border-dotted border-[var(--color-rule)] hover:border-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)] focus:border-[var(--color-ink)] py-0.5 pr-4 cursor-pointer",
-                "aria-label": "Filter by tradition",
-                data: { action: "change->works-filter#apply" } %>
-        </span>
-        <span>
-          <%= f.select :type, [["any type", ""]] + @facet_types.map { |t| [Work::WORK_TYPE_LABELS[t] || t.tr("_", " "), t] },
-                { selected: @selected_type },
-                class: "bg-transparent border-0 border-b border-dotted border-[var(--color-rule)] hover:border-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)] focus:border-[var(--color-ink)] py-0.5 pr-4 cursor-pointer",
-                "aria-label": "Filter by type",
-                data: { action: "change->works-filter#apply" } %>
-        </span>
-        <button type="button"
-                data-action="works-filter#clear"
-                class="text-xs italic underline decoration-dotted hover:text-[var(--color-link)] bg-transparent border-0 cursor-pointer p-0">
-          clear
-        </button>
-      </div>
 
       <fieldset class="flex flex-wrap items-center gap-1.5">
-        <legend class="sr-only">Feature filters</legend>
+        <legend class="text-[10px] uppercase tracking-wider text-[var(--color-ink-soft)] mr-2">Language</legend>
+        <% @facet_languages.each do |l| %>
+          <% checked = @selected_languages.include?(l) %>
+          <label title="<%= language_name(l) %>"
+                 data-works-filter-target="badge"
+                 class="<%= badge_class %> <%= 'is-active' if checked %>">
+            <%= check_box_tag "languages[]", l, checked,
+                  data: { action: "change->works-filter#apply" },
+                  class: "sr-only" %>
+            <%= "#{l}: #{language_name(l)}" %>
+          </label>
+        <% end %>
+      </fieldset>
+
+      <fieldset class="flex flex-wrap items-center gap-1.5">
+        <legend class="text-[10px] uppercase tracking-wider text-[var(--color-ink-soft)] mr-2">Tradition</legend>
+        <% @facet_traditions.each do |t| %>
+          <% checked = @selected_traditions.include?(t) %>
+          <label title="<%= tradition_labels[t] || t %>"
+                 data-works-filter-target="badge"
+                 class="<%= badge_class %> <%= 'is-active' if checked %>">
+            <%= check_box_tag "traditions[]", t, checked,
+                  data: { action: "change->works-filter#apply" },
+                  class: "sr-only" %>
+            <%= tradition_labels[t] || t %>
+          </label>
+        <% end %>
+      </fieldset>
+
+      <fieldset class="flex flex-wrap items-center gap-1.5">
+        <legend class="text-[10px] uppercase tracking-wider text-[var(--color-ink-soft)] mr-2">Type</legend>
+        <% @facet_types.each do |t| %>
+          <% checked = @selected_types.include?(t) %>
+          <label title="<%= Work::WORK_TYPE_LABELS[t] || t %>"
+                 data-works-filter-target="badge"
+                 class="<%= badge_class %> <%= 'is-active' if checked %>">
+            <%= check_box_tag "types[]", t, checked,
+                  data: { action: "change->works-filter#apply" },
+                  class: "sr-only" %>
+            <%= Work::WORK_TYPE_LABELS[t] || t.tr("_", " ") %>
+          </label>
+        <% end %>
+      </fieldset>
+
+      <fieldset class="flex flex-wrap items-center gap-1.5">
+        <legend class="text-[10px] uppercase tracking-wider text-[var(--color-ink-soft)] mr-2">Features</legend>
         <% Work::FEATURE_DEFINITIONS.each do |abbr, _predicate, label, _desc| %>
           <% checked = @selected_features.include?(abbr) %>
           <label title="<%= label %>"
                  data-works-filter-target="badge"
-                 class="filter-badge cursor-pointer text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5 border transition-colors
-                        border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]
-                        <%= 'is-active' if checked %>">
+                 class="<%= badge_class %> <%= 'is-active' if checked %>">
             <%= check_box_tag "features[]", abbr, checked,
                   data: { action: "change->works-filter#apply" },
                   class: "sr-only" %>
@@ -77,6 +101,12 @@
           </label>
         <% end %>
       </fieldset>
+
+      <button type="button"
+              data-action="works-filter#clear"
+              class="text-xs italic underline decoration-dotted hover:text-[var(--color-link)] bg-transparent border-0 cursor-pointer p-0 font-serif">
+        clear all
+      </button>
     <% end %>
   </details>
 

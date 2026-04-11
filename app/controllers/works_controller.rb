@@ -1,5 +1,5 @@
 class WorksController < ApplicationController
-  allow_unauthenticated_access only: [:index, :show]
+  allow_unauthenticated_access only: [:index, :show, :not_in_corpus]
 
   def index
     # Selected filters come from URL params and seed the form's
@@ -9,15 +9,24 @@ class WorksController < ApplicationController
     # avoids re-running the per-work feature predicates (which each
     # cost an indexed query and add up under heavy import write
     # contention).
-    @selected_features  = Array(params[:features]).select { |f| Work::FEATURE_DEFINITIONS.any? { |d| d[0] == f } }
-    @selected_language  = params[:language].presence
-    @selected_tradition = params[:tradition].presence
-    @selected_type      = params[:type].presence
+    @selected_features   = Array(params[:features]).select { |f| Work::FEATURE_DEFINITIONS.any? { |d| d[0] == f } }
+    @selected_languages  = Array(params[:languages]).select(&:present?)
+    @selected_traditions = Array(params[:traditions]).select(&:present?)
+    @selected_types      = Array(params[:types]).select(&:present?)
 
     @works = Work.includes(:license).order(:title).to_a
 
     @facet_languages  = @works.map(&:language).compact.uniq.sort
-    @facet_traditions = @works.flat_map(&:traditions).compact.uniq.sort
+    # Sort traditions: parents (χ, ש) first, then children, then standalone
+    @facet_traditions = @works.flat_map(&:traditions).compact.uniq.sort_by { |t|
+      case t
+      when "χ"  then [0, 0]
+      when /\Aχ-/ then [0, 1, t]
+      when "ש"  then [1, 0]
+      when /\Aש-/ then [1, 1, t]
+      else [2, 0, t]
+      end
+    }
     @facet_types      = @works.map(&:work_type).compact.uniq.sort
 
     # Pre-compute every work's feature flags once and freeze the
@@ -35,5 +44,15 @@ class WorksController < ApplicationController
                         .where(work_units: { work_id: @work.id })
                         .distinct
                         .order(:position)
+  end
+
+  # Cross-reference target whose text hasn't been imported yet.
+  # Linked from xref helpers when resolve_work_for_canonical_work
+  # returns nil.
+  def not_in_corpus
+    @canonical_work = CanonicalWork.find_by(slug: params[:slug])
+    # Fall back to treating the slug as a display name
+    @title = @canonical_work&.title || params[:slug].titleize.gsub("-", " ")
+    @description = @canonical_work&.description
   end
 end
