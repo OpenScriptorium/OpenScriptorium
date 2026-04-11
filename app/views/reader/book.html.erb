@@ -21,40 +21,53 @@
     </p>
   </header>
 
-  <h2 class="font-serif text-xl text-[var(--color-ink)] mb-3">Chapters</h2>
-  <ul class="flex flex-wrap gap-2">
-    <% @chapters.each do |ch| %>
-      <li>
-        <%= link_to ch, reader_chapter_path(@work.slug, @canonical_work.slug, ch),
-              class: "inline-block px-3 py-1 border border-[var(--color-rule)] rounded font-serif text-[var(--color-link)] hover:bg-[var(--color-rule)]" %>
-      </li>
-    <% end %>
-  </ul>
+  <% if @is_talmud %>
+    <h2 class="font-serif text-xl text-[var(--color-ink)] mb-3">Daf</h2>
+    <ul class="flex flex-wrap gap-2">
+      <% @dafim.each do |daf_num, amud| %>
+        <% label = "#{daf_num}#{amud == 1 ? 'a' : 'b'}" %>
+        <li>
+          <%= link_to label, daf_path(@work.slug, @canonical_work.slug, label),
+                class: "inline-block px-3 py-1 border border-[var(--color-rule)] rounded font-serif text-[var(--color-link)] hover:bg-[var(--color-rule)]" %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <h2 class="font-serif text-xl text-[var(--color-ink)] mb-3">Chapters</h2>
+    <ul class="flex flex-wrap gap-2">
+      <% @chapters.each do |ch| %>
+        <li>
+          <%= link_to ch, reader_chapter_path(@work.slug, @canonical_work.slug, ch),
+                class: "inline-block px-3 py-1 border border-[var(--color-rule)] rounded font-serif text-[var(--color-link)] hover:bg-[var(--color-rule)]" %>
+        </li>
+      <% end %>
+    </ul>
 
-  <%# Jump-to-passage form. Builds the URL client-side via a tiny Stimulus
-      controller so we don't need a server roundtrip. %>
-  <h2 class="font-serif text-xl text-[var(--color-ink)] mt-10 mb-3">Jump to passage</h2>
-  <form data-controller="passage-jump"
-        data-passage-jump-work-value="<%= @work.slug %>"
-        data-passage-jump-book-value="<%= @canonical_work.slug %>"
-        data-action="submit->passage-jump#go"
-        class="flex flex-wrap items-center gap-2 font-serif">
-    <label for="passage-jump-input" class="sr-only">Jump to passage</label>
-    <input type="text"
-           id="passage-jump-input"
-           data-passage-jump-target="input"
-           placeholder="e.g. 1, 1:1, 1:1-5, 1:1-2:3"
-           class="px-3 py-2 border border-[var(--color-rule)] bg-[var(--color-page)] text-[var(--color-ink)] rounded font-mono text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]"/>
-    <button type="submit"
-            aria-label="Go to passage"
-            class="px-4 py-2 bg-[var(--color-ink)] text-[var(--color-page)] rounded text-sm">
-      Go
-    </button>
-    <p class="basis-full text-xs text-[var(--color-ink-soft)] italic mt-1">
-      Examples: <code class="font-mono">3</code> (chapter 3),
-      <code class="font-mono">3:16</code> (one verse),
-      <code class="font-mono">3:16-21</code> (verse range),
-      <code class="font-mono">1:1-2:3</code> (cross-chapter).
-    </p>
-  </form>
+    <%# Jump-to-passage form. Builds the URL client-side via a tiny Stimulus
+        controller so we don't need a server roundtrip. %>
+    <h2 class="font-serif text-xl text-[var(--color-ink)] mt-10 mb-3">Jump to passage</h2>
+    <form data-controller="passage-jump"
+          data-passage-jump-work-value="<%= @work.slug %>"
+          data-passage-jump-book-value="<%= @canonical_work.slug %>"
+          data-action="submit->passage-jump#go"
+          class="flex flex-wrap items-center gap-2 font-serif">
+      <label for="passage-jump-input" class="sr-only">Jump to passage</label>
+      <input type="text"
+             id="passage-jump-input"
+             data-passage-jump-target="input"
+             placeholder="e.g. 1, 1:1, 1:1-5, 1:1-2:3"
+             class="px-3 py-2 border border-[var(--color-rule)] bg-[var(--color-page)] text-[var(--color-ink)] rounded font-mono text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[var(--color-link)]"/>
+      <button type="submit"
+              aria-label="Go to passage"
+              class="px-4 py-2 bg-[var(--color-ink)] text-[var(--color-page)] rounded text-sm">
+        Go
+      </button>
+      <p class="basis-full text-xs text-[var(--color-ink-soft)] italic mt-1">
+        Examples: <code class="font-mono">3</code> (chapter 3),
+        <code class="font-mono">3:16</code> (one verse),
+        <code class="font-mono">3:16-21</code> (verse range),
+        <code class="font-mono">1:1-2:3</code> (cross-chapter).
+      </p>
+    </form>
+  <% end %>
 </div>

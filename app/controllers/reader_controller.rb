@@ -6,13 +6,26 @@ class ReaderController < ApplicationController
 
   # /:work_slug/:book_slug — book overview
   def book
-    @chapters = WorkUnit
-                  .joins(:canonical_ref)
-                  .where(canonical_refs: { canonical_work_id: @canonical_work.id })
-                  .where(work_id: @work.id)
-                  .pluck(Arel.sql("DISTINCT canonical_refs.hierarchy[1]"))
-                  .compact
-                  .sort
+    @is_talmud = @canonical_work.citation_format == "talmud"
+
+    if @is_talmud
+      # Build daf+amud pairs: [[2,1],[2,2],[3,1],...] → ["2a","2b","3a",...]
+      raw = WorkUnit
+              .joins(:canonical_ref)
+              .where(canonical_refs: { canonical_work_id: @canonical_work.id })
+              .where(work_id: @work.id)
+              .distinct
+              .pluck(Arel.sql("canonical_refs.hierarchy[1], canonical_refs.hierarchy[2]"))
+      @dafim = raw.map { |d, a| [d, a] }.uniq.sort_by { |d, a| [d, a] }
+    else
+      @chapters = WorkUnit
+                    .joins(:canonical_ref)
+                    .where(canonical_refs: { canonical_work_id: @canonical_work.id })
+                    .where(work_id: @work.id)
+                    .pluck(Arel.sql("DISTINCT canonical_refs.hierarchy[1]"))
+                    .compact
+                    .sort
+    end
   end
 
   # /:work_slug/:book_slug/:chapter — chapter view
