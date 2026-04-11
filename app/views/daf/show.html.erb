@@ -30,58 +30,51 @@
   <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
   <% all_tosafot = @segments.flat_map { |s| s[:tosafot] } %>
 
-  <article class="daf-page font-hebrew" dir="rtl" lang="arc" data-layout="<%= daf_layout %>"
-           data-controller="daf-layout">
+  <%# ONE container. Rashi floated right. Tosafot floated left.
+      Gemara flows inline after both floats, wrapping around them.
+      When commentary ends, Gemara widens to full width. %>
+  <article class="daf-page font-hebrew" dir="rtl" lang="arc"
+           data-layout="<%= daf_layout %>" data-controller="daf-layout">
 
-    <%# The aside spans the entire grid. Rashi floats right inside it.
-        Tosafot is the flowing base text. JS spacers carve out the
-        center space so Tosafot wraps around the Gemara. %>
-    <aside class="daf-aside">
+    <%# Rashi — floated right (inner in RTL) %>
+    <% if all_rashi.any? %>
+      <div class="daf-rashi">
+        <% all_rashi.each do |entry| %>
+          <div class="daf-commentary-entry">
+            <% dh, body = split_commentary(entry.body) %>
+            <% if dh %>
+              <span class="daf-dh"><%= dh %></span>
+              <span class="daf-commentary-body"> – <%= body %></span>
+            <% else %>
+              <span class="daf-commentary-body"><%= entry.body %></span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
 
-      <%# Rashi — floated right (inner margin in RTL) %>
-      <% if all_rashi.any? %>
-        <div class="daf-rashi-block">
-          <% all_rashi.each do |entry| %>
-            <div class="daf-commentary-entry">
-              <% dh, body = split_commentary(entry.body) %>
-              <% if dh %>
-                <span class="daf-dh"><%= dh %></span>
-                <span class="daf-commentary-body"> – <%= body %></span>
-              <% else %>
-                <span class="daf-commentary-body"><%= entry.body %></span>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
+    <%# Tosafot — floated left (outer in RTL) %>
+    <% if all_tosafot.any? %>
+      <div class="daf-tosafot">
+        <% all_tosafot.each do |entry| %>
+          <div class="daf-commentary-entry">
+            <% dh, body = split_commentary(entry.body) %>
+            <% if dh %>
+              <span class="daf-dh"><%= dh %></span>
+              <span class="daf-commentary-body"> – <%= body %></span>
+            <% else %>
+              <span class="daf-commentary-body"><%= entry.body %></span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
 
-      <%# Tosafot — flows as the base text of the aside, wrapping
-          around both the floated Rashi and the center Gemara spacers %>
-      <% if all_tosafot.any? %>
-        <div class="daf-tosafot-section">
-          <% all_tosafot.each do |entry| %>
-            <div class="daf-commentary-entry">
-              <% dh, body = split_commentary(entry.body) %>
-              <% if dh %>
-                <span class="daf-dh"><%= dh %></span>
-                <span class="daf-commentary-body"> – <%= body %></span>
-              <% else %>
-                <span class="daf-commentary-body"><%= entry.body %></span>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
-
-    </aside>
-
-    <%# Gemara — center grid cell %>
-    <div class="daf-gemara">
-      <% @segments.each do |seg| %>
-        <span class="daf-gemara-segment <%= 'daf-gemara-mishnah' if seg[:mishnah] %>"
-              id="seg-<%= seg[:ref].hierarchy[2] %>"><% if seg[:mishnah] %><span class="daf-mishnah-marker">מתני׳</span> <% end %><%= seg[:gemara].body %></span>
-      <% end %>
-    </div>
+    <%# Gemara — inline text that wraps around both floats %>
+    <% @segments.each do |seg| %>
+      <span class="daf-gemara <%= 'daf-gemara-mishnah' if seg[:mishnah] %>"
+            id="seg-<%= seg[:ref].hierarchy[2] %>"><% if seg[:mishnah] %><span class="daf-mishnah-marker">מתני׳</span> <% end %><%= seg[:gemara].body %> </span>
+    <% end %>
 
   </article>
 
