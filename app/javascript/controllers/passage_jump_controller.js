@@ -1,5 +1,6 @@
 // @license magnet:?xt=urn:btih:b8999bbaf509c08d127678643c515b9ab0836bae&dn=ISC.txt ISC
 import { Controller } from "@hotwired/stimulus"
+import * as Turbo from "@hotwired/turbo-rails"
 
 // Builds a reader URL from a free-form passage spec entered in the input,
 // then navigates to it. Accepted forms (matches our Rails routes):
@@ -22,7 +23,7 @@ export default class extends Controller {
 
     const path = this.buildPath(raw)
     if (path) {
-      window.location.assign(path)
+      Turbo.visit(path)
     } else {
       this.flash(`Couldn't parse "${raw}"`)
     }
