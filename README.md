@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://git.sr.ht/~sethkush/openscriptorium/blob/master/app/assets/images/letters/dropcap-S.png" width="120" alt="Open Scriptorium">
+  <img src="https://git.sr.ht/~sethkush/OpenScriptorium/blob/master/app/assets/images/letters/dropcap-S.png" width="120" alt="Open Scriptorium">
 </p>
 
 # Open Scriptorium
@@ -16,7 +16,7 @@ the FSF definition of free software or the SIL Open Font License. The corpus
 you read is the corpus you can fork.
 
 The site is live at [openscriptorium.org](https://openscriptorium.org).
-Source code is hosted on [sr.ht](https://git.sr.ht/~sethkush/openscriptorium).
+Source code is hosted on [sr.ht](https://git.sr.ht/~sethkush/OpenScriptorium).
 Bug reports and feature requests: [issue tracker](https://todo.sr.ht/~sethkush/OpenScriptorium).
 Discussion: [mailing list](https://lists.sr.ht/~sethkush/OpenScriptorium).
 
@@ -83,7 +83,7 @@ self-hosted from `app/assets/fonts/`. No external CDNs, no SBL fonts.
 
 ```sh
 # Clone the repository
-git clone https://git.sr.ht/~sethkush/openscriptorium
+git clone https://git.sr.ht/~sethkush/OpenScriptorium
 cd openscriptorium
 
 # Install gems into vendor/bundle (avoids system gem directory permission issues)
