@@ -378,89 +378,73 @@ html {
 }
 
 /* Vilna Talmud daf layout ---------------------------------------------------
- * Per-segment grid rows with dynamic column widths. Each segment is
- * its own grid row: columns present get their natural width (auto),
- * Gemara takes the remaining space (1fr). When Rashi or Tosafot is
- * absent for a segment, that column collapses and the Gemara expands.
- * This mimics the Vilna page where the center text widens as marginal
- * commentary runs out.
+ * Single container. All Rashi in one block floated right. All Tosafot
+ * in one block floated left. Gemara flows as continuous inline text
+ * between them, wrapping around both commentary blocks naturally.
+ * When commentary is shorter than Gemara, the text widens to fill.
  * -------------------------------------------------------------------------- */
 
 .daf-page {
   direction: rtl;
-  max-width: 64rem;
+  max-width: 60rem;
   margin: 0 auto;
+  line-height: 1.85;
+  font-size: 1.1rem;
 }
 
-/* Simple mode */
-.daf-page[data-layout="simple"] .daf-rashi-cell,
-.daf-page[data-layout="simple"] .daf-tosafot-cell {
+/* Simple mode: hide commentary */
+.daf-page[data-layout="simple"] .daf-rashi-block,
+.daf-page[data-layout="simple"] .daf-tosafot-block {
   display: none;
 }
-.daf-page[data-layout="simple"] .daf-segment {
-  grid-template-columns: 1fr;
+
+/* Rashi: one block, floated right (inner margin in RTL) */
+.daf-rashi-block {
+  float: right;
+  width: 28%;
+  margin-left: 1.25rem;
+  margin-bottom: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--color-rule);
+  font-size: 0.8rem;
+  line-height: 1.55;
 }
 
-/* Each segment is a mini-grid row */
-.daf-segment {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 0 1.25rem;
-  align-items: start;
-  border-bottom: 1px dotted color-mix(in oklab, var(--color-rule) 50%, transparent);
-  padding-block: 0.5rem;
+/* Tosafot: one block, floated left (outer margin in RTL) */
+.daf-tosafot-block {
+  float: left;
+  width: 28%;
+  margin-right: 1.25rem;
+  margin-bottom: 1rem;
+  padding-right: 1rem;
+  border-right: 1px solid var(--color-rule);
+  font-size: 0.8rem;
+  line-height: 1.55;
 }
 
-/* When no Rashi: Gemara expands rightward */
-.daf-segment.no-rashi {
-  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
-}
-.daf-segment.no-rashi .daf-rashi-cell { display: none; }
-
-/* When no Tosafot: Gemara expands leftward */
-.daf-segment.no-tosafot {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
-}
-.daf-segment.no-tosafot .daf-tosafot-cell { display: none; }
-
-/* When neither: full width Gemara */
-.daf-segment.no-rashi.no-tosafot {
-  grid-template-columns: 1fr;
-}
-
-.daf-rashi-cell {
-  font-size: 0.82rem;
-  line-height: 1.6;
-  padding-inline-end: 0.75rem;
-  border-inline-end: 1px solid var(--color-rule);
-}
-
-.daf-gemara-cell {
-  font-size: 1.15rem;
+/* Gemara segments flow as continuous inline text */
+.daf-gemara-text {
+  font-size: 1.1rem;
   line-height: 1.85;
-  padding-inline: 0.5rem;
 }
 
-.daf-tosafot-cell {
-  font-size: 0.82rem;
-  line-height: 1.6;
-  padding-inline-start: 0.75rem;
-  border-inline-start: 1px solid var(--color-rule);
+.daf-gemara-segment {
+  display: inline;
 }
 
-.daf-gemara-mishnah .daf-gemara-cell {
+.daf-gemara-mishnah {
   font-weight: 600;
-  font-size: 1.25rem;
+  font-size: 1.2em;
 }
 
 .daf-mishnah-marker {
-  display: inline;
   font-weight: 700;
   font-size: 0.85em;
   color: var(--color-accent);
   margin-inline-end: 0.3em;
 }
 
+/* Commentary styling */
 .daf-dh {
   font-weight: 700;
 }
@@ -469,30 +453,37 @@ html {
   font-style: italic;
 }
 
-.daf-commentary-entry + .daf-commentary-entry {
-  margin-top: 0.4rem;
-  padding-top: 0.4rem;
-  border-top: 1px dotted var(--color-rule);
+.daf-commentary-entry {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dotted color-mix(in oklab, var(--color-rule) 50%, transparent);
 }
 
-/* Mobile: single column, everything stacked */
+.daf-commentary-entry:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* Clear floats */
+.daf-page::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+/* Mobile: no floats, stack vertically */
 @media (max-width: 48rem) {
-  .daf-segment,
-  .daf-segment.no-rashi,
-  .daf-segment.no-tosafot,
-  .daf-segment.no-rashi.no-tosafot {
-    grid-template-columns: 1fr;
-  }
-  .daf-rashi-cell,
-  .daf-tosafot-cell {
-    display: block;
+  .daf-rashi-block,
+  .daf-tosafot-block {
+    float: none;
+    width: 100%;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    padding-inline-start: 1rem;
     border: none;
-    padding: 0.5rem 0 0.5rem 0.75rem;
     border-inline-start: 2px solid var(--color-rule);
   }
-  .daf-gemara-cell { order: 1; }
-  .daf-rashi-cell  { order: 2; }
-  .daf-tosafot-cell { order: 3; }
 }
 
 /* SIL fonts ----------------------------------------------------------------
