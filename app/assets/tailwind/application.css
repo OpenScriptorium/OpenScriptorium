@@ -378,69 +378,79 @@ html {
 }
 
 /* Vilna Talmud daf layout ---------------------------------------------------
- * Three-column RTL grid: Rashi (inner/right) | Gemara (center) | Tosafot
- * (outer/left). Uses display:contents on segment wrappers so all three
- * columns align across segments in a single parent grid.
- * -------------------------------------------------------------------------- */
-
-/* Vilna Talmud daf layout ---------------------------------------------------
- * The Gemara is the primary text flow. Rashi floats into the right
- * margin (inner, in RTL) and Tosafot into the left (outer). The
- * Gemara text reflows around them, narrowing where commentary exists
- * and widening where it doesn't — like the printed Vilna page.
+ * Per-segment grid rows with dynamic column widths. Each segment is
+ * its own grid row: columns present get their natural width (auto),
+ * Gemara takes the remaining space (1fr). When Rashi or Tosafot is
+ * absent for a segment, that column collapses and the Gemara expands.
+ * This mimics the Vilna page where the center text widens as marginal
+ * commentary runs out.
  * -------------------------------------------------------------------------- */
 
 .daf-page {
   direction: rtl;
-  max-width: 60rem;
+  max-width: 64rem;
   margin: 0 auto;
-  font-size: 1.1rem;
-  line-height: 1.85;
 }
 
-/* Simple mode: just the Gemara, no floats */
-.daf-page[data-layout="simple"] .daf-rashi-float,
-.daf-page[data-layout="simple"] .daf-tosafot-float {
+/* Simple mode */
+.daf-page[data-layout="simple"] .daf-rashi-cell,
+.daf-page[data-layout="simple"] .daf-tosafot-cell {
   display: none;
 }
+.daf-page[data-layout="simple"] .daf-segment {
+  grid-template-columns: 1fr;
+}
 
-/* Rashi: floats to the right (inner margin in RTL) */
-.daf-rashi-float {
-  float: right;
-  clear: right;
-  width: 30%;
-  margin-left: 1rem;
-  margin-bottom: 0.75rem;
-  padding-left: 0.75rem;
-  border-left: 1px solid var(--color-rule);
+/* Each segment is a mini-grid row */
+.daf-segment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 0 1.25rem;
+  align-items: start;
+  border-bottom: 1px dotted color-mix(in oklab, var(--color-rule) 50%, transparent);
+  padding-block: 0.5rem;
+}
+
+/* When no Rashi: Gemara expands rightward */
+.daf-segment.no-rashi {
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+}
+.daf-segment.no-rashi .daf-rashi-cell { display: none; }
+
+/* When no Tosafot: Gemara expands leftward */
+.daf-segment.no-tosafot {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+}
+.daf-segment.no-tosafot .daf-tosafot-cell { display: none; }
+
+/* When neither: full width Gemara */
+.daf-segment.no-rashi.no-tosafot {
+  grid-template-columns: 1fr;
+}
+
+.daf-rashi-cell {
   font-size: 0.82rem;
   line-height: 1.6;
+  padding-inline-end: 0.75rem;
+  border-inline-end: 1px solid var(--color-rule);
 }
 
-/* Tosafot: floats to the left (outer margin in RTL) */
-.daf-tosafot-float {
-  float: left;
-  clear: left;
-  width: 30%;
-  margin-right: 1rem;
-  margin-bottom: 0.75rem;
-  padding-right: 0.75rem;
-  border-right: 1px solid var(--color-rule);
+.daf-gemara-cell {
+  font-size: 1.15rem;
+  line-height: 1.85;
+  padding-inline: 0.5rem;
+}
+
+.daf-tosafot-cell {
   font-size: 0.82rem;
   line-height: 1.6;
+  padding-inline-start: 0.75rem;
+  border-inline-start: 1px solid var(--color-rule);
 }
 
-.daf-gemara-segment {
-  display: inline;
-}
-
-.daf-gemara-segment + .daf-gemara-segment::before {
-  content: " ";
-}
-
-.daf-gemara-mishnah {
+.daf-gemara-mishnah .daf-gemara-cell {
   font-weight: 600;
-  font-size: 1.2em;
+  font-size: 1.25rem;
 }
 
 .daf-mishnah-marker {
@@ -465,17 +475,24 @@ html {
   border-top: 1px dotted var(--color-rule);
 }
 
-/* Mobile: no floats, stack vertically */
+/* Mobile: single column, everything stacked */
 @media (max-width: 48rem) {
-  .daf-rashi-float,
-  .daf-tosafot-float {
-    float: none;
-    width: 100%;
-    margin: 0.75rem 0;
-    padding: 0.5rem 0 0.5rem 0.75rem;
-    border-left: 2px solid var(--color-rule);
-    border-right: none;
+  .daf-segment,
+  .daf-segment.no-rashi,
+  .daf-segment.no-tosafot,
+  .daf-segment.no-rashi.no-tosafot {
+    grid-template-columns: 1fr;
   }
+  .daf-rashi-cell,
+  .daf-tosafot-cell {
+    display: block;
+    border: none;
+    padding: 0.5rem 0 0.5rem 0.75rem;
+    border-inline-start: 2px solid var(--color-rule);
+  }
+  .daf-gemara-cell { order: 1; }
+  .daf-rashi-cell  { order: 2; }
+  .daf-tosafot-cell { order: 3; }
 }
 
 /* SIL fonts ----------------------------------------------------------------

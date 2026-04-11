@@ -29,10 +29,13 @@
   <% daf_layout = cookies[:daf_layout].presence || "vilna" %>
   <article class="daf-page font-hebrew" dir="rtl" lang="arc" data-layout="<%= daf_layout %>">
     <% @segments.each do |seg| %>
+      <% has_rashi = seg[:rashi].any? %>
+      <% has_tosafot = seg[:tosafot].any? %>
+      <div class="daf-segment <%= 'daf-gemara-mishnah' if seg[:mishnah] %> <%= 'no-rashi' unless has_rashi %> <%= 'no-tosafot' unless has_tosafot %>"
+           id="seg-<%= seg[:ref].hierarchy[2] %>">
 
-      <%# Float Rashi into the right margin (inner in RTL) %>
-      <% if seg[:rashi].any? %>
-        <aside class="daf-rashi-float">
+        <%# Rashi (inner margin = column 1 in RTL) %>
+        <div class="daf-rashi-cell">
           <% seg[:rashi].each do |entry| %>
             <div class="daf-commentary-entry">
               <% dh, body = split_commentary(entry.body) %>
@@ -44,12 +47,18 @@
               <% end %>
             </div>
           <% end %>
-        </aside>
-      <% end %>
+        </div>
 
-      <%# Float Tosafot into the left margin (outer in RTL) %>
-      <% if seg[:tosafot].any? %>
-        <aside class="daf-tosafot-float">
+        <%# Gemara (center) %>
+        <div class="daf-gemara-cell">
+          <% if seg[:mishnah] %>
+            <span class="daf-mishnah-marker" aria-label="Mishnah">מתני׳</span>
+          <% end %>
+          <%= seg[:gemara].body %>
+        </div>
+
+        <%# Tosafot (outer margin = last column in RTL) %>
+        <div class="daf-tosafot-cell">
           <% seg[:tosafot].each do |entry| %>
             <div class="daf-commentary-entry">
               <% dh, body = split_commentary(entry.body) %>
@@ -61,13 +70,9 @@
               <% end %>
             </div>
           <% end %>
-        </aside>
-      <% end %>
+        </div>
 
-      <%# Gemara text flows around the floated commentary %>
-      <span class="daf-gemara-segment <%= 'daf-gemara-mishnah' if seg[:mishnah] %>"
-            id="seg-<%= seg[:ref].hierarchy[2] %>"><% if seg[:mishnah] %><span class="daf-mishnah-marker" aria-label="Mishnah">מתני׳</span> <% end %><%= seg[:gemara].body %></span>
-
+      </div>
     <% end %>
   </article>
 
