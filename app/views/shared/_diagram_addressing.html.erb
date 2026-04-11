@@ -8,16 +8,16 @@
   <title id="diagram-addressing-title">Unified addressing model</title>
 
   <style>
-    .layer-label  { font: italic 14px serif; fill: #6b6b6b; }
-    .box          { fill: #fff; stroke: #1a1a1a; stroke-width: 1.5; }
-    .box-shaded   { fill: #f5f1ea; stroke: #1a1a1a; stroke-width: 1.5; }
-    .box-canonical{ fill: #fbeae0; stroke: #9b2226; stroke-width: 2; }
-    .heading      { font: bold 13px sans-serif; fill: #1a1a1a; }
-    .body         { font: 12px serif; fill: #1a1a1a; }
-    .ref          { font: 12px ui-monospace, monospace; fill: #1a1a1a; }
-    .conn         { stroke: #1a1a1a; stroke-width: 1.2; fill: none; }
-    .conn-dotted  { stroke: #6b6b6b; stroke-width: 1.2; stroke-dasharray: 3 3; fill: none; }
-    .layer-rule   { stroke: #d6d2c9; stroke-dasharray: 2 4; }
+    .layer-label  { font: italic 14px serif; fill: var(--color-ink-soft); }
+    .box          { fill: var(--color-page); stroke: var(--color-ink); stroke-width: 1.5; }
+    .box-shaded   { fill: color-mix(in oklab, var(--color-ink) 6%, var(--color-page)); stroke: var(--color-ink); stroke-width: 1.5; }
+    .box-canonical{ fill: color-mix(in oklab, var(--color-link) 15%, var(--color-page)); stroke: var(--color-link); stroke-width: 2; }
+    .heading      { font: bold 13px sans-serif; fill: var(--color-ink); }
+    .body         { font: 12px serif; fill: var(--color-ink); }
+    .ref          { font: 12px ui-monospace, monospace; fill: var(--color-ink); }
+    .conn         { stroke: var(--color-ink); stroke-width: 1.2; fill: none; }
+    .conn-dotted  { stroke: var(--color-ink-soft); stroke-width: 1.2; stroke-dasharray: 3 3; fill: none; }
+    .layer-rule   { stroke: var(--color-rule); stroke-dasharray: 2 4; }
   </style>
 
   <!-- Layer dividers -->
@@ -69,7 +69,7 @@
   <!-- Bottom: shared canonical_ref -->
   <g>
     <rect x="280" y="305" width="320" height="60" rx="6" class="box-canonical"/>
-    <text x="440" y="325" text-anchor="middle" class="heading" fill="#9b2226">canonical_ref</text>
+    <text x="440" y="325" text-anchor="middle" class="heading" fill="var(--color-link)">canonical_ref</text>
     <text x="440" y="343" text-anchor="middle" class="ref">Genesis · ord=1 · hierarchy=[1,1]</text>
     <text x="440" y="357" text-anchor="middle" class="ref">display: "Gen 1:1"</text>
   </g>

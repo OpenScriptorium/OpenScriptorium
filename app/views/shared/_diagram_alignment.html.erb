@@ -8,14 +8,14 @@
   <title id="diagram-alignment-title">Macula-style alignment groups</title>
 
   <style>
-    .heading       { font: bold 13px sans-serif; fill: #1a1a1a; }
-    .label         { font: italic 12px serif; fill: #6b6b6b; }
-    .word-source   { fill: #fbeae0; stroke: #9b2226; stroke-width: 1.5; }
-    .word-target   { fill: #f5f1ea; stroke: #1a1a1a; stroke-width: 1.5; }
-    .word-text     { font: 14px serif; fill: #1a1a1a; }
-    .word-text-he  { font: 18px serif; fill: #1a1a1a; }
-    .group-box     { fill: none; stroke: #9b2226; stroke-width: 1.5; stroke-dasharray: 4 3; }
-    .conn          { stroke: #6b6b6b; stroke-width: 1; fill: none; }
+    .heading       { font: bold 13px sans-serif; fill: var(--color-ink); }
+    .label         { font: italic 12px serif; fill: var(--color-ink-soft); }
+    .word-source   { fill: color-mix(in oklab, var(--color-link) 15%, var(--color-page)); stroke: var(--color-link); stroke-width: 1.5; }
+    .word-target   { fill: color-mix(in oklab, var(--color-ink) 6%, var(--color-page)); stroke: var(--color-ink); stroke-width: 1.5; }
+    .word-text     { font: 14px serif; fill: var(--color-ink); }
+    .word-text-he  { font: 18px serif; fill: var(--color-ink); }
+    .group-box     { fill: none; stroke: var(--color-link); stroke-width: 1.5; stroke-dasharray: 4 3; }
+    .conn          { stroke: var(--color-ink-soft); stroke-width: 1; fill: none; }
   </style>
 
   <text x="20" y="32" class="heading">alignment_group  ·  type=literal</text>
