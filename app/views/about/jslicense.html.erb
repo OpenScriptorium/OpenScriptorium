@@ -1,0 +1,57 @@
+<% content_for :title, "JavaScript License Information" %>
+
+<div class="max-w-4xl mx-auto px-5 py-12">
+  <h1 class="font-serif text-2xl text-[var(--color-ink)] mb-6">JavaScript License Information</h1>
+  <p class="text-sm text-[var(--color-ink-soft)] mb-8 font-serif">
+    All JavaScript served by this site is free software. This page
+    complies with the
+    <a href="https://www.gnu.org/licenses/javascript-labels.html"
+       class="underline decoration-dotted hover:text-[var(--color-link)]">GNU
+    JavaScript License Web Labels</a> standard.
+  </p>
+
+  <table id="jslicense-labels1" class="w-full text-sm font-mono">
+    <thead>
+      <tr class="border-b border-[var(--color-rule)] text-left text-xs uppercase tracking-wide text-[var(--color-ink-soft)]">
+        <th class="py-2">Script</th>
+        <th class="py-2">License</th>
+        <th class="py-2">Source</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-[var(--color-rule)]">
+      <tr>
+        <td class="py-2"><a href="/assets/application.js">application.js</a></td>
+        <td class="py-2"><a href="https://directory.fsf.org/wiki/License:ISC">ISC</a></td>
+        <td class="py-2"><a href="https://git.sr.ht/~sethkush/openscriptorium/tree/master/item/app/javascript">source</a></td>
+      </tr>
+      <tr>
+        <td class="py-2"><a href="/assets/turbo.min.js">turbo.min.js</a></td>
+        <td class="py-2"><a href="https://directory.fsf.org/wiki/License:Expat">Expat (MIT)</a></td>
+        <td class="py-2"><a href="https://github.com/hotwired/turbo-rails">source</a></td>
+      </tr>
+      <tr>
+        <td class="py-2"><a href="/assets/stimulus.min.js">stimulus.min.js</a></td>
+        <td class="py-2"><a href="https://directory.fsf.org/wiki/License:Expat">Expat (MIT)</a></td>
+        <td class="py-2"><a href="https://github.com/hotwired/stimulus">source</a></td>
+      </tr>
+      <tr>
+        <td class="py-2"><a href="/assets/stimulus-loading.js">stimulus-loading.js</a></td>
+        <td class="py-2"><a href="https://directory.fsf.org/wiki/License:Expat">Expat (MIT)</a></td>
+        <td class="py-2"><a href="https://github.com/hotwired/stimulus-rails">source</a></td>
+      </tr>
+      <tr>
+        <td class="py-2"><a href="/assets/daf-renderer.js">daf-renderer.js</a></td>
+        <td class="py-2"><a href="https://directory.fsf.org/wiki/License:Expat">Expat (MIT)</a></td>
+        <td class="py-2"><a href="https://github.com/TalmudLab/daf-renderer">source</a></td>
+      </tr>
+      <% Dir.glob(Rails.root.join("app/javascript/controllers/*.js")).sort.each do |path| %>
+        <% name = File.basename(path) %>
+        <tr>
+          <td class="py-2"><a href="/assets/controllers/<%= name %>"><%= name %></a></td>
+          <td class="py-2"><a href="https://directory.fsf.org/wiki/License:ISC">ISC</a></td>
+          <td class="py-2"><a href="https://git.sr.ht/~sethkush/openscriptorium/tree/master/item/app/javascript/controllers/<%= name %>">source</a></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

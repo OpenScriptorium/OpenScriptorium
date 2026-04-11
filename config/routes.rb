@@ -83,6 +83,9 @@ Rails.application.routes.draw do
   # Downloads / API documentation
   get "downloads", to: "about#downloads", as: :downloads
 
+  # GNU LibreJS web labels
+  get "jslicense", to: "about#jslicense", as: :jslicense
+
   # JSON API
   namespace :api do
     namespace :v1 do

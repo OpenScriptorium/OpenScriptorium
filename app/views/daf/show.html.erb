@@ -25,53 +25,57 @@
   <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
   <% all_tosafot = @segments.flat_map { |s| s[:tosafot] } %>
 
-  <%# ONE container. Rashi floated right. Tosafot floated left.
-      Gemara flows inline after both floats, wrapping around them.
-      When commentary ends, Gemara widens to full width. %>
-  <article class="daf-page font-hebrew" dir="rtl" lang="arc"
-           data-layout="<%= daf_layout %>" data-controller="daf-layout">
-
-    <%# Rashi — floated right (inner in RTL) %>
-    <% if all_rashi.any? %>
-      <div class="daf-rashi">
-        <% all_rashi.each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <span class="daf-dh"><%= dh %></span>
-              <span class="daf-commentary-body"> – <%= body %></span>
-            <% else %>
-              <span class="daf-commentary-body"><%= entry.body %></span>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# Tosafot — floated left (outer in RTL) %>
-    <% if all_tosafot.any? %>
-      <div class="daf-tosafot">
-        <% all_tosafot.each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <span class="daf-dh"><%= dh %></span>
-              <span class="daf-commentary-body"> – <%= body %></span>
-            <% else %>
-              <span class="daf-commentary-body"><%= entry.body %></span>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# Gemara — inline text that wraps around both floats %>
+  <%# Hidden data sources — the daf-renderer JS reads these and
+      builds the proper Vilna layout with spacers %>
+  <template id="daf-gemara-source">
     <% @segments.each do |seg| %>
-      <span class="daf-gemara <%= 'daf-gemara-mishnah' if seg[:mishnah] %>"
-            id="seg-<%= seg[:ref].hierarchy[2] %>"><% if seg[:mishnah] %><span class="daf-mishnah-marker">מתני׳</span> <% end %><%= seg[:gemara].body %> </span>
+      <span class="<%= 'daf-gemara-mishnah' if seg[:mishnah] %>"><% if seg[:mishnah] %><span class="daf-mishnah-marker">מתני׳</span> <% end %><%= seg[:gemara].body %> </span>
     <% end %>
+  </template>
 
-  </article>
+  <template id="daf-rashi-source">
+    <% all_rashi.each do |entry| %>
+      <div class="daf-commentary-entry">
+        <% dh, body = split_commentary(entry.body) %>
+        <% if dh %>
+          <span class="daf-dh"><%= dh %></span>
+          <span class="daf-commentary-body"> – <%= body %></span>
+        <% else %>
+          <span class="daf-commentary-body"><%= entry.body %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </template>
+
+  <template id="daf-tosafot-source">
+    <% all_tosafot.each do |entry| %>
+      <div class="daf-commentary-entry">
+        <% dh, body = split_commentary(entry.body) %>
+        <% if dh %>
+          <span class="daf-dh"><%= dh %></span>
+          <span class="daf-commentary-body"> – <%= body %></span>
+        <% else %>
+          <span class="daf-commentary-body"><%= entry.body %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </template>
+
+  <%# The renderer fills this container %>
+  <div id="daf-rendered" class="font-hebrew" dir="rtl" lang="arc"
+       data-layout="<%= daf_layout %>" data-controller="daf-layout">
+  </div>
+
+  <%# Simple fallback (shown when Vilna is toggled off) %>
+  <div id="daf-simple" class="font-hebrew max-w-3xl mx-auto" dir="rtl" lang="arc"
+       style="<%= daf_layout == 'vilna' ? 'display:none' : '' %>">
+    <% @segments.each do |seg| %>
+      <p class="mb-3 text-lg leading-relaxed <%= 'font-bold' if seg[:mishnah] %>">
+        <% if seg[:mishnah] %><span class="text-[var(--color-accent)]">מתני׳</span> <% end %>
+        <%= seg[:gemara].body %>
+      </p>
+    <% end %>
+  </div>
 
   <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
     <% if @prev_daf %>

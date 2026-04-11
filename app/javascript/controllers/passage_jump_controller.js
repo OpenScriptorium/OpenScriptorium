@@ -1,3 +1,4 @@
+// @license magnet:?xt=urn:btih:b8999bbaf509c08d127678643c515b9ab0836bae&dn=ISC.txt ISC
 import { Controller } from "@hotwired/stimulus"
 
 // Builds a reader URL from a free-form passage spec entered in the input,
@@ -66,3 +67,4 @@ export default class extends Controller {
     setTimeout(() => this.inputTarget.setCustomValidity(""), 2000)
   }
 }
+// @license-end
