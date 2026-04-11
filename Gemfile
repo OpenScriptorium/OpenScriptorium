@@ -85,6 +85,12 @@ group :development do
   gem "capistrano3-puma",   "~> 6.0",  require: false
 end
 
+# SQLite for bulk export downloads
+gem "sqlite3"
+
+# Rate limiting
+gem "rack-attack"
+
 group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"

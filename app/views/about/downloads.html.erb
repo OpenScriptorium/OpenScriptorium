@@ -22,17 +22,37 @@
 
     <h2>Bulk downloads</h2>
 
+    <h3>SQLite database</h3>
     <p>
-      Coming soon: full SQLite and CSV exports of the entire corpus,
-      updated nightly. In the meantime, the REST API below provides
-      complete programmatic access to all data.
+      A self-contained SQLite database with the full corpus: all works,
+      verses, cross-references, word data, and notes. Regenerated
+      periodically after new imports.
+    </p>
+    <p class="text-sm">
+      <a href="/downloads/openscriptorium.sqlite3"
+         class="inline-block px-4 py-2 border border-[var(--color-rule)] rounded hover:border-[var(--color-ink)] hover:text-[var(--color-link)]">
+        Download SQLite
+      </a>
+    </p>
+
+    <h3>CSV exports</h3>
+    <p>
+      Per-work verse exports (one CSV per work) plus a combined
+      cross-references file. Useful for spreadsheets, R, Python,
+      or any tool that reads CSV.
+    </p>
+    <p class="text-sm">
+      Available in <code>/downloads/csv/</code>: one file per work
+      slug (e.g. <code>bsb.csv</code>, <code>wlc.csv</code>) plus
+      <code>cross_references.csv</code>.
     </p>
 
     <h2>REST API</h2>
 
     <p>
-      All endpoints return JSON. No authentication required. No rate
-      limit yet, but please be reasonable. The base URL is:
+      All endpoints return JSON. No authentication required. Rate
+      limited to 60 requests per minute. This server has finite
+      bandwidth, so please be considerate. The base URL is:
     </p>
 
     <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto"><%= request.base_url %>/api/v1/</pre>
