@@ -17,14 +17,15 @@ class WorksController < ApplicationController
     @works = Work.includes(:license).order(:title).to_a
 
     @facet_languages  = @works.map(&:language).compact.uniq.sort
-    # Sort traditions: parents (χ, ש) first, then children, then standalone
+    # Sort traditions: academic first, then Jewish, then Christian
     @facet_traditions = @works.flat_map(&:traditions).compact.uniq.sort_by { |t|
       case t
-      when "χ"  then [0, 0]
-      when /\Aχ-/ then [0, 1, t]
+      when "academic" then [0, 0]
       when "ש"  then [1, 0]
       when /\Aש-/ then [1, 1, t]
-      else [2, 0, t]
+      when "χ"  then [2, 0]
+      when /\Aχ-/ then [2, 1, t]
+      else [3, 0, t]
       end
     }
     @facet_types      = @works.map(&:work_type).compact.uniq.sort
