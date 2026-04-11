@@ -34,7 +34,7 @@
           class: "mt-4 font-serif text-sm space-y-3" do |f| %>
       <div class="flex flex-wrap items-baseline gap-x-6 gap-y-3 text-[var(--color-ink-soft)]">
         <span>
-          <%= f.select :language, [["any language", ""]] + @facet_languages.map { |l| [l, l] },
+          <%= f.select :language, [["any language", ""]] + @facet_languages.map { |l| ["#{l}: #{language_name(l)}", l] },
                 { selected: @selected_language },
                 class: "bg-transparent border-0 border-b border-dotted border-[var(--color-rule)] hover:border-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-link)] focus:border-[var(--color-ink)] py-0.5 pr-4 cursor-pointer",
                 "aria-label": "Filter by language",
