@@ -32,9 +32,21 @@ class DafController < ApplicationController
   private
 
   def load_work_and_book
-    @gemara_work  = Work.find_by!(slug: params[:work_slug])
-    @rashi_work   = Work.find_by(slug: "rashi-#{params[:work_slug]}")
-    @tosafot_work = Work.find_by(slug: "tosafot-#{params[:work_slug]}")
+    slug = params[:work_slug]
+
+    # Normalize: if the user navigated via rashi-bavli or tosafot-bavli,
+    # treat it as the gemara view (the Vilna layout shows all three).
+    if slug.start_with?("rashi-")
+      gemara_slug = slug.sub("rashi-", "")
+    elsif slug.start_with?("tosafot-")
+      gemara_slug = slug.sub("tosafot-", "")
+    else
+      gemara_slug = slug
+    end
+
+    @gemara_work  = Work.find_by!(slug: gemara_slug)
+    @rashi_work   = Work.find_by(slug: "rashi-#{gemara_slug}")
+    @tosafot_work = Work.find_by(slug: "tosafot-#{gemara_slug}")
 
     @canonical_work = CanonicalWork
                         .joins(canonical_refs: :work_units)

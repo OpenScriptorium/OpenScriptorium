@@ -28,54 +28,47 @@
 
   <% daf_layout = cookies[:daf_layout].presence || "vilna" %>
   <article class="daf-page font-hebrew" dir="rtl" lang="arc" data-layout="<%= daf_layout %>">
+    <% @segments.each do |seg| %>
 
-    <%# Rashi column — flows independently %>
-    <div class="daf-rashi">
-      <% @segments.each do |seg| %>
-        <% seg[:rashi].each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <span class="daf-dh"><%= dh %></span>
-              <span class="daf-commentary-body"> – <%= body %></span>
-            <% else %>
-              <span class="daf-commentary-body"><%= entry.body %></span>
-            <% end %>
-          </div>
-        <% end %>
-      <% end %>
-    </div>
-
-    <%# Gemara column (center) %>
-    <div class="daf-gemara">
-      <% @segments.each do |seg| %>
-        <div class="daf-gemara-segment <%= 'daf-gemara-mishnah' if seg[:mishnah] %>"
-             id="seg-<%= seg[:ref].hierarchy[2] %>">
-          <% if seg[:mishnah] %>
-            <span class="daf-mishnah-marker" aria-label="Mishnah">מתני׳</span>
+      <%# Float Rashi into the right margin (inner in RTL) %>
+      <% if seg[:rashi].any? %>
+        <aside class="daf-rashi-float">
+          <% seg[:rashi].each do |entry| %>
+            <div class="daf-commentary-entry">
+              <% dh, body = split_commentary(entry.body) %>
+              <% if dh %>
+                <span class="daf-dh"><%= dh %></span>
+                <span class="daf-commentary-body"> – <%= body %></span>
+              <% else %>
+                <span class="daf-commentary-body"><%= entry.body %></span>
+              <% end %>
+            </div>
           <% end %>
-          <%= seg[:gemara].body %>
-        </div>
+        </aside>
       <% end %>
-    </div>
 
-    <%# Tosafot column — flows independently %>
-    <div class="daf-tosafot">
-      <% @segments.each do |seg| %>
-        <% seg[:tosafot].each do |entry| %>
-          <div class="daf-commentary-entry">
-            <% dh, body = split_commentary(entry.body) %>
-            <% if dh %>
-              <span class="daf-dh"><%= dh %></span>
-              <span class="daf-commentary-body"> – <%= body %></span>
-            <% else %>
-              <span class="daf-commentary-body"><%= entry.body %></span>
-            <% end %>
-          </div>
-        <% end %>
+      <%# Float Tosafot into the left margin (outer in RTL) %>
+      <% if seg[:tosafot].any? %>
+        <aside class="daf-tosafot-float">
+          <% seg[:tosafot].each do |entry| %>
+            <div class="daf-commentary-entry">
+              <% dh, body = split_commentary(entry.body) %>
+              <% if dh %>
+                <span class="daf-dh"><%= dh %></span>
+                <span class="daf-commentary-body"> – <%= body %></span>
+              <% else %>
+                <span class="daf-commentary-body"><%= entry.body %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </aside>
       <% end %>
-    </div>
 
+      <%# Gemara text flows around the floated commentary %>
+      <span class="daf-gemara-segment <%= 'daf-gemara-mishnah' if seg[:mishnah] %>"
+            id="seg-<%= seg[:ref].hierarchy[2] %>"><% if seg[:mishnah] %><span class="daf-mishnah-marker" aria-label="Mishnah">מתני׳</span> <% end %><%= seg[:gemara].body %></span>
+
+    <% end %>
   </article>
 
   <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">

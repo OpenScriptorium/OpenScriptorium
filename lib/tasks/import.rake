@@ -135,4 +135,9 @@ namespace :import do
   task sefaria_links: :environment do
     Importers::SefariaLinksImporter.new.call
   end
+
+  desc "Import Vilna margin commentaries (Rashash, Maharsha, Gilyon HaShas, etc.)"
+  task vilna_margins: :environment do
+    Importers::VilnaMarginsImporter.new.call
+  end
 end
