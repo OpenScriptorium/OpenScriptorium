@@ -189,7 +189,7 @@
     silently fudging anything.
   </p>
 
-  <h3 class="font-serif text-xl mt-6 mb-3">A subtle gotcha &mdash; pick the right TVTMS source tradition</h3>
+  <h3 class="font-serif text-xl mt-6 mb-3">How the importer handles Greek conventions</h3>
 
   <p>
     TVTMS encodes <em>several</em> Greek traditions because real-world
@@ -213,12 +213,23 @@
   </ul>
 
   <p>
-    Importing the wrong set causes a silent off-by-one in every Psalm
-    with a title. We import only the rows tagged <code>Greek</code> and
-    <code>Latin+Greek</code> because those match how our underlying
-    Rahlfs data is numbered. If we ever import a NETS-style LXX, it
-    will need its own scheme tag and will pull from the
-    <code>Greek2</code> rows instead.
+    The importer does not filter rows by <code>SourceType</code> label.
+    Instead, each TVTMS row carries a <code>Tests</code> column with
+    conditional expressions like
+    <code>Psa.3:9=Last &amp; Psa.3:TextBeforeV1=NotExist</code>. The
+    importer evaluates these tests against each scheme&rsquo;s actual
+    verse structure: a row produces mappings only for schemes whose
+    data satisfies its conditions. This means the Greek/Greek2
+    convention difference is handled implicitly &mdash; a row designed
+    for title-as-v1 texts will have tests that naturally fail against
+    any scheme with a different psalm structure.
+  </p>
+
+  <p>
+    The practical consequence: if we ever import a NETS-style LXX, we
+    give it its own scheme tag and the same importer will produce
+    correct mappings automatically, because the tests will evaluate
+    differently against that scheme&rsquo;s verse data.
   </p>
 
   <h3 class="font-serif text-xl mt-6 mb-3">Looking up equivalences &mdash; <code>CanonicalRef#equivalent_in</code></h3>
