@@ -31,7 +31,10 @@
      nt          = grouped["nt"]           || []
      rest        = @canonical_works.reject { |cw| %w[ot nt deuterocanon].include?(cw.testament) } %>
 
-  <% [["Hebrew Bible / Old Testament",         ot],
+  <% is_jewish = @work.traditions&.any? { |t| t.start_with?("ש") }
+     ot_label = is_jewish ? "Hebrew Bible" : "Hebrew Bible / Old Testament" %>
+
+  <% [[ot_label,                                 ot],
       ["Deuterocanon / Apocrypha",              deuterocanon],
       ["New Testament",                         nt],
       ["Other",                                  rest]].each do |label, books| %>
