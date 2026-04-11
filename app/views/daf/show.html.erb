@@ -12,7 +12,10 @@
   </nav>
 
   <header class="border-b border-[var(--color-rule)] pb-6 mb-10 text-center">
-    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">Talmud Bavli</p>
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]"
+       data-daf-layout-target="headerLabel"
+       data-vilna-label="Talmud Bavli"
+       data-simple-label="<%= @gemara_work.title %>">Talmud Bavli</p>
     <h1 class="font-hebrew text-3xl text-[var(--color-ink)] mt-1" lang="he" dir="rtl">
       <%= @canonical_work.title %>
     </h1>

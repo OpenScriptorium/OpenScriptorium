@@ -3,6 +3,8 @@ import { Controller } from "@hotwired/stimulus"
 import dafRenderer from "daf-renderer"
 
 export default class extends Controller {
+  static targets = ["headerLabel"]
+
   connect() {
     const saved = this.getCookie("daf_layout") || "vilna"
     const checkbox = this.element.querySelector("input[name='daf_layout']")
@@ -57,6 +59,9 @@ export default class extends Controller {
     const simple = document.getElementById("daf-simple")
     if (container) container.style.display = ""
     if (simple) simple.style.display = "none"
+    if (this.hasHeaderLabelTarget) {
+      this.headerLabelTarget.textContent = this.headerLabelTarget.dataset.vilnaLabel
+    }
   }
 
   showSimple() {
@@ -64,6 +69,9 @@ export default class extends Controller {
     const simple = document.getElementById("daf-simple")
     if (container) container.style.display = "none"
     if (simple) simple.style.display = ""
+    if (this.hasHeaderLabelTarget) {
+      this.headerLabelTarget.textContent = this.headerLabelTarget.dataset.simpleLabel
+    }
   }
 
   getCookie(name) {
