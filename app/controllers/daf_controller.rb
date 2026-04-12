@@ -46,9 +46,6 @@ class DafController < ApplicationController
     # All Talmud-related works (rashi-bavli, tosafot-bavli, ein-mishpat-bavli,
     # mesoret-hashas-bavli, margin commentaries) normalize to the gemara
     # for the Vilna 3-column layout.
-    TALMUD_PREFIXES = %w[rashi- tosafot- ein-mishpat- mesoret-hashas-
-                          rashash- maharsha- gilyon- chokhmat- hagahot- piskei-].freeze
-
     prefix = TALMUD_PREFIXES.find { |p| slug.start_with?(p) }
     if prefix
       gemara_slug = slug.sub(/\A#{Regexp.escape(prefix)}/, "")
@@ -99,6 +96,9 @@ class DafController < ApplicationController
       .includes(:canonical_ref)
       .to_a
   end
+
+  TALMUD_PREFIXES = %w[rashi- tosafot- ein-mishpat- mesoret-hashas-
+                        rashash- maharsha- gilyon- chokhmat- hagahot- piskei-].freeze
 
   MARGIN_SLUGS = %w[
     rashash-bavli maharsha-halachot maharsha-agadot
