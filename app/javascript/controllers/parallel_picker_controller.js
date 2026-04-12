@@ -15,10 +15,13 @@ import * as Turbo from "@hotwired/turbo-rails"
 //   "__remove__" — removes this column on the next navigation
 export default class extends Controller {
   update(event) {
+    console.log("parallel-picker: update fired")
     const selects = Array.from(this.element.querySelectorAll("select.parallel-col"))
+    console.log("parallel-picker: found", selects.length, "selects")
     const slugs = selects
       .map(s => s.value)
       .filter(v => v && v !== "__remove__")
+    console.log("parallel-picker: slugs =", slugs)
 
     // Don't navigate to an empty parallel view.
     if (slugs.length === 0) return
@@ -35,7 +38,9 @@ export default class extends Controller {
     url.searchParams.delete("works")
     url.searchParams.delete("works[]")
     url.searchParams.set("works", unique.join(","))
-    Turbo.visit(url.pathname + "?" + url.searchParams.toString())
+    const dest = url.pathname + "?" + url.searchParams.toString()
+    console.log("parallel-picker: navigating to", dest)
+    Turbo.visit(dest)
   }
 }
 // @license-end
