@@ -49,15 +49,13 @@ class DafController < ApplicationController
     # All Talmud-related works (rashi-bavli, tosafot-bavli, ein-mishpat-bavli,
     # mesoret-hashas-bavli, margin commentaries) normalize to the gemara
     # for the Vilna 3-column layout.
-    prefix = TALMUD_PREFIXES.find { |p| slug.start_with?(p) }
-    if prefix
-      gemara_slug = slug.sub(/\A#{Regexp.escape(prefix)}/, "")
-      @current_work_type = case prefix
-                           when "rashi-"   then :rashi
-                           when "tosafot-" then :tosafot
+    if TALMUD_SLUG_TO_GEMARA.key?(slug)
+      gemara_slug = TALMUD_SLUG_TO_GEMARA[slug]
+      @current_work_type = case slug
+                           when "rashi-bavli"   then :rashi
+                           when "tosafot-bavli" then :tosafot
                            else :gemara
                            end
-      # Track the actual navigated work for the header
       @navigated_work = Work.find_by(slug: slug)
     else
       gemara_slug = slug
@@ -101,8 +99,21 @@ class DafController < ApplicationController
       .to_a
   end
 
-  TALMUD_PREFIXES = %w[rashi- tosafot- ein-mishpat- mesoret-hashas-
-                        rashash- maharsha- gilyon- chokhmat- hagahot- piskei-].freeze
+  # Map non-gemara Talmud work slugs to their gemara counterpart.
+  # The value is the gemara slug; the key is the commentary slug.
+  TALMUD_SLUG_TO_GEMARA = {
+    "rashi-bavli"         => "bavli",
+    "tosafot-bavli"       => "bavli",
+    "ein-mishpat-bavli"   => "bavli",
+    "mesoret-hashas-bavli" => "bavli",
+    "rashash-bavli"       => "bavli",
+    "maharsha-halachot"   => "bavli",
+    "maharsha-agadot"     => "bavli",
+    "gilyon-hashas"       => "bavli",
+    "chokhmat-shlomo"     => "bavli",
+    "hagahot-yaavetz"     => "bavli",
+    "piskei-tosafot"      => "bavli",
+  }.freeze
 
   MARGIN_SLUGS = %w[
     rashash-bavli maharsha-halachot maharsha-agadot
