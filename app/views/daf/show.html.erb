@@ -128,16 +128,14 @@
                class="accent-[var(--color-ink)]" />
         <span>Vilna layout</span>
       </label>
-      <% if @margin_works.any? %>
-        <% margins_on = cookies[:daf_margins].to_s == "on" %>
-        <label class="cursor-pointer flex items-center gap-1.5"
-               data-daf-layout-target="marginsLabel"
-               <%= 'hidden' unless vilna_on %>>
-          <input type="checkbox" name="daf_margins"
-                 <%= "checked" if margins_on %>
-                 data-action="change->daf-layout#toggleMargins"
+      <% if @mesoret_hashas %>
+        <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
+        <label class="cursor-pointer flex items-center gap-1.5">
+          <input type="checkbox" name="daf_mesoret"
+                 <%= "checked" if mesoret_on %>
+                 data-action="change->daf-layout#toggleMesoret"
                  class="accent-[var(--color-ink)]" />
-          <span>margin commentaries</span>
+          <span>מסורת הש״ס</span>
         </label>
       <% end %>
     </div>
