@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 import vilna5Render from "vilna5-renderer"
 
 export default class extends Controller {
-  static targets = ["headerLabel", "marginsLabel"]
+  static targets = ["headerLabel", "marginsLabel", "dafLabel"]
 
   connect() {
     const saved = this.getCookie("daf_layout") || "vilna"
@@ -96,6 +96,9 @@ export default class extends Controller {
     if (this.hasHeaderLabelTarget) {
       this.headerLabelTarget.textContent = this.headerLabelTarget.dataset.vilnaLabel
     }
+    if (this.hasDafLabelTarget) {
+      this.dafLabelTarget.textContent = this.dafLabelTarget.dataset.vilnaLabel
+    }
     if (this.hasMarginsLabelTarget) {
       this.marginsLabelTarget.hidden = false
     }
@@ -108,6 +111,9 @@ export default class extends Controller {
     if (simple) simple.style.display = ""
     if (this.hasHeaderLabelTarget) {
       this.headerLabelTarget.textContent = this.headerLabelTarget.dataset.simpleLabel
+    }
+    if (this.hasDafLabelTarget) {
+      this.dafLabelTarget.textContent = this.dafLabelTarget.dataset.simpleLabel
     }
     if (this.hasMarginsLabelTarget) {
       this.marginsLabelTarget.hidden = true

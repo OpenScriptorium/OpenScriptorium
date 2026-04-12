@@ -14,14 +14,15 @@
   <header class="border-b border-[var(--color-rule)] pb-6 mb-10 text-center">
     <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]"
        data-daf-layout-target="headerLabel"
-       data-vilna-label="Talmud Bavli"
-       data-simple-label="<%= (@navigated_work || @gemara_work).title %>">Talmud Bavli</p>
+       data-vilna-label="תלמוד בבלי"
+       data-simple-label="<%= (@navigated_work || @gemara_work).title %>">תלמוד בבלי</p>
     <h1 class="font-hebrew text-3xl text-[var(--color-ink)] mt-1" lang="he" dir="rtl">
       <%= @canonical_work.title %>
     </h1>
-    <p class="text-lg text-[var(--color-ink-soft)] font-serif mt-1">
-      Daf <%= @daf_label %>
-    </p>
+    <p class="text-lg text-[var(--color-ink-soft)] font-serif mt-1"
+       data-daf-layout-target="dafLabel"
+       data-vilna-label="<%= daf_label_hebrew(@daf_number, @amud) %>"
+       data-simple-label="Daf <%= @daf_label %>"><%= daf_label_hebrew(@daf_number, @amud) %></p>
   </header>
 
   <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
