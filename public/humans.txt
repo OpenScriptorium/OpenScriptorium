@@ -1,0 +1,44 @@
+/* TEAM */
+
+Creator: Seth Kushniryk
+Site: openscriptorium.org
+Location: Toronto, Canada
+
+/* THANKS */
+
+Andrew Sowle (1628–1695) — Quaker printer, Shoreditch. Kept printing
+when they broke his press and seized his type. His daughter Tace ran
+the press for fifty-eight years after him.
+
+George Fox (1624–1691) — "The Ministry is the Gift of God, and is to
+be Ministred freely."
+
+Aaron Swartz (1986–2013) — "Information is power. But like all power,
+there are those who want to keep it for themselves."
+
+Rabbi Dr. Isidore Epstein (1894–1962) — Editor of the Soncino
+Babylonian Talmud.
+
+R' Yehoshua Boaz (d. 1557) — Compiled Ein Mishpat and Mesoret HaShas.
+
+Maurice Robinson — Released the Byzantine Textform into the public
+domain because he believes the text of scripture should be free.
+
+The Berean Bible team — Released the BSB and its interlinear data
+into the public domain.
+
+The Westminster Hebrew Institute — The Leningrad Codex transcription.
+
+The Eliran Wong OSHB team — Morphology and features for the Hebrew Bible.
+
+/* SITE */
+
+Standards: HTML5, CSS3, WCAG 2.2 AA
+Language: Ruby 3.4 / Rails 8.1 / PostgreSQL
+CSS: Tailwind v4
+Fonts: Charis SIL, Ezra SIL, Galatia SIL, Mekorot Vilna, Mekorot Rashi
+       (all SIL Open Font License)
+Hosting: Toronto, Canada
+License: All source code is free software.
+         All imported texts retain their original licenses.
+         No non-free dependencies.
