@@ -43,7 +43,8 @@
     <ul class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 font-serif">
       <% books.each do |cw| %>
         <li>
-          <%= link_to cw.display_title, reader_book_path(@work.slug, cw.slug),
+          <% book_name = @work.language == "en" ? cw.slug.titleize.gsub("-", " ") : cw.display_title %>
+          <%= link_to book_name, reader_book_path(@work.slug, cw.slug),
                 class: "text-[var(--color-link)] hover:underline" %>
         </li>
       <% end %>

@@ -2,11 +2,14 @@
 <% soncino_view = @current_work_type == :soncino %>
 
 <div class="max-w-6xl mx-auto px-5 py-12" data-controller="daf-layout" <%= 'data-daf-layout-force-simple="true"' if soncino_view %>>
+  <% bc_work = @navigated_work || @gemara_work %>
+  <% bc_slug = params[:work_slug] %>
+  <% bc_tractate = soncino_view ? @canonical_work.slug.titleize.gsub("-", " ") : @canonical_work.title %>
   <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
     <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
-      <li><%= link_to "Talmud Bavli", work_path(@gemara_work.slug), class: "hover:underline" %></li>
+      <li><%= link_to bc_work.title, work_path(bc_work.slug), class: "hover:underline" %></li>
       <li><span aria-hidden="true">&raquo;</span></li>
-      <li><%= link_to @canonical_work.title, reader_book_path(@gemara_work.slug, @canonical_work.slug), class: "hover:underline" %></li>
+      <li><%= link_to bc_tractate, reader_book_path(bc_slug, @canonical_work.slug), class: "hover:underline" %></li>
       <li><span aria-hidden="true">&raquo;</span></li>
       <li aria-current="page"><%= @daf_label %></li>
     </ol>
