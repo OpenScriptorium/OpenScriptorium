@@ -25,8 +25,13 @@ export default class extends Controller {
     this.setCookie("daf_layout", mode, 365)
 
     if (mode === "vilna") {
-      if (!this.rendered) this.renderVilna()
-      this.showVilna()
+      if (!this.rendered) {
+        document.fonts.ready.then(() => {
+          setTimeout(() => { this.renderVilna() }, 150)
+        })
+      } else {
+        this.showVilna()
+      }
     } else {
       this.showSimple()
     }
