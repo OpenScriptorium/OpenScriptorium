@@ -316,6 +316,7 @@ module ReaderHelper
     return "#" unless start_ref
     chapter = start_ref.hierarchy[0]
     work_slug = resolve_work_for_canonical_work(cw)
+    return not_in_corpus_path(cw.slug) unless work_slug
     reader_chapter_path(work_slug, cw.book_key, chapter, anchor: "v#{start_ref.hierarchy[1]}")
   end
 
@@ -353,6 +354,7 @@ module ReaderHelper
     return "#" unless start_ref
     chapter = start_ref.hierarchy[0]
     work_slug = resolve_work_for_canonical_work(cw)
+    return not_in_corpus_path(cw.slug) unless work_slug
     reader_chapter_path(work_slug, cw.book_key, chapter, anchor: "v#{start_ref.hierarchy[1]}")
   end
 
@@ -513,7 +515,8 @@ module ReaderHelper
 
   # Find the best work slug to link to for a given canonical_work.
   # Prefers the current @work if it has units there, otherwise finds
-  # any work that does. Cached per-request.
+  # any work that does. Returns nil when no work in the corpus covers
+  # this canonical_work (the caller should link to not_in_corpus_path).
   def resolve_work_for_canonical_work(cw)
     @work_for_cw_cache ||= {}
     return @work_for_cw_cache[cw.id] if @work_for_cw_cache.key?(cw.id)
@@ -528,7 +531,7 @@ module ReaderHelper
     slug = WorkUnit.joins(:canonical_ref, :work)
                    .where(canonical_refs: { canonical_work_id: cw.id })
                    .pick("works.slug")
-    @work_for_cw_cache[cw.id] = slug || "bsb"
+    @work_for_cw_cache[cw.id] = slug
   end
 
   def annot_letter(idx)

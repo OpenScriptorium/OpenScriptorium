@@ -21,6 +21,8 @@ Rails.application.routes.draw do
   # any translation; the chapter/verse segments are required to keep
   # the controller simple. /works gives a directory of every work.
   resources :works, only: [:index, :show], param: :slug
+  # "Not in corpus" page for cross-references to works we haven't imported
+  get "not-in-corpus/:slug", to: "works#not_in_corpus", as: :not_in_corpus
 
   # Parallel reader. URL grammar matches the single-work reader so a
   # passage citation looks the same regardless of which view it lands in.

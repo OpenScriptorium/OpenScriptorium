@@ -1,0 +1,30 @@
+<% content_for :title, "#{@title} — Not Yet Available" %>
+
+<div class="max-w-2xl mx-auto py-12">
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-8">
+    <p class="text-sm text-[var(--color-ink-soft)] uppercase tracking-wide">Not in corpus</p>
+    <h1 class="font-serif text-3xl text-[var(--color-ink)] mt-1"><%= @title %></h1>
+  </header>
+
+  <div class="font-serif text-[var(--color-ink)] leading-relaxed space-y-4">
+    <p>
+      This work has not yet been added to Open Scriptorium. You arrived here
+      via a cross-reference from another text in our collection.
+    </p>
+
+    <% if @description.present? %>
+      <p class="text-[var(--color-ink-soft)] italic"><%= @description %></p>
+    <% end %>
+
+    <p>
+      Open Scriptorium is an ongoing project. We are gradually adding freely-licensed
+      texts and will eventually include this work. If you know of a free-as-in-freedom
+      digital edition of <em><%= @title %></em>, please
+      <%= link_to "let us know", appeal_to_scholars_path, class: "text-[var(--color-link)] underline" %>.
+    </p>
+
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      <%= link_to "Browse available works", works_path, class: "text-[var(--color-link)] underline" %>
+    </p>
+  </div>
+</div>

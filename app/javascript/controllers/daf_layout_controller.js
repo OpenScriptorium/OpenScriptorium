@@ -6,14 +6,17 @@ export default class extends Controller {
   static targets = ["headerLabel", "marginsLabel"]
 
   connect() {
-    // Vilna layout temporarily disabled while being rebuilt
-    const saved = "simple"
+    const saved = this.getCookie("daf_layout") || "vilna"
     const checkbox = this.element.querySelector("input[name='daf_layout']")
-    if (checkbox) {
-      checkbox.checked = false
-      checkbox.disabled = true
+    if (checkbox) checkbox.checked = saved === "vilna"
+
+    if (saved === "vilna") {
+      document.fonts.ready.then(() => {
+        setTimeout(() => this.renderVilna(), 150)
+      })
+    } else {
+      this.showSimple()
     }
-    this.showSimple()
   }
 
   toggle() {
@@ -37,12 +40,13 @@ export default class extends Controller {
     const data = JSON.parse(dataEl.textContent)
 
     try {
-      vilna5Render(container, {
+      this.vilna = vilna5Render(container, {
         gemara: data.gemara,
         rashi: data.rashi,
         tosafot: data.tosafot,
-        marginInner: data.margin_inner || '',
-        marginOuter: data.margin_outer || ''
+        einMishpat: data.ein_mishpat || '',
+        mesoretHaShas: data.mesoret_hashas || '',
+        otherCommentaries: data.other_commentaries || ''
       })
       this.rendered = true
       this.showVilna()
@@ -50,6 +54,20 @@ export default class extends Controller {
       console.error("vilna5 render error:", e)
       this.showSimple()
     }
+  }
+
+  toggleMargins() {
+    const checkbox = this.element.querySelector("input[name='daf_margins']")
+    const on = checkbox?.checked
+    this.setCookie("daf_margins", on ? "on" : "off", 365)
+    this.setMarginsVisible(on)
+  }
+
+  setMarginsVisible(visible) {
+    if (!this.vilna) return
+    const display = visible ? '' : 'none'
+    this.vilna.einEl.style.display = display
+    this.vilna.mesEl.style.display = display
   }
 
   showVilna() {
@@ -60,6 +78,9 @@ export default class extends Controller {
     if (this.hasHeaderLabelTarget) {
       this.headerLabelTarget.textContent = this.headerLabelTarget.dataset.vilnaLabel
     }
+    if (this.hasMarginsLabelTarget) {
+      this.marginsLabelTarget.hidden = false
+    }
   }
 
   showSimple() {
@@ -69,6 +90,9 @@ export default class extends Controller {
     if (simple) simple.style.display = ""
     if (this.hasHeaderLabelTarget) {
       this.headerLabelTarget.textContent = this.headerLabelTarget.dataset.simpleLabel
+    }
+    if (this.hasMarginsLabelTarget) {
+      this.marginsLabelTarget.hidden = true
     }
   }
 

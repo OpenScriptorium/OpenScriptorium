@@ -31,42 +31,8 @@
   <span style="font-family:Vilna;position:absolute;opacity:0;">א</span>
   <span style="font-family:Rashi;position:absolute;opacity:0;">א</span>
 
-  <%# Five-column Vilna layout wrapper %>
-  <div id="daf-vilna-wrapper" class="daf-vilna-wrapper" style="position:relative;">
-
-    <%# Left margin strip (Ein Mishpat side — outer in RTL) %>
-    <% if @margin_works.any? %>
-      <div class="daf-margin-strip daf-margin-left" dir="rtl" lang="arc" style="<%= 'display:none' unless cookies[:daf_margins].to_s == 'on' %>">
-        <% outer_margins = @margin_works.select { |mw| %w[hagahot-yaavetz piskei-tosafot].include?(mw[:work].slug) } %>
-        <% outer_margins.each do |mw| %>
-          <div class="daf-margin-section">
-            <p class="daf-margin-title"><%= mw[:work].native_title || mw[:work].title %></p>
-            <% mw[:units].each do |u| %>
-              <p class="daf-margin-entry"><%= u.body %></p>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# Right margin strip (Mesoret HaShas side — inner in RTL) %>
-    <% if @margin_works.any? %>
-      <div class="daf-margin-strip daf-margin-right" dir="rtl" lang="arc" style="<%= 'display:none' unless cookies[:daf_margins].to_s == 'on' %>">
-        <% inner_margins = @margin_works.select { |mw| %w[rashash-bavli maharsha-halachot maharsha-agadot gilyon-hashas chokhmat-shlomo].include?(mw[:work].slug) } %>
-        <% inner_margins.each do |mw| %>
-          <div class="daf-margin-section">
-            <p class="daf-margin-title"><%= mw[:work].native_title || mw[:work].title %></p>
-            <% mw[:units].each do |u| %>
-              <p class="daf-margin-entry"><%= u.body %></p>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# Three-column daf-renderer in the center %>
-    <div id="daf-container" style="position:relative;"></div>
-  </div>
+  <%# Vilna 5-column renderer fills this container %>
+  <div id="daf-container"></div>
 
   <%# Simple view (shown when Vilna is toggled off) %>
   <div id="daf-simple" class="font-hebrew max-w-3xl mx-auto" dir="rtl" lang="arc" style="display:none;">
@@ -78,7 +44,11 @@
     <% end %>
   </div>
 
-  <%# Hidden data for JS daf-renderer %>
+  <%# "Other commentaries" — Rashash, Maharsha, etc. (wrap below the 3-col layout) %>
+  <% inner_margins = @margin_works.select { |mw| %w[rashash-bavli maharsha-halachot maharsha-agadot gilyon-hashas chokhmat-shlomo].include?(mw[:work].slug) } %>
+  <% outer_margins = @margin_works.select { |mw| %w[hagahot-yaavetz piskei-tosafot].include?(mw[:work].slug) } %>
+
+  <%# Hidden data for vilna5 renderer %>
   <script type="application/json" id="daf-data"><%= {
     gemara: @segments.map { |s|
       body = s[:gemara].body
@@ -91,7 +61,10 @@
     tosafot: all_tosafot.map { |e|
       dh, body = split_commentary(e.body)
       dh ? "<b>#{dh}</b> – #{body}" : e.body
-    }.join(" ")
+    }.join(" "),
+    ein_mishpat: @ein_mishpat ? @ein_mishpat[:units].map(&:body).join(" · ") : "",
+    mesoret_hashas: @mesoret_hashas ? @mesoret_hashas[:units].map(&:body).join(" · ") : "",
+    other_commentaries: (inner_margins + outer_margins).flat_map { |mw| mw[:units].map(&:body) }.join(" ")
   }.to_json.html_safe %></script>
 
   <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">

@@ -140,4 +140,9 @@ namespace :import do
   task vilna_margins: :environment do
     Importers::VilnaMarginsImporter.new.call
   end
+
+  desc "Import Ein Mishpat / Mesoret HaShas margin references from Sefaria links"
+  task vilna_refs: :environment do
+    Importers::VilnaRefsImporter.new.call
+  end
 end

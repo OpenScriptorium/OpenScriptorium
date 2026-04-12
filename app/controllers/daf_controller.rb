@@ -29,6 +29,10 @@ class DafController < ApplicationController
     # Margin commentaries (Rashash, Maharsha, Gilyon HaShas, etc.)
     @margin_works = fetch_margin_commentaries
 
+    # Vilna margin reference strips (Ein Mishpat + Mesoret HaShas)
+    @ein_mishpat = fetch_ref_strip("ein-mishpat-bavli")
+    @mesoret_hashas = fetch_ref_strip("mesoret-hashas-bavli")
+
     compute_navigation
   end
 
@@ -97,6 +101,13 @@ class DafController < ApplicationController
       next if units.empty?
       { work: work, units: units }
     end
+  end
+
+  def fetch_ref_strip(slug)
+    work = Work.find_by(slug: slug)
+    return nil unless work
+    units = fetch_units(work)
+    units.any? ? { work: work, units: units } : nil
   end
 
   def compute_navigation
