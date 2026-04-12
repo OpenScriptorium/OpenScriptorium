@@ -25,6 +25,10 @@ export default class extends Controller {
     this.setCookie("daf_layout", mode, 365)
 
     if (mode === "vilna") {
+      // Immediately hide simple view while Vilna renders
+      const simple = document.getElementById("daf-simple")
+      if (simple) simple.style.display = "none"
+
       if (!this.rendered) {
         document.fonts.ready.then(() => {
           setTimeout(() => { this.renderVilna() }, 150)

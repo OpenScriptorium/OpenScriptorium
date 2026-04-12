@@ -213,7 +213,7 @@ module Importers
 
       amud_char = m[2] == "a" ? "." : ":"
       daf_label = "#{m[1]}#{m[2]}"
-      display = "#{cw.title} #{m[1]}#{amud_char}"
+      display = "#{cw.title} #{to_gematria(m[1].to_i)}#{amud_char}"
       %(<a href="/bavli/#{our_slug}/#{daf_label}">#{display}</a>)
     end
 
