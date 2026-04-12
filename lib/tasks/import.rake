@@ -141,6 +141,12 @@ namespace :import do
     Importers::VilnaMarginsImporter.new.call
   end
 
+  desc "Import Soncino English Talmud from halakhah.com"
+  task soncino: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::SoncinoImporter.new(download: download).call
+  end
+
   desc "Import Ein Mishpat / Mesoret HaShas margin references from Sefaria links"
   task vilna_refs: :environment do
     Importers::VilnaRefsImporter.new.call

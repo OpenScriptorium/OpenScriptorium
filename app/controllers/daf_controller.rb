@@ -113,6 +113,7 @@ class DafController < ApplicationController
     "chokhmat-shlomo"     => "bavli",
     "hagahot-yaavetz"     => "bavli",
     "piskei-tosafot"      => "bavli",
+    "soncino-bavli"       => "bavli",
   }.freeze
 
   MARGIN_SLUGS = %w[
