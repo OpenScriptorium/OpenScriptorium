@@ -130,7 +130,7 @@
                 <% heb_name = tcw.native_title.presence || tcw.title %>
                 <% citation = tcw.citation_format == "talmud" ? "#{heb_name} #{to_gematria(start_ref.hierarchy[0])}#{start_ref.hierarchy[1] == 1 ? '.' : ':'}" : "#{heb_name} #{to_gematria(start_ref.hierarchy[0])}:#{to_gematria(start_ref.hierarchy[1])}" %>
               <% end %>
-              <% work_slug = helpers.respond_to?(:resolve_work_for_canonical_work) ? resolve_work_for_canonical_work(tcw) : nil %>
+              <% work_slug = resolve_work_for_canonical_work(tcw) rescue nil %>
               <%= link_to citation, work_slug ? (tcw.citation_format == "talmud" ? daf_path(work_slug, tcw.book_key, "#{start_ref.hierarchy[0]}#{start_ref.hierarchy[1] == 1 ? 'a' : 'b'}") : reader_chapter_path(work_slug, tcw.book_key, start_ref.hierarchy[0], anchor: "v#{start_ref.hierarchy[1]}")) : "#",
                     class: "text-[var(--color-link)] hover:underline" %>
             <% end %>
