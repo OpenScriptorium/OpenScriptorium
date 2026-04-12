@@ -216,8 +216,9 @@ module Importers
 
       amud_char = m[2] == "a" ? "." : ":"
       daf_label = "#{m[1]}#{m[2]}"
-      display = "#{cw.title} #{to_gematria(m[1].to_i)}#{amud_char}"
-      %(<a href="/bavli/#{our_slug}/#{daf_label}">#{display}</a>)
+      heb_display = "#{cw.title} #{to_gematria(m[1].to_i)}#{amud_char}"
+      eng_display = "#{our_slug.titleize.gsub('-', ' ')} #{daf_label}"
+      { href: "/bavli/#{our_slug}/#{daf_label}", heb: heb_display, eng: eng_display }
     end
 
     def create_work_units
@@ -277,11 +278,13 @@ module Importers
         end
       end
 
-      @mesoret.each do |(slug, daf, amud), citations|
+      @mesoret.each do |(slug, daf, amud), refs|
         cref = find_cref(slug, daf, amud)
         next unless cref
 
-        body = citations.uniq.join(" · ")
+        unique_refs = refs.uniq { |r| r[:href] }
+        heb_body = unique_refs.map { |r| %(<a href="#{r[:href]}">#{r[:heb]}</a>) }.join(" · ")
+        eng_body = unique_refs.map { |r| %(<a href="#{r[:href]}">#{r[:eng]}</a>) }.join(" · ")
         mh_ord += 1
         label = "#{daf}#{amud == 1 ? 'a' : 'b'}"
 
@@ -290,7 +293,8 @@ module Importers
           canonical_ref_id: cref.id,
           ord: mh_ord,
           label: label,
-          body: body,
+          body: heb_body,
+          markup: { "eng" => eng_body },
           canonical_alignment_type: "approximate",
           import_run_id: @import_run.id,
           created_at: now,

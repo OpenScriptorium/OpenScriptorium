@@ -172,9 +172,11 @@
     <% if @mesoret_hashas %>
       <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
       <div id="daf-mesoret" style="<%= 'display:none;' unless mesoret_on %>">
-        <p class="text-xs text-[var(--color-ink-soft)] mb-1">מסורת הש״ס</p>
+        <p class="text-xs text-[var(--color-ink-soft)] mb-1"><%= soncino_view ? 'Mesoret HaShas' : 'מסורת הש״ס' %></p>
         <p class="leading-relaxed mb-3 text-sm [&_a]:text-[var(--color-link)] [&_a]:hover:underline">
-          <%= @mesoret_hashas[:units].map(&:body).join(" · ").html_safe %>
+          <%= @mesoret_hashas[:units].map { |u|
+            soncino_view ? (u.markup&.dig("eng") || u.body) : u.body
+          }.join(" · ").html_safe %>
         </p>
       </div>
     <% end %>
