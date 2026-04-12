@@ -41,14 +41,17 @@ class DafController < ApplicationController
   def load_work_and_book
     slug = params[:work_slug]
 
-    # Normalize: if the user navigated via rashi-bavli or tosafot-bavli,
-    # treat it as the gemara view (the Vilna layout shows all three).
+    # Determine which work the user navigated to, and resolve the
+    # Gemara/Rashi/Tosafot trio for Vilna mode.
     if slug.start_with?("rashi-")
       gemara_slug = slug.sub("rashi-", "")
+      @current_work_type = :rashi
     elsif slug.start_with?("tosafot-")
       gemara_slug = slug.sub("tosafot-", "")
+      @current_work_type = :tosafot
     else
       gemara_slug = slug
+      @current_work_type = :gemara
     end
 
     @gemara_work  = Work.find_by!(slug: gemara_slug)
