@@ -34,9 +34,28 @@ export default function vilna5Render(container, {
   if (mesoretHaShas) sections.push({ title: 'מסורת הש״ס', content: mesoretHaShas, font: 'Rashi', size: '10px' })
   if (otherCommentaries) sections.push({ title: 'Other Commentaries', content: otherCommentaries, font: 'Rashi', size: '11px' })
 
+  // Read persisted open/closed state from cookie
+  const openSections = new Set(
+    (document.cookie.match(/(?:^|; )daf_sections=([^;]*)/)?.[1] || '')
+      .split(',').filter(Boolean)
+  )
+
+  function saveOpenSections() {
+    const open = []
+    extras.querySelectorAll('details[data-section]').forEach(d => {
+      if (d.open) open.push(d.dataset.section)
+    })
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString()
+    document.cookie = `daf_sections=${open.join(',')};expires=${expires};path=/;samesite=lax`
+  }
+
   sections.forEach(sec => {
+    const key = sec.title.replace(/[^a-zA-Z\u0590-\u05FF]/g, '').substring(0, 20)
     const details = document.createElement('details')
     details.style.cssText = 'border-top:1px solid var(--color-rule,#ccc);padding:0.5rem 0;'
+    details.dataset.section = key
+    if (openSections.has(key)) details.open = true
+    details.addEventListener('toggle', saveOpenSections)
 
     const summary = document.createElement('summary')
     summary.style.cssText = 'cursor:pointer;font-size:12px;color:var(--color-ink-soft,#666);font-family:serif;'
