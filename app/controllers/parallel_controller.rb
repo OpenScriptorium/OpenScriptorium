@@ -99,8 +99,21 @@ class ParallelController < ApplicationController
       { work: w, units: units, body: units.map(&:body).join(" ") }
     end
 
-    # Available Talmud works for the picker
+    # Prev/next daf navigation
+    all_amudim = CanonicalRef
+                   .where(canonical_work_id: primary_cw.id)
+                   .distinct
+                   .pluck(Arel.sql("hierarchy[1], hierarchy[2]"))
+                   .sort_by { |d, a| [d, a] }
+                   .uniq
+    current_idx = all_amudim.index([@daf_number, @amud])
+    @prev_daf = current_idx && current_idx > 0 ? all_amudim[current_idx - 1] : nil
+    @next_daf = current_idx ? all_amudim[current_idx + 1] : nil
+
+    # Available Talmud works for the picker (exclude xref-only works)
+    hidden = %w[ein-mishpat-bavli mesoret-hashas-bavli]
     @available_works = Work.where(slug: DafController::TALMUD_SLUG_TO_GEMARA.keys + ["bavli"])
+                           .where.not(slug: hidden)
                            .order(:title).to_a
 
     render :show_daf

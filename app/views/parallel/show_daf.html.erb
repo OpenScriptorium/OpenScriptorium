@@ -1,43 +1,60 @@
 <% content_for :title, "#{@primary_canonical_work.slug.titleize.gsub('-',' ')} #{@daf_label} — Parallel Talmud" %>
 
-<div class="max-w-6xl mx-auto px-5 py-12">
-  <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
-    <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
-      <li>Parallel Talmud</li>
-      <li><span aria-hidden="true">&raquo;</span></li>
-      <li><%= @primary_canonical_work.slug.titleize.gsub("-", " ") %></li>
-      <li><span aria-hidden="true">&raquo;</span></li>
-      <li aria-current="page">Daf <%= @daf_label %></li>
-    </ol>
-  </nav>
-
-  <header class="border-b border-[var(--color-rule)] pb-6 mb-8 text-center">
-    <h1 class="font-serif text-3xl text-[var(--color-ink)]">
+<div class="max-w-7xl mx-auto px-5 py-12">
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-6">
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">Parallel Talmud</p>
+    <h1 class="font-serif text-3xl text-[var(--color-ink)] mt-1">
       <%= @primary_canonical_work.slug.titleize.gsub("-", " ") %> — Daf <%= @daf_label %>
     </h1>
-    <p class="text-sm text-[var(--color-ink-soft)] mt-2">
+    <p class="mt-2 text-sm text-[var(--color-ink-soft)] font-serif">
       <%= @daf_columns.map { |c| c[:work].title }.join(" · ") %>
     </p>
   </header>
 
-  <%# Parallel columns %>
-  <div class="grid gap-6" style="grid-template-columns: repeat(<%= @daf_columns.size %>, 1fr);">
-    <%# Column headers %>
-    <% @daf_columns.each do |col| %>
-      <div class="text-center text-sm font-serif text-[var(--color-ink-soft)] border-b border-[var(--color-rule)] pb-2 mb-4">
-        <%= col[:work].title %>
+  <%# Column pickers — same pattern as Bible parallel reader %>
+  <% grid_style = "grid-template-columns: repeat(#{@daf_columns.size}, minmax(0, 1fr)) 9rem;" %>
+  <% picker_options = @available_works.map { |w| [w.title, w.slug] } %>
+
+  <div data-controller="parallel-picker"
+       data-parallel-picker-base-url-value="<%= parallel_daf_path(@book_slug, @daf_label) %>"
+       class="grid gap-x-6 mb-4 items-end"
+       style="<%= grid_style %>">
+    <% @daf_columns.each_with_index do |col, idx| %>
+      <div class="font-serif">
+        <%= select_tag "col_#{idx}",
+              options_for_select(picker_options + [["(remove this column)", "__remove__"]], col[:work].slug),
+              class: "parallel-col w-full text-sm bg-transparent border-0 border-b border-[var(--color-rule)] " \
+                     "py-1 px-0 font-serif text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-link)]",
+              "data-action": "change->parallel-picker#update",
+              "aria-label": "Column #{idx + 1} work" %>
+        <% if idx == 0 %>
+          <p class="text-xs text-[var(--color-ink-soft)] italic mt-1">primary</p>
+        <% end %>
       </div>
     <% end %>
 
-    <%# Column content %>
+    <div>
+      <%= select_tag "col_add",
+            options_for_select([["+ add column", ""]] + picker_options),
+            class: "parallel-col w-full text-sm bg-transparent border-0 border-b border-dashed " \
+                   "border-[var(--color-rule)] py-1 px-0 font-serif text-[var(--color-ink-soft)] " \
+                   "italic focus:outline-none focus:border-[var(--color-link)]",
+            "data-action": "change->parallel-picker#update",
+            "aria-label": "Add a column" %>
+    </div>
+  </div>
+
+  <%# Parallel content — one block per column %>
+  <div class="grid gap-x-6" style="grid-template-columns: repeat(<%= @daf_columns.size %>, minmax(0, 1fr));">
     <% @daf_columns.each do |col| %>
-      <div class="font-serif leading-relaxed"
-           dir="<%= col[:work].language == 'en' ? 'ltr' : 'rtl' %>"
+      <% is_en = col[:work].language == "en" %>
+      <div class="font-serif leading-relaxed border-t border-[var(--color-rule)] pt-4"
+           dir="<%= is_en ? 'ltr' : 'rtl' %>"
            lang="<%= col[:work].language %>">
         <% if col[:units].any? %>
           <% col[:units].each do |unit| %>
-            <p class="mb-3 <%= col[:work].language == 'en' ? 'text-base' : '' %>"
-               style="<%= col[:work].slug == 'bavli' ? 'font-family:Vilna,serif;font-size:15px;line-height:24px;' : '' %>">
+            <p class="mb-3"
+               style="<%= col[:work].slug == 'bavli' ? 'font-family:Vilna,serif;font-size:15px;line-height:24px;' : is_en ? 'font-size:16px;line-height:26px;' : 'font-family:Rashi,serif;font-size:13px;line-height:22px;' %>">
               <%= unit.body %>
             </p>
           <% end %>
@@ -48,24 +65,24 @@
     <% end %>
   </div>
 
-  <%# Work picker %>
+  <%# Daf navigation %>
+  <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
+    <% if @prev_daf %>
+      <%= link_to "← Daf #{daf_label(*@prev_daf)}",
+            parallel_daf_path(@book_slug, daf_label(*@prev_daf), works: @selected_slugs.join(",")),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% else %><span></span><% end %>
+
+    <% if @next_daf %>
+      <%= link_to "Daf #{daf_label(*@next_daf)} →",
+            parallel_daf_path(@book_slug, daf_label(*@next_daf), works: @selected_slugs.join(",")),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% else %><span></span><% end %>
+  </nav>
+
   <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)]">
-    <form method="get" action="<%= parallel_daf_path(@book_slug, @daf_label) %>" class="space-y-2">
-      <p class="font-serif">Works to display:</p>
-      <div class="flex flex-wrap gap-x-4 gap-y-1">
-        <% @available_works.each do |w| %>
-          <label class="cursor-pointer flex items-center gap-1.5 font-serif">
-            <input type="checkbox" name="works[]" value="<%= w.slug %>"
-                   <%= "checked" if @selected_slugs.include?(w.slug) %>
-                   class="accent-[var(--color-ink)]" />
-            <span><%= w.title %></span>
-          </label>
-        <% end %>
-      </div>
-      <button type="submit"
-              class="mt-2 px-3 py-1 text-sm font-serif border border-[var(--color-rule)] rounded hover:bg-[var(--color-rule)]">
-        Update
-      </button>
-    </form>
+    <% @daf_columns.each do |col| %>
+      <p><%= col[:work].title %> · <%= col[:work].license.name %></p>
+    <% end %>
   </footer>
 </div>
