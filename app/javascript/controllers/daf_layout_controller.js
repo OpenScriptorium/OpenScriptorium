@@ -74,6 +74,7 @@ export default class extends Controller {
     this.setCookie("daf_xrefs", on ? "on" : "off", 365)
     const el = document.getElementById("daf-xrefs")
     if (el) el.style.display = on ? "" : "none"
+    this.updateXrefCount()
   }
 
   toggleMesoret() {
@@ -82,6 +83,19 @@ export default class extends Controller {
     this.setCookie("daf_mesoret", on ? "on" : "off", 365)
     const el = document.getElementById("daf-mesoret")
     if (el) el.style.display = on ? "" : "none"
+    this.updateXrefCount()
+  }
+
+  updateXrefCount() {
+    const details = this.element.querySelector("details")
+    if (!details) return
+    const checks = details.querySelectorAll("input[type='checkbox']")
+    const active = Array.from(checks).filter(c => c.checked).length
+    const summary = details.querySelector("summary")
+    if (summary) {
+      const label = active > 0 ? `: <span class="not-italic">${active} active</span>` : ': <span class="italic">off</span>'
+      summary.innerHTML = `Cross-references${label} <span class="font-sans">▾</span>`
+    }
   }
 
   showVilna() {
