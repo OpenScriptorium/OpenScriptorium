@@ -6,6 +6,12 @@ export default class extends Controller {
   static targets = ["headerLabel", "marginsLabel", "dafLabel"]
 
   connect() {
+    // Soncino and other non-Vilna works force simple mode
+    if (this.element.dataset.dafLayoutForceSimple) {
+      this.showSimple()
+      return
+    }
+
     const saved = this.getCookie("daf_layout") || "vilna"
     const checkbox = this.element.querySelector("input[name='daf_layout']")
     if (checkbox) checkbox.checked = saved === "vilna"

@@ -1,6 +1,6 @@
 <% content_for :title, "#{@canonical_work.title} #{@daf_label} — Talmud Bavli" %>
 
-<div class="max-w-6xl mx-auto px-5 py-12" data-controller="daf-layout">
+<div class="max-w-6xl mx-auto px-5 py-12" data-controller="daf-layout" <%= 'data-daf-layout-force-simple="true"' if soncino_view %>>
   <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
     <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
       <li><%= link_to "Talmud Bavli", work_path(@gemara_work.slug), class: "hover:underline" %></li>
@@ -36,8 +36,19 @@
   <div id="daf-container"></div>
 
   <%# Simple view — shows whichever work the user navigated to %>
-  <div id="daf-simple" class="font-hebrew max-w-3xl mx-auto" dir="rtl" lang="arc" style="display:none;">
-    <% if @current_work_type == :gemara %>
+  <% soncino_view = @current_work_type == :soncino %>
+  <div id="daf-simple" class="<%= soncino_view ? '' : 'font-hebrew' %> max-w-3xl mx-auto"
+       dir="<%= soncino_view ? 'ltr' : 'rtl' %>"
+       lang="<%= soncino_view ? 'en' : 'arc' %>"
+       style="display:none;">
+    <% if @current_work_type == :soncino %>
+      <% (@soncino_units || []).each do |unit| %>
+        <p class="mb-4 leading-relaxed font-serif text-base"><%= unit.body %></p>
+      <% end %>
+      <% if (@soncino_units || []).empty? %>
+        <p class="text-[var(--color-ink-soft)] font-serif italic">No Soncino text for this daf.</p>
+      <% end %>
+    <% elsif @current_work_type == :gemara %>
       <% @segments.each do |seg| %>
         <p class="mb-3 leading-relaxed" style="font-family:Vilna,serif;font-size:15px;line-height:24px;<%= 'font-weight:bold;' if seg[:mishnah] %>">
           <% if seg[:mishnah] %><span style="color:var(--color-accent);font-weight:700;">מתני׳</span> <% end %>
@@ -170,15 +181,17 @@
 
   <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2">
     <% layout_mode = cookies[:daf_layout].to_s %>
-    <% vilna_on = layout_mode != "simple" %>
+    <% vilna_on = layout_mode != "simple" && !soncino_view %>
     <div class="flex items-center gap-x-3 flex-wrap font-serif">
-      <label class="cursor-pointer flex items-center gap-1.5">
-        <input type="checkbox" name="daf_layout"
-               <%= "checked" if vilna_on %>
-               data-action="change->daf-layout#toggle"
-               class="accent-[var(--color-ink)]" />
-        <span>Vilna layout</span>
-      </label>
+      <% unless soncino_view %>
+        <label class="cursor-pointer flex items-center gap-1.5">
+          <input type="checkbox" name="daf_layout"
+                 <%= "checked" if vilna_on %>
+                 data-action="change->daf-layout#toggle"
+                 class="accent-[var(--color-ink)]" />
+          <span>Vilna layout</span>
+        </label>
+      <% end %>
     </div>
     <% xref_sources = [] %>
     <% xref_sources << { key: 'daf_xrefs', label: 'Sefaria', on: cookies[:daf_xrefs].to_s == "on" } if @daf_xrefs.any? %>

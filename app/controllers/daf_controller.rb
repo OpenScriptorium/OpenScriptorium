@@ -33,6 +33,11 @@ class DafController < ApplicationController
     @ein_mishpat = fetch_ref_strip("ein-mishpat-bavli")
     @mesoret_hashas = fetch_ref_strip("mesoret-hashas-bavli")
 
+    # Soncino units (for simple mode when viewing Soncino)
+    if @current_work_type == :soncino && @navigated_work
+      @soncino_units = fetch_units(@navigated_work)
+    end
+
     # Cross-references from this daf (Talmud → Tanakh, Talmud → Talmud)
     fetch_daf_xrefs
 
@@ -54,6 +59,7 @@ class DafController < ApplicationController
       @current_work_type = case slug
                            when "rashi-bavli"   then :rashi
                            when "tosafot-bavli" then :tosafot
+                           when "soncino-bavli" then :soncino
                            else :gemara
                            end
       @navigated_work = Work.find_by(slug: slug)
