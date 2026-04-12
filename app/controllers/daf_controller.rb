@@ -43,12 +43,21 @@ class DafController < ApplicationController
 
     # Determine which work the user navigated to, and resolve the
     # Gemara/Rashi/Tosafot trio for Vilna mode.
-    if slug.start_with?("rashi-")
-      gemara_slug = slug.sub("rashi-", "")
-      @current_work_type = :rashi
-    elsif slug.start_with?("tosafot-")
-      gemara_slug = slug.sub("tosafot-", "")
-      @current_work_type = :tosafot
+    # All Talmud-related works (rashi-bavli, tosafot-bavli, ein-mishpat-bavli,
+    # mesoret-hashas-bavli, margin commentaries) normalize to the gemara
+    # for the Vilna 3-column layout.
+    TALMUD_PREFIXES = %w[rashi- tosafot- ein-mishpat- mesoret-hashas-
+                          rashash- maharsha- gilyon- chokhmat- hagahot- piskei-].freeze
+
+    prefix = TALMUD_PREFIXES.find { |p| slug.start_with?(p) }
+    if prefix
+      gemara_slug = slug.sub(/\A#{Regexp.escape(prefix)}/, "")
+      # Map to work type for simple view
+      @current_work_type = case prefix
+                           when "rashi-"   then :rashi
+                           when "tosafot-" then :tosafot
+                           else :gemara  # margin works default to gemara in simple mode
+                           end
     else
       gemara_slug = slug
       @current_work_type = :gemara

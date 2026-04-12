@@ -18,7 +18,7 @@ export default function vilna5Render(container, {
 
   // Center 3-column layout via daf-renderer
   const dafEl = document.createElement('div')
-  dafEl.style.cssText = 'max-width:660px;margin:0 auto;'
+  dafEl.style.cssText = 'position:relative;max-width:660px;margin:0 auto;'
   container.appendChild(dafEl)
 
   const daf = dafRenderer(dafEl, { contentWidth: '660px' })
