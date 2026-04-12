@@ -103,16 +103,17 @@
     other_commentaries: (inner_margins + outer_margins).flat_map { |mw| mw[:units].map(&:body) }.join(" ")
   }.to_json.html_safe %></script>
 
+  <% nav_slug = params[:work_slug] %>
   <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
     <% if @prev_daf %>
       <%= link_to "← #{daf_label(*@prev_daf)}",
-            daf_nav_path(@gemara_work.slug, @canonical_work.slug, *@prev_daf),
+            daf_nav_path(nav_slug, @canonical_work.slug, *@prev_daf),
             class: "text-[var(--color-link)] hover:underline" %>
     <% else %><span></span><% end %>
 
     <% if @next_daf %>
       <%= link_to "#{daf_label(*@next_daf)} →",
-            daf_nav_path(@gemara_work.slug, @canonical_work.slug, *@next_daf),
+            daf_nav_path(nav_slug, @canonical_work.slug, *@next_daf),
             class: "text-[var(--color-link)] hover:underline" %>
     <% else %><span></span><% end %>
   </nav>
