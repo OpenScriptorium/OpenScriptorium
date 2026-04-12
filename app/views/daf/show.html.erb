@@ -104,36 +104,49 @@
   }.to_json.html_safe %></script>
 
   <% nav_slug = params[:work_slug] %>
-  <%# Cross-references (Talmud → Tanakh, Talmud → Talmud) %>
-  <% if @daf_xrefs.any? %>
-    <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
-    <div id="daf-xrefs" class="max-w-3xl mx-auto mt-6 font-serif text-sm" dir="rtl" style="<%= 'display:none;' unless xrefs_on %>">
-      <p class="text-xs text-[var(--color-ink-soft)] mb-2">הפניות (Sefaria)</p>
-      <p class="leading-relaxed">
-        <% @daf_xrefs.each_with_index do |xref, i| %>
-          <%= " · " if i > 0 %>
-          <% tcw = xref.target_canonical_work %>
-          <% start_ref = CanonicalRef.where(canonical_work_id: tcw.id, ord: xref.target_range.begin).first %>
-          <% if start_ref %>
-            <% # Use Hebrew title for the citation %>
-            <% heb_title = tcw.title %>
-            <% citation = tcw.citation_format == "talmud" ? tcw.format_citation(start_ref.hierarchy) : "#{heb_title} #{start_ref.hierarchy[0]}:#{start_ref.hierarchy[1]}" %>
-            <% work_slug = resolve_work_for_canonical_work(tcw) %>
-            <% if work_slug %>
-              <%= link_to citation,
-                    tcw.citation_format == "talmud" ?
-                      daf_path(work_slug, tcw.book_key, "#{start_ref.hierarchy[0]}#{start_ref.hierarchy[1] == 1 ? 'a' : 'b'}") :
-                      reader_chapter_path(work_slug, tcw.book_key, start_ref.hierarchy[0], anchor: "v#{start_ref.hierarchy[1]}"),
-                    class: "text-[var(--color-link)] hover:underline" %>
-            <% else %>
-              <%= link_to citation, not_in_corpus_path(tcw.slug),
-                    class: "text-[var(--color-link)] hover:underline opacity-60" %>
+  <%# Cross-references — two separate togglable sources %>
+  <div class="max-w-3xl mx-auto mt-6 font-serif text-sm" dir="rtl">
+    <%# Sefaria cross-references (Talmud → Tanakh, Talmud → Talmud) %>
+    <% if @daf_xrefs.any? %>
+      <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
+      <div id="daf-xrefs" style="<%= 'display:none;' unless xrefs_on %>">
+        <p class="text-xs text-[var(--color-ink-soft)] mb-1">Sefaria</p>
+        <p class="leading-relaxed mb-3">
+          <% @daf_xrefs.each_with_index do |xref, i| %>
+            <%= " · " if i > 0 %>
+            <% tcw = xref.target_canonical_work %>
+            <% start_ref = CanonicalRef.where(canonical_work_id: tcw.id, ord: xref.target_range.begin).first %>
+            <% if start_ref %>
+              <% heb_name = tcw.native_title.presence || tcw.title %>
+              <% citation = tcw.citation_format == "talmud" ? tcw.format_citation(start_ref.hierarchy) : "#{heb_name} #{start_ref.hierarchy[0]}:#{start_ref.hierarchy[1]}" %>
+              <% work_slug = resolve_work_for_canonical_work(tcw) %>
+              <% if work_slug %>
+                <%= link_to citation,
+                      tcw.citation_format == "talmud" ?
+                        daf_path(work_slug, tcw.book_key, "#{start_ref.hierarchy[0]}#{start_ref.hierarchy[1] == 1 ? 'a' : 'b'}") :
+                        reader_chapter_path(work_slug, tcw.book_key, start_ref.hierarchy[0], anchor: "v#{start_ref.hierarchy[1]}"),
+                      class: "text-[var(--color-link)] hover:underline" %>
+              <% else %>
+                <%= link_to citation, not_in_corpus_path(tcw.slug),
+                      class: "text-[var(--color-link)] hover:underline opacity-60" %>
+              <% end %>
             <% end %>
           <% end %>
-        <% end %>
-      </p>
-    </div>
-  <% end %>
+        </p>
+      </div>
+    <% end %>
+
+    <%# Mesoret HaShas (R' Yehoshua Boaz cross-references) %>
+    <% if @mesoret_hashas %>
+      <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
+      <div id="daf-mesoret" style="<%= 'display:none;' unless mesoret_on %>">
+        <p class="text-xs text-[var(--color-ink-soft)] mb-1">מסורת הש״ס</p>
+        <p class="leading-relaxed mb-3" style="font-family:Rashi,serif;font-size:11px;">
+          <%= @mesoret_hashas[:units].map(&:body).join(" · ").html_safe %>
+        </p>
+      </div>
+    <% end %>
+  </div>
 
   <% nav_slug = params[:work_slug] %>
   <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
@@ -161,6 +174,16 @@
                class="accent-[var(--color-ink)]" />
         <span>Vilna layout</span>
       </label>
+      <% if @mesoret_hashas %>
+        <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
+        <label class="cursor-pointer flex items-center gap-1.5">
+          <input type="checkbox" name="daf_mesoret"
+                 <%= "checked" if mesoret_on %>
+                 data-action="change->daf-layout#toggleMesoret"
+                 class="accent-[var(--color-ink)]" />
+          <span>מסורת הש״ס</span>
+        </label>
+      <% end %>
       <% if @daf_xrefs.any? %>
         <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
         <label class="cursor-pointer flex items-center gap-1.5">

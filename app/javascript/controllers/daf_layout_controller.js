@@ -80,23 +80,8 @@ export default class extends Controller {
     const checkbox = this.element.querySelector("input[name='daf_mesoret']")
     const on = checkbox?.checked
     this.setCookie("daf_mesoret", on ? "on" : "off", 365)
-    // Toggle the Mesoret div in the extras section
-    const mesDiv = document.querySelector('#daf-container .vilna5-mesoret, #daf-container div[style*="מסורת"]')
-    if (!mesDiv) {
-      // Find it by looking for the mesoret label text
-      const extras = this.vilna?.extras
-      if (extras) {
-        const divs = extras.querySelectorAll('div')
-        for (const d of divs) {
-          if (d.textContent.includes('מסורת')) {
-            d.style.display = on ? '' : 'none'
-            break
-          }
-        }
-      }
-    } else {
-      mesDiv.style.display = on ? '' : 'none'
-    }
+    const el = document.getElementById("daf-mesoret")
+    if (el) el.style.display = on ? "" : "none"
   }
 
   showVilna() {
