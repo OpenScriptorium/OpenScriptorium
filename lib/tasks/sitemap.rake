@@ -11,32 +11,26 @@ task sitemap: :environment do
   out = nil
   files = []
 
+  close_file = -> {
+    return unless out
+    out.write %(</urlset>\n)
+    out.close
+    out = nil
+  }
+
   open_file = -> {
+    close_file.call
     file_idx += 1
     name = "sitemap-#{file_idx}.xml"
     files << name
-    out = File.open(Rails.root.join("public/#{name}"), "w")
-    xml = Builder::XmlMarkup.new(target: out, indent: 2)
-    xml.instruct!
-    xml.urlset(xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9") {
-      # block will be yielded to via add calls
-    }
-    # Reopen: Builder doesn't support deferred blocks well, use raw XML
-    out.close
     out = File.open(Rails.root.join("public/#{name}"), "w")
     out.write %(<?xml version="1.0" encoding="UTF-8"?>\n)
     out.write %(<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n)
     count_in_file = 0
   }
 
-  close_file = -> {
-    return unless out
-    out.write %(</urlset>\n)
-    out.close
-  }
-
   add = ->(path, opts = {}) {
-    open_file.call if xml.nil? || count_in_file >= max_per_file
+    open_file.call if out.nil? || count_in_file >= max_per_file
     freq = opts[:freq] || "monthly"
     pri = opts[:priority] || "0.5"
     out.write %(<url><loc>#{base}#{path}</loc><changefreq>#{freq}</changefreq><priority>#{pri}</priority></url>\n)
