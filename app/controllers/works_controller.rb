@@ -14,7 +14,9 @@ class WorksController < ApplicationController
     @selected_traditions = Array(params[:traditions]).select(&:present?)
     @selected_types      = Array(params[:types]).select(&:present?)
 
-    @works = Work.includes(:license).order(:title).to_a
+    # Hide reference/cross-reference works that aren't independently readable
+    hidden = %w[mesoret-hashas-bavli ein-mishpat-bavli]
+    @works = Work.includes(:license).where.not(slug: hidden).order(:title).to_a
 
     @facet_languages  = @works.map(&:language).compact.uniq.sort
     # Sort traditions: academic first, then Jewish, then Christian

@@ -57,6 +57,26 @@
           <% if dh %><b><%= dh %></b> – <% end %><%= body || entry.body %>
         </p>
       <% end %>
+    <% else %>
+      <%# Margin commentary (Rashash, Maharsha, etc.) — show if navigated directly %>
+      <% if @navigated_work %>
+        <% units = @margin_works.find { |mw| mw[:work].id == @navigated_work.id }&.dig(:units) || [] %>
+        <% units.each do |entry| %>
+          <p class="mb-3 leading-relaxed" style="font-family:Rashi,serif;font-size:12px;line-height:20px;">
+            <%= entry.body %>
+          </p>
+        <% end %>
+        <% if units.empty? %>
+          <p class="text-[var(--color-ink-soft)] font-serif italic">No content for this daf.</p>
+        <% end %>
+      <% else %>
+        <% @segments.each do |seg| %>
+          <p class="mb-3 leading-relaxed" style="font-family:Vilna,serif;font-size:15px;line-height:24px;<%= 'font-weight:bold;' if seg[:mishnah] %>">
+            <% if seg[:mishnah] %><span style="color:var(--color-accent);font-weight:700;">מתני׳</span> <% end %>
+            <%= seg[:gemara].body %>
+          </p>
+        <% end %>
+      <% end %>
     <% end %>
   </div>
 
