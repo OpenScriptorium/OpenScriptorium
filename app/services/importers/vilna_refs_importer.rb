@@ -23,12 +23,12 @@ module Importers
       SefariaLinksImporter::TRACTATE_NAMES.include?(k)
     }.freeze
 
-    # Hebrew abbreviations for the halakhic codes cited by Ein Mishpat
+    # Hebrew abbreviations + not-in-corpus slugs for halakhic codes
     WORK_ABBREVS = {
-      "Mishneh Torah" => "רמב״ם",
-      "Sefer Mitzvot Gadol" => "סמ״ג",
-      "Tur" => "טור",
-      "Shulchan Arukh" => "שו״ע",
+      "Mishneh Torah" => { heb: "רמב״ם", slug: "mishneh-torah" },
+      "Sefer Mitzvot Gadol" => { heb: "סמ״ג", slug: "sefer-mitzvot-gadol" },
+      "Tur" => { heb: "טור", slug: "tur" },
+      "Shulchan Arukh" => { heb: "שו״ע", slug: "shulchan-arukh" },
     }.freeze
 
     # Shulchan Arukh / Tur section abbreviations
@@ -178,25 +178,28 @@ module Importers
     # "Tur, Orach Chayim 235" → "טור או״ח רל״ה"
     # "Shulchan Arukh, Orach Chayim 235:1" → "שו״ע או״ח רל״ה:א׳"
     def format_ein_mishpat_citation(citation)
-      WORK_ABBREVS.each do |eng_prefix, heb_abbrev|
+      WORK_ABBREVS.each do |eng_prefix, info|
         next unless citation.start_with?(eng_prefix)
+        heb = info[:heb]
+        slug = info[:slug]
         rest = citation.sub(/\A#{Regexp.escape(eng_prefix)},?\s*/, "")
 
         # Tur / Shulchan Arukh: keep section abbreviation + siman
         SECTION_ABBREVS.each do |sec_eng, sec_heb|
           if rest.start_with?(sec_eng)
             nums = rest.sub(/\A#{Regexp.escape(sec_eng)}\s*/, "").strip
-            return "#{heb_abbrev} #{sec_heb} #{hebraize_nums(nums)}"
+            text = "#{heb} #{sec_heb} #{hebraize_nums(nums)}"
+            return %(<a href="/not-in-corpus/#{slug}">#{text}</a>)
           end
         end
 
         # Mishneh Torah: strip English subsection, keep only chapter:halakhah
         nums = rest.scan(/(\d+(?::\d+)?)/).flatten.last
-        return nums ? "#{heb_abbrev} #{hebraize_nums(nums)}" : heb_abbrev
+        text = nums ? "#{heb} #{hebraize_nums(nums)}" : heb
+        return %(<a href="/not-in-corpus/#{slug}">#{text}</a>)
       end
 
-      # Semag: "Sefer Mitzvot Gadol, Positive Commandments 82"
-      nil # skip unrecognized formats
+      nil
     end
 
     # "Berakhot 3a:5" → '<a href="/bavli/berakhot/3a">ברכות ג.</a>'
