@@ -1,0 +1,71 @@
+<% content_for :title, "#{@primary_canonical_work.slug.titleize.gsub('-',' ')} #{@daf_label} — Parallel Talmud" %>
+
+<div class="max-w-6xl mx-auto px-5 py-12">
+  <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
+    <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
+      <li>Parallel Talmud</li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li><%= @primary_canonical_work.slug.titleize.gsub("-", " ") %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li aria-current="page">Daf <%= @daf_label %></li>
+    </ol>
+  </nav>
+
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-8 text-center">
+    <h1 class="font-serif text-3xl text-[var(--color-ink)]">
+      <%= @primary_canonical_work.slug.titleize.gsub("-", " ") %> — Daf <%= @daf_label %>
+    </h1>
+    <p class="text-sm text-[var(--color-ink-soft)] mt-2">
+      <%= @daf_columns.map { |c| c[:work].title }.join(" · ") %>
+    </p>
+  </header>
+
+  <%# Parallel columns %>
+  <div class="grid gap-6" style="grid-template-columns: repeat(<%= @daf_columns.size %>, 1fr);">
+    <%# Column headers %>
+    <% @daf_columns.each do |col| %>
+      <div class="text-center text-sm font-serif text-[var(--color-ink-soft)] border-b border-[var(--color-rule)] pb-2 mb-4">
+        <%= col[:work].title %>
+      </div>
+    <% end %>
+
+    <%# Column content %>
+    <% @daf_columns.each do |col| %>
+      <div class="font-serif leading-relaxed"
+           dir="<%= col[:work].language == 'en' ? 'ltr' : 'rtl' %>"
+           lang="<%= col[:work].language %>">
+        <% if col[:units].any? %>
+          <% col[:units].each do |unit| %>
+            <p class="mb-3 <%= col[:work].language == 'en' ? 'text-base' : '' %>"
+               style="<%= col[:work].slug == 'bavli' ? 'font-family:Vilna,serif;font-size:15px;line-height:24px;' : '' %>">
+              <%= unit.body %>
+            </p>
+          <% end %>
+        <% else %>
+          <p class="text-[var(--color-ink-soft)] italic">No text for this daf.</p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Work picker %>
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)]">
+    <form method="get" action="<%= parallel_daf_path(@book_slug, @daf_label) %>" class="space-y-2">
+      <p class="font-serif">Works to display:</p>
+      <div class="flex flex-wrap gap-x-4 gap-y-1">
+        <% @available_works.each do |w| %>
+          <label class="cursor-pointer flex items-center gap-1.5 font-serif">
+            <input type="checkbox" name="works[]" value="<%= w.slug %>"
+                   <%= "checked" if @selected_slugs.include?(w.slug) %>
+                   class="accent-[var(--color-ink)]" />
+            <span><%= w.title %></span>
+          </label>
+        <% end %>
+      </div>
+      <button type="submit"
+              class="mt-2 px-3 py-1 text-sm font-serif border border-[var(--color-rule)] rounded hover:bg-[var(--color-rule)]">
+        Update
+      </button>
+    </form>
+  </footer>
+</div>

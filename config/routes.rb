@@ -32,6 +32,12 @@ Rails.application.routes.draw do
   #   /parallel/:book_slug/:chapter/:verse             — single verse
   #   /parallel/:book_slug/:chapter/:from-:to          — intra-chapter range
   #   /parallel/:book_slug/:from_ch.:from_v-:to_ch.:to_v — cross-chapter range
+  # Talmud parallel: /parallel/berakhot/2a?works=bavli,soncino-bavli
+  get "/parallel/:book_slug/:daf",
+      to: "parallel#show_daf",
+      as: :parallel_daf,
+      constraints: { daf: /\d+[ab]/ }
+
   get "/parallel/:book_slug/:from_ch.:from_v-:to_ch.:to_v",
       to: "parallel#show",
       as: :parallel_cross_range,

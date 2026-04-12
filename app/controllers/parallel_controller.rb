@@ -1,5 +1,5 @@
 class ParallelController < ApplicationController
-  allow_unauthenticated_access only: [:show]
+  allow_unauthenticated_access only: [:show, :show_daf]
 
   # Cold-start default — used when nothing is in `params[:works]`. The
   # picker form on the parallel page lets the user add more columns or
@@ -59,14 +59,61 @@ class ParallelController < ApplicationController
                            .to_a
   end
 
+  # GET /parallel/:book_slug/:daf?works=bavli,soncino-bavli
+  # Talmud parallel reader — shows multiple Talmud works side-by-side
+  # for a single daf (e.g., Hebrew Gemara + Soncino English).
+  TALMUD_DEFAULT_WORKS = %w[bavli soncino-bavli].freeze
+
+  def show_daf
+    @selected_slugs = parse_works_param(TALMUD_DEFAULT_WORKS)
+    @works = @selected_slugs.map { |s| Work.find_by(slug: s) }.compact
+    raise ActiveRecord::RecordNotFound, "no works" if @works.empty?
+
+    @book_slug = params[:book_slug]
+    match = params[:daf].match(/\A(\d+)([ab])\z/)
+    raise ActiveRecord::RecordNotFound, "invalid daf" unless match
+    @daf_number = match[1].to_i
+    @amud = match[2] == "a" ? 1 : 2
+    @daf_label = params[:daf]
+    @is_talmud = true
+
+    # Resolve canonical work
+    primary = @works.first
+    @canonical_works = @works.each_with_object({}) do |w, h|
+      h[w.id] = resolve_canonical_work(w, @book_slug)
+    end
+    primary_cw = @canonical_works[primary.id]
+    raise ActiveRecord::RecordNotFound, "no tractate #{@book_slug}" unless primary_cw
+    @primary_canonical_work = primary_cw
+
+    # Fetch units for this daf from each work
+    @daf_columns = @works.map do |w|
+      cw = @canonical_works[w.id] || primary_cw
+      units = WorkUnit.joins(:canonical_ref)
+                .where(work_id: w.id, canonical_refs: { canonical_work_id: cw.id })
+                .where("canonical_refs.hierarchy[1] = ? AND canonical_refs.hierarchy[2] = ?",
+                       @daf_number, @amud)
+                .order("canonical_refs.ord")
+                .includes(:canonical_ref)
+                .to_a
+      { work: w, units: units, body: units.map(&:body).join(" ") }
+    end
+
+    # Available Talmud works for the picker
+    @available_works = Work.where(slug: DafController::TALMUD_SLUG_TO_GEMARA.keys + ["bavli"])
+                           .order(:title).to_a
+
+    render :show_daf
+  end
+
   private
 
-  def parse_works_param
+  def parse_works_param(defaults = DEFAULT_WORKS)
     raw = params[:works]
     case raw
     when Array  then raw.map(&:to_s).map(&:strip).reject(&:blank?).uniq
     when String then raw.split(",").map(&:strip).reject(&:blank?).uniq
-    else             DEFAULT_WORKS.dup
+    else             defaults.dup
     end
   end
 
