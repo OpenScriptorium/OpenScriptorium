@@ -1,6 +1,6 @@
 // @license magnet:?xt=urn:btih:b8999bbaf509c08d127678643c515b9ab0836bae&dn=ISC.txt ISC
 import { Controller } from "@hotwired/stimulus"
-import * as Turbo from "@hotwired/turbo-rails"
+import { Turbo } from "@hotwired/turbo-rails"
 
 // Per-column work picker for the parallel reader.
 //
