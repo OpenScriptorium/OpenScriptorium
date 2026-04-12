@@ -100,16 +100,42 @@
 
   <%# Chapter navigation only for the bare chapter view %>
   <% if @range_kind == :chapter %>
-    <% chapter = params[:chapter].to_i %>
+    <%
+      chapter = params[:chapter].to_i
+      primary = @works.first
+      max_ch = CanonicalRef.where(canonical_work_id: @primary_canonical_work.id)
+                 .maximum(Arel.sql("hierarchy[1]")) || chapter
+      all_books = CanonicalWork.joins(canonical_refs: :work_units)
+                    .where(work_units: { work_id: primary.id })
+                    .select("canonical_works.slug, canonical_works.position")
+                    .distinct.order(:position).map(&:slug)
+      book_idx = all_books.index(@primary_canonical_work.slug)
+      prev_book_slug = book_idx && book_idx > 0 ? all_books[book_idx - 1] : nil
+      next_book_slug = book_idx ? all_books[book_idx + 1] : nil
+    %>
     <nav class="mt-10 flex justify-between text-sm font-serif">
       <% if chapter > 1 %>
         <%= link_to "← Chapter #{chapter - 1}",
               parallel_chapter_path(@book_slug, chapter - 1, works: @selected_slugs.join(",")),
               class: "text-[var(--color-link)] hover:underline" %>
+      <% elsif prev_book_slug %>
+        <% prev_cw = CanonicalWork.find_by(slug: prev_book_slug) %>
+        <% prev_max = CanonicalRef.where(canonical_work_id: prev_cw.id).maximum(Arel.sql("hierarchy[1]")) %>
+        <%= link_to "← #{prev_cw.display_title} #{prev_max}",
+              parallel_chapter_path(prev_book_slug, prev_max, works: @selected_slugs.join(",")),
+              class: "text-[var(--color-link)] hover:underline" %>
       <% else %><span></span><% end %>
-      <%= link_to "Chapter #{chapter + 1} →",
-            parallel_chapter_path(@book_slug, chapter + 1, works: @selected_slugs.join(",")),
-            class: "text-[var(--color-link)] hover:underline" %>
+
+      <% if chapter < max_ch %>
+        <%= link_to "Chapter #{chapter + 1} →",
+              parallel_chapter_path(@book_slug, chapter + 1, works: @selected_slugs.join(",")),
+              class: "text-[var(--color-link)] hover:underline" %>
+      <% elsif next_book_slug %>
+        <% next_cw = CanonicalWork.find_by(slug: next_book_slug) %>
+        <%= link_to "#{next_cw.display_title} 1 →",
+              parallel_chapter_path(next_book_slug, 1, works: @selected_slugs.join(",")),
+              class: "text-[var(--color-link)] hover:underline" %>
+      <% else %><span></span><% end %>
     </nav>
   <% end %>
 
