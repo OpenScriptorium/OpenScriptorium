@@ -119,7 +119,8 @@
 
   <% nav_slug = params[:work_slug] %>
   <%# Cross-references — two separate togglable sources %>
-  <div class="max-w-3xl mx-auto mt-6 font-serif text-sm" dir="rtl">
+  <% xref_english = soncino_view %>
+  <div class="max-w-3xl mx-auto mt-6 font-serif text-sm" dir="<%= xref_english ? 'ltr' : 'rtl' %>">
     <%# Sefaria cross-references (Talmud → Tanakh, Talmud → Talmud) %>
     <% if @daf_xrefs.any? %>
       <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
@@ -131,12 +132,21 @@
             <% tcw = xref.target_canonical_work %>
             <% start_ref = CanonicalRef.where(canonical_work_id: tcw.id, ord: xref.target_range.begin).first %>
             <% if start_ref %>
-              <% heb_name = tcw.native_title.presence || tcw.title %>
-              <% if tcw.citation_format == "talmud" %>
-                <% daf_n = start_ref.hierarchy[0]; amud_n = start_ref.hierarchy[1] %>
-                <% citation = "#{heb_name} #{to_gematria(daf_n)}#{amud_n == 1 ? '.' : ':'}" %>
+              <% if xref_english %>
+                <% eng_name = tcw.slug.titleize.gsub("-", " ") %>
+                <% if tcw.citation_format == "talmud" %>
+                  <% citation = "#{eng_name} #{start_ref.hierarchy[0]}#{start_ref.hierarchy[1] == 1 ? 'a' : 'b'}" %>
+                <% else %>
+                  <% citation = "#{eng_name} #{start_ref.hierarchy[0]}:#{start_ref.hierarchy[1]}" %>
+                <% end %>
               <% else %>
-                <% citation = "#{heb_name} #{to_gematria(start_ref.hierarchy[0])}:#{to_gematria(start_ref.hierarchy[1])}" %>
+                <% heb_name = tcw.native_title.presence || tcw.title %>
+                <% if tcw.citation_format == "talmud" %>
+                  <% daf_n = start_ref.hierarchy[0]; amud_n = start_ref.hierarchy[1] %>
+                  <% citation = "#{heb_name} #{to_gematria(daf_n)}#{amud_n == 1 ? '.' : ':'}" %>
+                <% else %>
+                  <% citation = "#{heb_name} #{to_gematria(start_ref.hierarchy[0])}:#{to_gematria(start_ref.hierarchy[1])}" %>
+                <% end %>
               <% end %>
               <% work_slug = resolve_work_for_canonical_work(tcw) %>
               <% if work_slug %>
