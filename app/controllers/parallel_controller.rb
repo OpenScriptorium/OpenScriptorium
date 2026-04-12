@@ -99,6 +99,30 @@ class ParallelController < ApplicationController
       { work: w, units: units, body: units.map(&:body).join(" ") }
     end
 
+    # Cross-references for this daf
+    ords = CanonicalRef.where(canonical_work_id: primary_cw.id)
+             .where("hierarchy[1] = ? AND hierarchy[2] = ?", @daf_number, @amud)
+             .pluck(:ord)
+    if ords.any?
+      ord_range = ords.min...ords.max + 1
+      @daf_xrefs = CrossReference
+        .where(source_canonical_work_id: primary_cw.id, source_dataset: "sefaria")
+        .where("source_range && int4range(?, ?)", ord_range.begin, ord_range.end)
+        .includes(:target_canonical_work).to_a
+    else
+      @daf_xrefs = []
+    end
+
+    # Mesoret HaShas
+    mh_work = Work.find_by(slug: "mesoret-hashas-bavli")
+    if mh_work
+      mh_units = WorkUnit.joins(:canonical_ref)
+        .where(canonical_refs: { canonical_work_id: primary_cw.id }, work_id: mh_work.id)
+        .where("canonical_refs.hierarchy[1] = ? AND canonical_refs.hierarchy[2] = ?", @daf_number, @amud)
+        .to_a
+      @mesoret_hashas = mh_units.any? ? { units: mh_units } : nil
+    end
+
     # Prev/next daf navigation
     all_amudim = CanonicalRef
                    .where(canonical_work_id: primary_cw.id)

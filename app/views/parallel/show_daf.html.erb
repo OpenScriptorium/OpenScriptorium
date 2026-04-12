@@ -76,9 +76,77 @@
     <% else %><span></span><% end %>
   </nav>
 
-  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)]">
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2"
+          data-controller="daf-layout">
+    <%# Xref picker — same as regular daf page %>
+    <% xref_sources = [] %>
+    <% xref_sources << { key: 'daf_xrefs', label: 'Sefaria', on: cookies[:daf_xrefs].to_s == "on" } if @daf_xrefs&.any? %>
+    <% xref_sources << { key: 'daf_mesoret', label: 'מסורת הש״ס', on: cookies[:daf_mesoret].to_s == "on" } if @mesoret_hashas %>
+    <% if xref_sources.any? %>
+      <% active_count = xref_sources.count { |s| s[:on] } %>
+      <details class="text-xs font-serif text-[var(--color-ink-soft)]"
+               <%= "open" if active_count > 0 %>>
+        <summary class="cursor-pointer hover:text-[var(--color-ink)] select-none">
+          Cross-references<% if active_count > 0 %>: <span class="not-italic"><%= active_count %> active</span><% else %>: <span class="italic">off</span><% end %>
+          <span class="font-sans">▾</span>
+        </summary>
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <% xref_sources.each do |src| %>
+            <label class="cursor-pointer flex items-center gap-1.5">
+              <input type="checkbox" name="<%= src[:key] %>"
+                     <%= "checked" if src[:on] %>
+                     data-action="change->daf-layout#toggle<%= src[:key] == 'daf_xrefs' ? 'Xrefs' : 'Mesoret' %>"
+                     class="accent-[var(--color-ink)]" />
+              <span><%= src[:label] %></span>
+            </label>
+          <% end %>
+        </div>
+      </details>
+    <% end %>
+
     <% @daf_columns.each do |col| %>
       <p><%= col[:work].title %> · <%= col[:work].license.name %></p>
     <% end %>
   </footer>
+
+  <%# Xref content (above footer, togglable) %>
+  <% soncino_view = @daf_columns.any? { |c| c[:work].language == "en" } %>
+  <% xref_english = soncino_view %>
+  <div class="max-w-3xl mx-auto mt-6 font-serif text-sm" dir="<%= xref_english ? 'ltr' : 'rtl' %>">
+    <% if @daf_xrefs&.any? %>
+      <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
+      <div id="daf-xrefs" style="<%= 'display:none;' unless xrefs_on %>">
+        <p class="text-xs text-[var(--color-ink-soft)] mb-1">Sefaria</p>
+        <p class="leading-relaxed mb-3">
+          <% @daf_xrefs.each_with_index do |xref, i| %>
+            <%= " · " if i > 0 %>
+            <% tcw = xref.target_canonical_work %>
+            <% start_ref = CanonicalRef.where(canonical_work_id: tcw.id, ord: xref.target_range.begin).first %>
+            <% if start_ref %>
+              <% if xref_english %>
+                <% eng_name = tcw.slug.titleize.gsub("-", " ") %>
+                <% citation = tcw.citation_format == "talmud" ? "#{eng_name} #{start_ref.hierarchy[0]}#{start_ref.hierarchy[1] == 1 ? 'a' : 'b'}" : "#{eng_name} #{start_ref.hierarchy[0]}:#{start_ref.hierarchy[1]}" %>
+              <% else %>
+                <% heb_name = tcw.native_title.presence || tcw.title %>
+                <% citation = tcw.citation_format == "talmud" ? "#{heb_name} #{to_gematria(start_ref.hierarchy[0])}#{start_ref.hierarchy[1] == 1 ? '.' : ':'}" : "#{heb_name} #{to_gematria(start_ref.hierarchy[0])}:#{to_gematria(start_ref.hierarchy[1])}" %>
+              <% end %>
+              <% work_slug = helpers.respond_to?(:resolve_work_for_canonical_work) ? resolve_work_for_canonical_work(tcw) : nil %>
+              <%= link_to citation, work_slug ? (tcw.citation_format == "talmud" ? daf_path(work_slug, tcw.book_key, "#{start_ref.hierarchy[0]}#{start_ref.hierarchy[1] == 1 ? 'a' : 'b'}") : reader_chapter_path(work_slug, tcw.book_key, start_ref.hierarchy[0], anchor: "v#{start_ref.hierarchy[1]}")) : "#",
+                    class: "text-[var(--color-link)] hover:underline" %>
+            <% end %>
+          <% end %>
+        </p>
+      </div>
+    <% end %>
+
+    <% if @mesoret_hashas %>
+      <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
+      <div id="daf-mesoret" style="<%= 'display:none;' unless mesoret_on %>">
+        <p class="text-xs text-[var(--color-ink-soft)] mb-1"><%= xref_english ? 'Mesoret HaShas' : 'מסורת הש״ס' %></p>
+        <p class="leading-relaxed mb-3 text-sm [&_a]:text-[var(--color-link)] [&_a]:hover:underline">
+          <%= @mesoret_hashas[:units].map { |u| xref_english ? (u.markup&.dig("eng") || u.body) : u.body }.join(" · ").html_safe %>
+        </p>
+      </div>
+    <% end %>
+  </div>
 </div>
