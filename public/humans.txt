@@ -31,6 +31,9 @@ The Westminster Hebrew Institute — The Leningrad Codex transcription.
 
 The Eliran Wong OSHB team — Morphology and features for the Hebrew Bible.
 
+Liam Gilchrist-Blackwood — Accessibility consultant.
+LinkedIn: linkedin.com/in/liam-gilchrist-blackwood-744314200
+
 /* SITE */
 
 Standards: HTML5, CSS3, WCAG 2.2 AA
