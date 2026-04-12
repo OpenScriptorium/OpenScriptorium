@@ -30,6 +30,11 @@
        data-daf-layout-target="dafLabel"
        data-vilna-label="<%= daf_label_hebrew(@daf_number, @amud) %>"
        data-simple-label="Daf <%= @daf_label %>"><%= daf_display %></p>
+    <p class="mt-2 text-sm font-serif">
+      <%= link_to "Read in parallel →",
+            parallel_daf_path(@canonical_work.slug, @daf_label, works: "bavli,soncino-bavli"),
+            class: "text-[var(--color-link)] hover:underline" %>
+    </p>
   </header>
 
   <% all_rashi = @segments.flat_map { |s| s[:rashi] } %>
