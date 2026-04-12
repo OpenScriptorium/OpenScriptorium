@@ -1,5 +1,18 @@
 class AboutController < ApplicationController
-  allow_unauthenticated_access only: [:architecture, :schema, :principles, :appeal_to_scholars, :appeal_to_publishers, :downloads, :jslicense]
+  allow_unauthenticated_access only: [:architecture, :schema, :principles, :appeal_to_scholars, :appeal_to_publishers, :downloads, :jslicense, :sitemap_index, :sitemap]
+
+  def sitemap_index
+    send_file Rails.root.join("public/sitemap.xml"), type: "application/xml", disposition: :inline
+  end
+
+  def sitemap
+    file = Rails.root.join("public/sitemap-#{params[:id]}.xml")
+    if File.exist?(file)
+      send_file file, type: "application/xml", disposition: :inline
+    else
+      head :not_found
+    end
+  end
 
   # Group every model into one of these layers for the schema page.
   # Order matters — it's the rendering order on the page.

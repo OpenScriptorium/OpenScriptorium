@@ -91,6 +91,10 @@ Rails.application.routes.draw do
   # Downloads / API documentation
   get "downloads", to: "about#downloads", as: :downloads
 
+  # Sitemaps — served with correct XML content-type
+  get "sitemap.xml", to: "about#sitemap_index", defaults: { format: :xml }
+  get "sitemap-:id.xml", to: "about#sitemap", defaults: { format: :xml }
+
   # GNU LibreJS web labels
   get "jslicense", to: "about#jslicense", as: :jslicense
 
