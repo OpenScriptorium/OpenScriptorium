@@ -58,7 +58,6 @@ export default class extends Controller {
         rashi: data.rashi,
         tosafot: data.tosafot,
         einMishpat: data.ein_mishpat || '',
-        mesoretHaShas: data.mesoret_hashas || '',
         otherCommentaries: data.other_commentaries || ''
       })
       this.rendered = true

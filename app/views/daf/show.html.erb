@@ -100,7 +100,6 @@
       dh ? "<b>#{dh}</b> – #{body}" : e.body
     }.join(" "),
     ein_mishpat: @ein_mishpat ? @ein_mishpat[:units].map(&:body).join(" · ") : "",
-    mesoret_hashas: @mesoret_hashas ? @mesoret_hashas[:units].map(&:body).join(" · ") : "",
     other_commentaries: (inner_margins + outer_margins).flat_map { |mw| mw[:units].map(&:body) }.join(" ")
   }.to_json.html_safe %></script>
 
@@ -108,26 +107,28 @@
   <%# Cross-references (Talmud → Tanakh, Talmud → Talmud) %>
   <% if @daf_xrefs.any? %>
     <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
-    <div id="daf-xrefs" class="max-w-3xl mx-auto mt-6 font-serif text-sm" style="<%= 'display:none;' unless xrefs_on %>">
-      <p class="text-xs text-[var(--color-ink-soft)] mb-2">Cross-references (Sefaria)</p>
-      <p class="leading-relaxed" dir="ltr">
+    <div id="daf-xrefs" class="max-w-3xl mx-auto mt-6 font-serif text-sm" dir="rtl" style="<%= 'display:none;' unless xrefs_on %>">
+      <p class="text-xs text-[var(--color-ink-soft)] mb-2">הפניות (Sefaria)</p>
+      <p class="leading-relaxed">
         <% @daf_xrefs.each_with_index do |xref, i| %>
-          <%= "·" if i > 0 %>
+          <%= " · " if i > 0 %>
           <% tcw = xref.target_canonical_work %>
           <% start_ref = CanonicalRef.where(canonical_work_id: tcw.id, ord: xref.target_range.begin).first %>
           <% if start_ref %>
+            <% # Use Hebrew title for the citation %>
+            <% heb_title = tcw.title %>
+            <% citation = tcw.citation_format == "talmud" ? tcw.format_citation(start_ref.hierarchy) : "#{heb_title} #{start_ref.hierarchy[0]}:#{start_ref.hierarchy[1]}" %>
             <% work_slug = resolve_work_for_canonical_work(tcw) %>
             <% if work_slug %>
-              <%= link_to tcw.format_citation(start_ref.hierarchy),
-                    reader_chapter_path(work_slug, tcw.book_key, start_ref.hierarchy[0], anchor: "v#{start_ref.hierarchy[1]}"),
+              <%= link_to citation,
+                    tcw.citation_format == "talmud" ?
+                      daf_path(work_slug, tcw.book_key, "#{start_ref.hierarchy[0]}#{start_ref.hierarchy[1] == 1 ? 'a' : 'b'}") :
+                      reader_chapter_path(work_slug, tcw.book_key, start_ref.hierarchy[0], anchor: "v#{start_ref.hierarchy[1]}"),
                     class: "text-[var(--color-link)] hover:underline" %>
             <% else %>
-              <%= link_to tcw.format_citation(start_ref.hierarchy),
-                    not_in_corpus_path(tcw.slug),
+              <%= link_to citation, not_in_corpus_path(tcw.slug),
                     class: "text-[var(--color-link)] hover:underline opacity-60" %>
             <% end %>
-          <% else %>
-            <span><%= tcw.display_title %></span>
           <% end %>
         <% end %>
       </p>
@@ -168,16 +169,6 @@
                  data-action="change->daf-layout#toggleXrefs"
                  class="accent-[var(--color-ink)]" />
           <span>cross-references</span>
-        </label>
-      <% end %>
-      <% if @mesoret_hashas %>
-        <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
-        <label class="cursor-pointer flex items-center gap-1.5">
-          <input type="checkbox" name="daf_mesoret"
-                 <%= "checked" if mesoret_on %>
-                 data-action="change->daf-layout#toggleMesoret"
-                 class="accent-[var(--color-ink)]" />
-          <span>מסורת הש״ס</span>
         </label>
       <% end %>
     </div>

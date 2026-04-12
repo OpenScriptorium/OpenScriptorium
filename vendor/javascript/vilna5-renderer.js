@@ -10,7 +10,6 @@ import dafRenderer from "daf-renderer"
 export default function vilna5Render(container, {
   gemara, rashi, tosafot,
   einMishpat = '',
-  mesoretHaShas = '',
   otherCommentaries = '',
   amud = 'a'
 }) {
@@ -28,17 +27,6 @@ export default function vilna5Render(container, {
   const extras = document.createElement('div')
   extras.style.cssText = 'max-width:660px;margin:1rem auto 0;direction:rtl;'
   container.appendChild(extras)
-
-  // Mesoret HaShas — cross-references, togglable (not collapsible)
-  let mesDiv = null
-  if (mesoretHaShas) {
-    mesDiv = document.createElement('div')
-    mesDiv.style.cssText = 'border-top:1px solid var(--color-rule,#ccc);padding:0.5rem 0;font-size:11px;font-family:Rashi,serif;line-height:1.6;'
-    mesDiv.innerHTML = '<span style="font-family:serif;color:var(--color-ink-soft,#666);font-size:10px;">מסורת הש״ס: </span>' + mesoretHaShas
-    const mesoretOn = (document.cookie.match(/(?:^|; )daf_mesoret=([^;]*)/)?.[1] || 'off') === 'on'
-    mesDiv.style.display = mesoretOn ? '' : 'none'
-    extras.appendChild(mesDiv)
-  }
 
   // Collapsible sections
   const sections = []
