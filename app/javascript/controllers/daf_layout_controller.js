@@ -69,6 +69,14 @@ export default class extends Controller {
     }
   }
 
+  toggleXrefs() {
+    const checkbox = this.element.querySelector("input[name='daf_xrefs']")
+    const on = checkbox?.checked
+    this.setCookie("daf_xrefs", on ? "on" : "off", 365)
+    const el = document.getElementById("daf-xrefs")
+    if (el) el.style.display = on ? "" : "none"
+  }
+
   toggleMesoret() {
     const checkbox = this.element.querySelector("input[name='daf_mesoret']")
     const on = checkbox?.checked

@@ -33,6 +33,9 @@ class DafController < ApplicationController
     @ein_mishpat = fetch_ref_strip("ein-mishpat-bavli")
     @mesoret_hashas = fetch_ref_strip("mesoret-hashas-bavli")
 
+    # Cross-references from this daf (Talmud → Tanakh, Talmud → Talmud)
+    fetch_daf_xrefs
+
     compute_navigation
   end
 
@@ -121,6 +124,21 @@ class DafController < ApplicationController
     return nil unless work
     units = fetch_units(work)
     units.any? ? { work: work, units: units } : nil
+  end
+
+  def fetch_daf_xrefs
+    # Get ord range for this daf's canonical_refs
+    ords = CanonicalRef.where(canonical_work_id: @canonical_work.id)
+             .where("hierarchy[1] = ? AND hierarchy[2] = ?", @daf_number, @amud)
+             .pluck(:ord)
+    return @daf_xrefs = [] if ords.empty?
+
+    ord_range = ords.min...ords.max + 1
+    @daf_xrefs = CrossReference
+      .where(source_canonical_work_id: @canonical_work.id, source_dataset: "sefaria")
+      .where("source_range && int4range(?, ?)", ord_range.begin, ord_range.end)
+      .includes(:target_canonical_work)
+      .to_a
   end
 
   def compute_navigation

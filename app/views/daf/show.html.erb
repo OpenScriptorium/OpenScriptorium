@@ -105,6 +105,36 @@
   }.to_json.html_safe %></script>
 
   <% nav_slug = params[:work_slug] %>
+  <%# Cross-references (Talmud → Tanakh, Talmud → Talmud) %>
+  <% if @daf_xrefs.any? %>
+    <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
+    <div id="daf-xrefs" class="max-w-3xl mx-auto mt-6 font-serif text-sm" style="<%= 'display:none;' unless xrefs_on %>">
+      <p class="text-xs text-[var(--color-ink-soft)] mb-2">Cross-references (Sefaria)</p>
+      <p class="leading-relaxed" dir="ltr">
+        <% @daf_xrefs.each_with_index do |xref, i| %>
+          <%= "·" if i > 0 %>
+          <% tcw = xref.target_canonical_work %>
+          <% start_ref = CanonicalRef.where(canonical_work_id: tcw.id, ord: xref.target_range.begin).first %>
+          <% if start_ref %>
+            <% work_slug = resolve_work_for_canonical_work(tcw) %>
+            <% if work_slug %>
+              <%= link_to tcw.format_citation(start_ref.hierarchy),
+                    reader_chapter_path(work_slug, tcw.book_key, start_ref.hierarchy[0], anchor: "v#{start_ref.hierarchy[1]}"),
+                    class: "text-[var(--color-link)] hover:underline" %>
+            <% else %>
+              <%= link_to tcw.format_citation(start_ref.hierarchy),
+                    not_in_corpus_path(tcw.slug),
+                    class: "text-[var(--color-link)] hover:underline opacity-60" %>
+            <% end %>
+          <% else %>
+            <span><%= tcw.display_title %></span>
+          <% end %>
+        <% end %>
+      </p>
+    </div>
+  <% end %>
+
+  <% nav_slug = params[:work_slug] %>
   <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
     <% if @prev_daf %>
       <%= link_to "← #{daf_label(*@prev_daf)}",
@@ -130,6 +160,16 @@
                class="accent-[var(--color-ink)]" />
         <span>Vilna layout</span>
       </label>
+      <% if @daf_xrefs.any? %>
+        <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
+        <label class="cursor-pointer flex items-center gap-1.5">
+          <input type="checkbox" name="daf_xrefs"
+                 <%= "checked" if xrefs_on %>
+                 data-action="change->daf-layout#toggleXrefs"
+                 class="accent-[var(--color-ink)]" />
+          <span>cross-references</span>
+        </label>
+      <% end %>
       <% if @mesoret_hashas %>
         <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
         <label class="cursor-pointer flex items-center gap-1.5">
