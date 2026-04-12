@@ -91,16 +91,39 @@
     </article>
   <% end %>
 
+  <%
+    max_ch = CanonicalRef.where(canonical_work_id: @canonical_work.id)
+               .maximum(Arel.sql("hierarchy[1]")) || @chapter
+    prev_ch = @chapter - 1
+    next_ch = @chapter + 1
+    # Find next/prev book for cross-book navigation
+    all_books = CanonicalWork.joins(canonical_refs: :work_units)
+                  .where(work_units: { work_id: @work.id })
+                  .select("canonical_works.slug, canonical_works.position")
+                  .distinct.order(:position).map(&:slug)
+    book_idx = all_books.index(@canonical_work.slug)
+    prev_book_slug = book_idx && book_idx > 0 ? all_books[book_idx - 1] : nil
+    next_book_slug = book_idx ? all_books[book_idx + 1] : nil
+  %>
   <nav aria-label="Chapter navigation" class="mt-10 flex justify-between text-sm font-serif">
-    <% prev_ch = @chapter - 1 %>
-    <% next_ch = @chapter + 1 %>
     <% if prev_ch > 0 %>
       <%= link_to "← Chapter #{prev_ch}", reader_chapter_path(@work.slug, @canonical_work.slug, prev_ch),
             class: "text-[var(--color-link)] hover:underline" %>
+    <% elsif prev_book_slug %>
+      <% prev_cw = CanonicalWork.find_by(slug: prev_book_slug) %>
+      <% prev_max = CanonicalRef.where(canonical_work_id: prev_cw.id).maximum(Arel.sql("hierarchy[1]")) %>
+      <%= link_to "← #{prev_cw.display_title} #{prev_max}", reader_chapter_path(@work.slug, prev_book_slug, prev_max),
+            class: "text-[var(--color-link)] hover:underline" %>
     <% else %><span></span><% end %>
 
-    <%= link_to "Chapter #{next_ch} →", reader_chapter_path(@work.slug, @canonical_work.slug, next_ch),
-          class: "text-[var(--color-link)] hover:underline" %>
+    <% if next_ch <= max_ch %>
+      <%= link_to "Chapter #{next_ch} →", reader_chapter_path(@work.slug, @canonical_work.slug, next_ch),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% elsif next_book_slug %>
+      <% next_cw = CanonicalWork.find_by(slug: next_book_slug) %>
+      <%= link_to "#{next_cw.display_title} 1 →", reader_chapter_path(@work.slug, next_book_slug, 1),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% else %><span></span><% end %>
   </nav>
 
   <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2">
