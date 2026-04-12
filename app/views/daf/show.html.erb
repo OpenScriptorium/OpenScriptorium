@@ -174,27 +174,31 @@
                class="accent-[var(--color-ink)]" />
         <span>Vilna layout</span>
       </label>
-      <% if @mesoret_hashas %>
-        <% mesoret_on = cookies[:daf_mesoret].to_s == "on" %>
-        <label class="cursor-pointer flex items-center gap-1.5">
-          <input type="checkbox" name="daf_mesoret"
-                 <%= "checked" if mesoret_on %>
-                 data-action="change->daf-layout#toggleMesoret"
-                 class="accent-[var(--color-ink)]" />
-          <span>מסורת הש״ס</span>
-        </label>
-      <% end %>
-      <% if @daf_xrefs.any? %>
-        <% xrefs_on = cookies[:daf_xrefs].to_s == "on" %>
-        <label class="cursor-pointer flex items-center gap-1.5">
-          <input type="checkbox" name="daf_xrefs"
-                 <%= "checked" if xrefs_on %>
-                 data-action="change->daf-layout#toggleXrefs"
-                 class="accent-[var(--color-ink)]" />
-          <span>cross-references</span>
-        </label>
-      <% end %>
     </div>
+    <% xref_sources = [] %>
+    <% xref_sources << { key: 'daf_xrefs', label: 'Sefaria', on: cookies[:daf_xrefs].to_s == "on" } if @daf_xrefs.any? %>
+    <% xref_sources << { key: 'daf_mesoret', label: 'מסורת הש״ס', on: cookies[:daf_mesoret].to_s == "on" } if @mesoret_hashas %>
+    <% if xref_sources.any? %>
+      <% active_count = xref_sources.count { |s| s[:on] } %>
+      <details class="text-xs font-serif text-[var(--color-ink-soft)]"
+               <%= "open" if active_count > 0 %>>
+        <summary class="cursor-pointer hover:text-[var(--color-ink)] select-none">
+          Cross-references<% if active_count > 0 %>: <span class="not-italic"><%= active_count %> active</span><% else %>: <span class="italic">off</span><% end %>
+          <span class="font-sans">▾</span>
+        </summary>
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <% xref_sources.each do |src| %>
+            <label class="cursor-pointer flex items-center gap-1.5">
+              <input type="checkbox" name="<%= src[:key] %>"
+                     <%= "checked" if src[:on] %>
+                     data-action="change->daf-layout#toggle<%= src[:key] == 'daf_xrefs' ? 'Xrefs' : 'Mesoret' %>"
+                     class="accent-[var(--color-ink)]" />
+              <span><%= src[:label] %></span>
+            </label>
+          <% end %>
+        </div>
+      </details>
+    <% end %>
     <p>
       <%= @gemara_work.title %> · <%= @gemara_work.license.name %>
       <% if @rashi_work %> · Rashi (<%= @rashi_work.license.name %>)<% end %>
