@@ -49,12 +49,13 @@ class DafController < ApplicationController
     prefix = TALMUD_PREFIXES.find { |p| slug.start_with?(p) }
     if prefix
       gemara_slug = slug.sub(/\A#{Regexp.escape(prefix)}/, "")
-      # Map to work type for simple view
       @current_work_type = case prefix
                            when "rashi-"   then :rashi
                            when "tosafot-" then :tosafot
-                           else :gemara  # margin works default to gemara in simple mode
+                           else :gemara
                            end
+      # Track the actual navigated work for the header
+      @navigated_work = Work.find_by(slug: slug)
     else
       gemara_slug = slug
       @current_work_type = :gemara

@@ -15,7 +15,7 @@
     <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]"
        data-daf-layout-target="headerLabel"
        data-vilna-label="Talmud Bavli"
-       data-simple-label="<%= { gemara: @gemara_work, rashi: @rashi_work, tosafot: @tosafot_work }[@current_work_type]&.title || @gemara_work.title %>">Talmud Bavli</p>
+       data-simple-label="<%= (@navigated_work || @gemara_work).title %>">Talmud Bavli</p>
     <h1 class="font-hebrew text-3xl text-[var(--color-ink)] mt-1" lang="he" dir="rtl">
       <%= @canonical_work.title %>
     </h1>
