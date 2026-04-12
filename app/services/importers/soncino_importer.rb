@@ -10,6 +10,7 @@ module Importers
   class SoncinoImporter < BaseImporter
     HTML_DIR = Rails.root.join("tmp/soncino/html")
     PDF_DIR  = Rails.root.join("tmp/soncino/pdf")
+    TXT_DIR  = Rails.root.join("tmp/soncino/txt")
 
     # Map our canonical_work slugs to halakhah.com URL paths (HTML tractates)
     HTML_TRACTATES = {
@@ -216,11 +217,15 @@ module Importers
       cw = find_canonical_work(slug)
       return unless cw
 
-      pdf_path = PDF_DIR.join("#{pdf_name}.pdf")
-      return unless File.exist?(pdf_path)
-
-      # Extract full text
-      text = `pdftotext #{pdf_path.to_s.shellescape} - 2>/dev/null`
+      # Try pre-extracted text file first, then pdftotext
+      txt_path = TXT_DIR.join("#{pdf_name}.txt")
+      if File.exist?(txt_path)
+        text = File.read(txt_path, encoding: "UTF-8")
+      else
+        pdf_path = PDF_DIR.join("#{pdf_name}.pdf")
+        return unless File.exist?(pdf_path)
+        text = `pdftotext #{pdf_path.to_s.shellescape} - 2>/dev/null`
+      end
       return if text.empty?
 
       parse_pdf_text(text, cw, slug)
