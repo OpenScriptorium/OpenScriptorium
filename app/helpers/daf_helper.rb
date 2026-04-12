@@ -26,8 +26,6 @@ module DafHelper
     "דף #{to_gematria(daf_number)} #{amud}"
   end
 
-  private
-
   GEMATRIA_ONES = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"].freeze
   GEMATRIA_TENS = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"].freeze
   GEMATRIA_HUNDREDS = ["", "ק", "ר", "ש", "ת"].freeze

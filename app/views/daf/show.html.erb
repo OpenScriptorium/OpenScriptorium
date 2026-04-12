@@ -118,7 +118,12 @@
             <% start_ref = CanonicalRef.where(canonical_work_id: tcw.id, ord: xref.target_range.begin).first %>
             <% if start_ref %>
               <% heb_name = tcw.native_title.presence || tcw.title %>
-              <% citation = tcw.citation_format == "talmud" ? tcw.format_citation(start_ref.hierarchy) : "#{heb_name} #{start_ref.hierarchy[0]}:#{start_ref.hierarchy[1]}" %>
+              <% if tcw.citation_format == "talmud" %>
+                <% daf_n = start_ref.hierarchy[0]; amud_n = start_ref.hierarchy[1] %>
+                <% citation = "#{heb_name} #{to_gematria(daf_n)}#{amud_n == 1 ? '.' : ':'}" %>
+              <% else %>
+                <% citation = "#{heb_name} #{to_gematria(start_ref.hierarchy[0])}:#{to_gematria(start_ref.hierarchy[1])}" %>
+              <% end %>
               <% work_slug = resolve_work_for_canonical_work(tcw) %>
               <% if work_slug %>
                 <%= link_to citation,
