@@ -16,7 +16,6 @@
   <% picker_options = @available_works.map { |w| [w.title, w.slug] } %>
 
   <div data-controller="parallel-picker"
-       data-parallel-picker-base-url-value="<%= parallel_daf_path(@book_slug, @daf_label) %>"
        class="grid gap-x-6 mb-4 items-end"
        style="<%= grid_style %>">
     <% @daf_columns.each_with_index do |col, idx| %>
