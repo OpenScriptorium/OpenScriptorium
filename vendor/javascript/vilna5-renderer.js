@@ -43,7 +43,7 @@ export default function vilna5Render(container, {
   // Collapsible sections
   const sections = []
   if (einMishpat) sections.push({ title: 'עין משפט / נר מצוה', content: einMishpat, font: 'Rashi', size: '10px' })
-  if (otherCommentaries) sections.push({ title: 'Other Commentaries', content: otherCommentaries, font: 'Rashi', size: '11px' })
+  if (otherCommentaries) sections.push({ title: 'מפרשים נוספים', content: otherCommentaries, font: 'Rashi', size: '11px' })
 
   // Read persisted open/closed state from cookie
   const openSections = new Set(
