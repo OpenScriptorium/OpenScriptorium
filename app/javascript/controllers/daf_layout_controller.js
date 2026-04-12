@@ -30,6 +30,10 @@ export default class extends Controller {
       if (simple) simple.style.display = "none"
 
       if (!this.rendered) {
+        // Show container BEFORE rendering — daf-renderer needs visible
+        // elements to measure text areas for spacer calculations
+        const container = document.getElementById("daf-container")
+        if (container) container.style.display = ""
         document.fonts.ready.then(() => {
           setTimeout(() => { this.renderVilna() }, 150)
         })
