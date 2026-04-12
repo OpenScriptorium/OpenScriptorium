@@ -3,7 +3,7 @@
 <div class="max-w-6xl mx-auto px-5 py-12" data-controller="daf-layout">
   <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
     <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
-      <li><%= link_to "Talmud", works_path, class: "hover:underline" %></li>
+      <li><%= link_to "Talmud Bavli", work_path(@gemara_work.slug), class: "hover:underline" %></li>
       <li><span aria-hidden="true">&raquo;</span></li>
       <li><%= link_to @canonical_work.title, reader_book_path(@gemara_work.slug, @canonical_work.slug), class: "hover:underline" %></li>
       <li><span aria-hidden="true">&raquo;</span></li>
