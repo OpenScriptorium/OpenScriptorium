@@ -1,6 +1,6 @@
 <% content_for :title, "#{@primary_canonical_work.slug.titleize.gsub('-',' ')} #{@daf_label} — Parallel Talmud" %>
 
-<div class="max-w-7xl mx-auto px-5 py-12">
+<div class="max-w-7xl mx-auto px-5 py-12" data-controller="daf-layout">
   <header class="border-b border-[var(--color-rule)] pb-6 mb-6">
     <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">Parallel Talmud</p>
     <h1 class="font-serif text-3xl text-[var(--color-ink)] mt-1">
@@ -11,7 +11,7 @@
     </p>
   </header>
 
-  <%# Column pickers — same pattern as Bible parallel reader %>
+  <%# Column pickers %>
   <% grid_style = "grid-template-columns: repeat(#{@daf_columns.size}, minmax(0, 1fr)) 9rem;" %>
   <% picker_options = @available_works.map { |w| [w.title, w.slug] } %>
 
@@ -28,7 +28,6 @@
               "aria-label": "Column #{idx + 1} work" %>
       </div>
     <% end %>
-
     <div>
       <%= select_tag "col_add",
             options_for_select([["+ add column", ""]] + picker_options),
@@ -40,7 +39,7 @@
     </div>
   </div>
 
-  <%# Parallel content — one block per column %>
+  <%# Parallel content %>
   <div class="grid gap-x-6" style="grid-template-columns: repeat(<%= @daf_columns.size %>, minmax(0, 1fr));">
     <% @daf_columns.each do |col| %>
       <% is_en = col[:work].language == "en" %>
@@ -61,55 +60,7 @@
     <% end %>
   </div>
 
-  <%# Daf navigation %>
-  <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
-    <% if @prev_daf %>
-      <%= link_to "← Daf #{daf_label(*@prev_daf)}",
-            parallel_daf_path(@book_slug, daf_label(*@prev_daf), works: @selected_slugs.join(",")),
-            class: "text-[var(--color-link)] hover:underline" %>
-    <% else %><span></span><% end %>
-
-    <% if @next_daf %>
-      <%= link_to "Daf #{daf_label(*@next_daf)} →",
-            parallel_daf_path(@book_slug, daf_label(*@next_daf), works: @selected_slugs.join(",")),
-            class: "text-[var(--color-link)] hover:underline" %>
-    <% else %><span></span><% end %>
-  </nav>
-
-  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2"
-          data-controller="daf-layout">
-    <%# Xref picker — same as regular daf page %>
-    <% xref_sources = [] %>
-    <% xref_sources << { key: 'daf_xrefs', label: 'Sefaria', on: cookies[:daf_xrefs].to_s == "on" } if @daf_xrefs&.any? %>
-    <% xref_sources << { key: 'daf_mesoret', label: 'מסורת הש״ס', on: cookies[:daf_mesoret].to_s == "on" } if @mesoret_hashas %>
-    <% if xref_sources.any? %>
-      <% active_count = xref_sources.count { |s| s[:on] } %>
-      <details class="text-xs font-serif text-[var(--color-ink-soft)]"
-               <%= "open" if active_count > 0 %>>
-        <summary class="cursor-pointer hover:text-[var(--color-ink)] select-none">
-          Cross-references<% if active_count > 0 %>: <span class="not-italic"><%= active_count %> active</span><% else %>: <span class="italic">off</span><% end %>
-          <span class="font-sans">▾</span>
-        </summary>
-        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <% xref_sources.each do |src| %>
-            <label class="cursor-pointer flex items-center gap-1.5">
-              <input type="checkbox" name="<%= src[:key] %>"
-                     <%= "checked" if src[:on] %>
-                     data-action="change->daf-layout#toggle<%= src[:key] == 'daf_xrefs' ? 'Xrefs' : 'Mesoret' %>"
-                     class="accent-[var(--color-ink)]" />
-              <span><%= src[:label] %></span>
-            </label>
-          <% end %>
-        </div>
-      </details>
-    <% end %>
-
-    <% @daf_columns.each do |col| %>
-      <p><%= col[:work].title %> · <%= col[:work].license.name %></p>
-    <% end %>
-  </footer>
-
-  <%# Xref content (above footer, togglable) %>
+  <%# Cross-references %>
   <% soncino_view = @daf_columns.any? { |c| c[:work].language == "en" } %>
   <% xref_english = soncino_view %>
   <div class="max-w-3xl mx-auto mt-6 font-serif text-sm" dir="<%= xref_english ? 'ltr' : 'rtl' %>">
@@ -149,4 +100,51 @@
       </div>
     <% end %>
   </div>
+
+  <%# Daf navigation %>
+  <nav aria-label="Daf navigation" class="mt-10 flex justify-between text-sm font-serif">
+    <% if @prev_daf %>
+      <%= link_to "← Daf #{daf_label(*@prev_daf)}",
+            parallel_daf_path(@book_slug, daf_label(*@prev_daf), works: @selected_slugs.join(",")),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% else %><span></span><% end %>
+
+    <% if @next_daf %>
+      <%= link_to "Daf #{daf_label(*@next_daf)} →",
+            parallel_daf_path(@book_slug, daf_label(*@next_daf), works: @selected_slugs.join(",")),
+            class: "text-[var(--color-link)] hover:underline" %>
+    <% else %><span></span><% end %>
+  </nav>
+
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] text-xs text-[var(--color-ink-soft)] space-y-2">
+    <%# Xref picker %>
+    <% xref_sources = [] %>
+    <% xref_sources << { key: 'daf_xrefs', label: 'Sefaria', on: cookies[:daf_xrefs].to_s == "on" } if @daf_xrefs&.any? %>
+    <% xref_sources << { key: 'daf_mesoret', label: 'מסורת הש״ס', on: cookies[:daf_mesoret].to_s == "on" } if @mesoret_hashas %>
+    <% if xref_sources.any? %>
+      <% active_count = xref_sources.count { |s| s[:on] } %>
+      <details class="text-xs font-serif text-[var(--color-ink-soft)]"
+               <%= "open" if active_count > 0 %>>
+        <summary class="cursor-pointer hover:text-[var(--color-ink)] select-none">
+          Cross-references<% if active_count > 0 %>: <span class="not-italic"><%= active_count %> active</span><% else %>: <span class="italic">off</span><% end %>
+          <span class="font-sans">▾</span>
+        </summary>
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <% xref_sources.each do |src| %>
+            <label class="cursor-pointer flex items-center gap-1.5">
+              <input type="checkbox" name="<%= src[:key] %>"
+                     <%= "checked" if src[:on] %>
+                     data-action="change->daf-layout#toggle<%= src[:key] == 'daf_xrefs' ? 'Xrefs' : 'Mesoret' %>"
+                     class="accent-[var(--color-ink)]" />
+              <span><%= src[:label] %></span>
+            </label>
+          <% end %>
+        </div>
+      </details>
+    <% end %>
+
+    <% @daf_columns.each do |col| %>
+      <p><%= col[:work].title %> · <%= col[:work].license.name %></p>
+    <% end %>
+  </footer>
 </div>
