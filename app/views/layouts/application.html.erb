@@ -26,9 +26,34 @@
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
-    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%# Fonts CSS is tiny (~3KB) and needed for first paint — keep blocking %>
     <%= stylesheet_link_tag "fonts", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags %>
+
+    <%# Tailwind CSS — load async with print/onload trick to avoid blocking FCP.
+        The noscript fallback ensures it loads without JS. %>
+    <link rel="stylesheet" href="<%= asset_path("tailwind.css") %>" media="print" onload="this.media='all'" data-turbo-track="reload">
+    <noscript><%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %></noscript>
+
+    <%# Critical inline styles for above-the-fold content before Tailwind loads %>
+    <style>
+      body { font-family: "Charis SIL", Georgia, serif; margin: 0; }
+      .min-h-screen { min-height: 100vh; }
+      .flex { display: flex; }
+      .flex-col { flex-direction: column; }
+      .flex-1 { flex: 1 1 0%; }
+      .items-center { align-items: center; }
+      .justify-between { justify-content: space-between; }
+      .sticky { position: sticky; }
+      .top-0 { top: 0; }
+      .z-10 { z-index: 10; }
+      .mx-auto { margin-left: auto; margin-right: auto; }
+      .max-w-6xl { max-width: 72rem; }
+      .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+      .h-14 { height: 3.5rem; }
+      .hidden { display: none; }
+      .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+    </style>
+
     <link rel="jslicense" href="/jslicense">
   </head>
 
@@ -41,5 +66,8 @@
     </main>
 
     <%= render "shared/site_footer" %>
+
+    <%# JS at end of body — doesn't block first paint %>
+    <%= javascript_importmap_tags %>
   </body>
 </html>
