@@ -9,31 +9,8 @@
       </span>
     <% end %>
 
-    <%# Search input — centered between brand and nav %>
-    <form action="<%= search_path %>" method="get"
-          class="flex-1 max-w-md mx-auto"
-          data-controller="search-input">
-      <div class="relative">
-        <input type="text"
-               name="q"
-               value="<%= params[:q] if controller_name == 'search' %>"
-               placeholder="Search..."
-               autocomplete="off"
-               data-search-input-target="input"
-               data-action="keydown->search-input#checkCitation"
-               class="w-full pl-3 pr-8 py-1.5 text-sm font-serif
-                      bg-[var(--color-page)] text-[var(--color-ink)]
-                      border border-[var(--color-rule)] rounded-lg
-                      placeholder:text-[var(--color-ink-soft)] placeholder:italic
-                      focus:outline-none focus:border-[var(--color-link)]
-                      focus:ring-1 focus:ring-[var(--color-link)]">
-        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]" aria-label="Search">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-          </svg>
-        </button>
-      </div>
-    </form>
+    <%# Search input — will be enabled when search ships %>
+    <%# <form action="search_path" ... /> %>
 
     <%# Desktop nav — hidden on mobile %>
     <nav aria-label="Main" class="hidden sm:flex items-center gap-x-4 text-sm font-serif flex-shrink-0">
