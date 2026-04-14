@@ -2,9 +2,9 @@
         data-controller="mobile-menu">
   <div class="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-x-4">
     <%# Brand %>
-    <%= link_to root_path, class: "flex items-center gap-x-2 group flex-shrink-0" do %>
+    <%= link_to root_path, class: "flex items-center gap-x-2 group flex-shrink-0", "aria-label": "Open Scriptorium home" do %>
       <span aria-hidden="true"><%= inline_svg "dropcap-S", class: "dropcap-nav" %></span>
-      <span class="font-serif text-lg text-[var(--color-ink)] tracking-tight hidden sm:inline">
+      <span class="font-serif text-lg text-[var(--color-ink)] tracking-tight hidden sm:inline" aria-hidden="true">
         Open Scriptorium
       </span>
     <% end %>
