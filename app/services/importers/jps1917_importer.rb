@@ -323,26 +323,11 @@ module Importers
       bump(:mt_canonical_works_created)
       Rails.logger.info "[Jps1917Importer] created MT canonical_work #{mt_slug}"
 
-      ord = 0
       data["text"].each_with_index do |chapter_verses, ch_idx|
         chapter = ch_idx + 1
         chapter_verses.each_with_index do |_, v_idx|
           verse_n = v_idx + 1
-          ord += 1
-          ref = CanonicalRef.find_or_initialize_by(
-            canonical_work_id: cw.id,
-            hierarchy: [chapter, verse_n]
-          )
-          if ref.new_record?
-            ref.assign_attributes(
-              ord:           ord,
-              display_label: "#{cw.title} #{chapter}:#{verse_n}",
-              osis_id:       cw.osis_book_id && "#{cw.osis_book_id}.#{chapter}.#{verse_n}"
-            )
-            stamp(ref)
-            ref.save!
-            bump(:canonical_refs_created)
-          end
+          ensure_canonical_ref(cw, [chapter, verse_n])
         end
       end
 
@@ -365,12 +350,7 @@ module Importers
     end
 
     def process_verse(canonical_work, chapter, verse_n, text)
-      canonical_ref = CanonicalRef.where(canonical_work_id: canonical_work.id,
-                                          hierarchy: [chapter, verse_n]).first
-      unless canonical_ref
-        bump(:verses_skipped_no_canonical_ref)
-        return
-      end
+      canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse_n])
 
       ActiveRecord::Base.transaction do
         work_unit = WorkUnit.find_or_initialize_by(

@@ -211,7 +211,16 @@ module Importers
       cw
     end
 
+    BATCH_SIZE = 2000
+
     def import_gemara(canonical_work, text_array)
+      # Pre-load existing gemara work_units keyed by canonical_ref_id
+      existing = WorkUnit.where(work_id: @gemara_work.id)
+                         .pluck(:canonical_ref_id, :ord)
+                         .to_h
+      batch = []
+      now = Time.current
+
       text_array.each_with_index do |amud_segments, index|
         next unless amud_segments.is_a?(Array) && amud_segments.any?
 
@@ -224,37 +233,50 @@ module Importers
           seg_num = seg_idx + 1
           hierarchy = [daf, amud, seg_num]
 
-          canonical_ref = ensure_canonical_ref(canonical_work, hierarchy, daf, amud, seg_num)
+          canonical_ref = ensure_canonical_ref(canonical_work, hierarchy,
+            label: "#{daf}#{amud == 1 ? 'a' : 'b'}:#{seg_num}")
 
           body = strip_html(segment_html)
           next if body.empty?
 
-          work_unit = WorkUnit.find_or_initialize_by(
-            work_id: @gemara_work.id, canonical_ref_id: canonical_ref.id
-          )
-          if work_unit.new_record?
-            work_unit.assign_attributes(
-              ord: next_ord(@gemara_work.id),
-              label: "#{daf}#{amud == 1 ? 'a' : 'b'}:#{seg_num}",
-              canonical_alignment_type: "exact"
-            )
-          end
+          ord = existing[canonical_ref.id] || next_ord(@gemara_work.id)
+          existing[canonical_ref.id] ||= ord
 
-          # Detect Mishnah segments
           is_mishnah = segment_html.match?(MISHNAH_RE)
-          markup = work_unit.markup || {}
-          markup["mishnah"] = true if is_mishnah
-          work_unit.markup = markup if markup.any?
+          markup = is_mishnah ? { "mishnah" => true } : {}
 
-          work_unit.body = body
-          stamp(work_unit)
-          work_unit.save!
+          batch << {
+            work_id: @gemara_work.id,
+            canonical_ref_id: canonical_ref.id,
+            ord: ord,
+            label: "#{daf}#{amud == 1 ? 'a' : 'b'}:#{seg_num}",
+            body: body,
+            canonical_alignment_type: "exact",
+            markup: markup,
+            import_run_id: @import_run.id,
+            created_at: now,
+            updated_at: now
+          }
+
+          if batch.size >= BATCH_SIZE
+            WorkUnit.upsert_all(batch, unique_by: [:work_id, :ord])
+            batch = []
+          end
           bump(:gemara_segments)
         end
       end
+      WorkUnit.upsert_all(batch, unique_by: [:work_id, :ord]) if batch.any?
     end
 
     def import_commentary(canonical_work, commentary_work, text_array, layer)
+      # Pre-load existing commentary work_units keyed by [canonical_ref_id, label]
+      existing = {}
+      WorkUnit.where(work_id: commentary_work.id).pluck(:canonical_ref_id, :label, :ord).each do |cref_id, label, ord|
+        existing[[cref_id, label]] = ord
+      end
+      batch = []
+      now = Time.current
+
       text_array.each_with_index do |amud_data, index|
         next unless amud_data.is_a?(Array) && amud_data.any?
 
@@ -266,7 +288,6 @@ module Importers
 
           seg_num = seg_idx + 1
 
-          # The commentary aligns to the same canonical_ref as the Gemara segment
           canonical_ref = find_canonical_ref(canonical_work, [daf, amud, seg_num])
           next unless canonical_ref
 
@@ -276,55 +297,36 @@ module Importers
             body = strip_html(comment_html)
             next if body.empty?
 
-            # Extract dibur hamatchil (opening phrase, typically in bold)
             dibur = extract_dibur_hamatchil(comment_html)
-
-            # Each commentary comment is its own work_unit, linked to the
-            # same canonical_ref as the Gemara segment it comments on.
-            # We use a composite key to make them unique.
             label = "#{daf}#{amud == 1 ? 'a' : 'b'}:#{seg_num}.#{comment_idx + 1}"
 
-            work_unit = WorkUnit.find_or_initialize_by(
+            ord = existing[[canonical_ref.id, label]] || next_ord(commentary_work.id)
+            existing[[canonical_ref.id, label]] ||= ord
+
+            markup = dibur.present? ? { "dibur_hamatchil" => dibur } : {}
+
+            batch << {
               work_id: commentary_work.id,
               canonical_ref_id: canonical_ref.id,
-              label: label
-            )
-            if work_unit.new_record?
-              work_unit.assign_attributes(
-                ord: next_ord(commentary_work.id),
-                canonical_alignment_type: "exact"
-              )
+              ord: ord,
+              label: label,
+              body: body,
+              canonical_alignment_type: "exact",
+              markup: markup,
+              import_run_id: @import_run.id,
+              created_at: now,
+              updated_at: now
+            }
+
+            if batch.size >= BATCH_SIZE
+              WorkUnit.upsert_all(batch, unique_by: [:work_id, :ord])
+              batch = []
             end
-
-            markup = work_unit.markup || {}
-            markup["dibur_hamatchil"] = dibur if dibur.present?
-            work_unit.markup = markup if markup.any?
-
-            work_unit.body = body
-            stamp(work_unit)
-            work_unit.save!
             bump(:"#{layer}_comments")
           end
         end
       end
-    end
-
-    def ensure_canonical_ref(canonical_work, hierarchy, daf, amud, seg_num)
-      cr = CanonicalRef.find_or_initialize_by(
-        canonical_work_id: canonical_work.id,
-        hierarchy: hierarchy
-      )
-      if cr.new_record?
-        cr.assign_attributes(
-          ord: next_canonical_ord(canonical_work.id),
-          display_label: "#{daf}#{amud == 1 ? 'a' : 'b'}:#{seg_num}",
-          sbl_citation: canonical_work.format_citation(hierarchy)
-        )
-        stamp(cr)
-        cr.save!
-        bump(:canonical_refs_created)
-      end
-      cr
+      WorkUnit.upsert_all(batch, unique_by: [:work_id, :ord]) if batch.any?
     end
 
     def find_canonical_ref(canonical_work, hierarchy)
@@ -360,10 +362,5 @@ module Importers
       @ord_counters[work_id] += 1
     end
 
-    def next_canonical_ord(canonical_work_id)
-      @cref_counters ||= {}
-      @cref_counters[canonical_work_id] ||= (CanonicalRef.where(canonical_work_id: canonical_work_id).maximum(:ord) || 0)
-      @cref_counters[canonical_work_id] += 1
-    end
   end
 end

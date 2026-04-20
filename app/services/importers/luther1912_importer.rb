@@ -23,7 +23,7 @@ module Importers
   # full Luther apocrypha later it will come from a single coherent
   # source rather than this one orphaned book.
   class Luther1912Importer < BaseImporter
-    SOURCE_URL = "https://raw.githubusercontent.com/Karl-Barth/luther-bibel/master/luther-bibel.xml"
+    SOURCE_URL = "https://raw.githubusercontent.com/Karl-Barth/kbga-edition-data/bb41226c3b322bdc01fedc5e7702b79f4094b820/luther-bibel.xml"
     DEFAULT_DIR = Rails.root.join("tmp/luther")
 
     # Luther's TEI book ids → our canonical_works.slug. The numbered
@@ -184,7 +184,7 @@ module Importers
           genre: "translation",
           license: @license,
           default_versification_scheme: @kjv_scheme,
-          source_url: "https://github.com/Karl-Barth/luther-bibel",
+          source_url: "https://github.com/Karl-Barth/kbga-edition-data",
           publication_year: 1912,
           has_word_data: false,
           description: "The 1912 revision of Martin Luther's German Bible. Luther's first complete translation appeared in 1534, with his final personally-supervised edition in 1545. Subsequent revisions modernized the orthography and corrected printing errors while preserving Luther's distinctive renderings; the 1912 revision was the first to follow the 1901 German orthographic reform and remained the standard German Protestant Bible until the 1984 revision. This edition has no annotation apparatus — the 1912 revisers stripped Luther's marginalia, and a transcription of the 1545 marginalia in modern spelling does not yet exist in any free digital format."
@@ -272,23 +272,11 @@ module Importers
       # Walk Luther's TEI for this book and ensure a canonical_ref
       # exists for every (chapter, verse) Luther carries. Existing refs
       # are left alone — this is idempotent across reruns.
-      ord = (CanonicalRef.where(canonical_work_id: cw.id).maximum(:ord) || 0)
       book_div.xpath(".//ab").each do |ab|
         m = ab["id"].to_s.match(/\.(\d+)\.(\d+)\z/) or next
         ch = m[1].to_i
         v  = m[2].to_i
-        ref = CanonicalRef.find_or_initialize_by(canonical_work_id: cw.id, hierarchy: [ch, v])
-        next unless ref.new_record?
-
-        ord += 1
-        ref.assign_attributes(
-          ord:           ord,
-          display_label: "#{cw.title} #{ch}:#{v}",
-          osis_id:       cw.osis_book_id && "#{cw.osis_book_id}.#{ch}.#{v}"
-        )
-        stamp(ref)
-        ref.save!
-        bump(:german_canonical_refs_created)
+        ensure_canonical_ref(cw, [ch, v])
       end
 
       cw
@@ -311,22 +299,34 @@ module Importers
     end
 
     def normalize_text(s)
-      s.to_s.gsub(/\s+/, " ").strip
+      s.to_s
+        .gsub(/<FI>(.*?)<Fi>/i, '\1')  # OSIS italic markers → keep content
+        .gsub(/\{\}/, "")              # empty brace containers
+        .gsub(/\s+/, " ")
+        .strip
+    end
+
+    # Extract <RF>...<Rf> footnotes from TEI text, return [clean_body, [footnote_texts]]
+    def extract_footnotes(text)
+      footnotes = []
+      clean = text.gsub(/<RF>(.*?)<Rf>/mi) do
+        footnotes << $1.strip
+        ""
+      end
+      [clean.gsub(/\s+/, " ").strip, footnotes]
     end
 
     def process_verse(canonical_work, mt_fallback, chapter, verse_n, text)
-      canonical_ref = CanonicalRef.where(canonical_work_id: canonical_work.id,
-                                          hierarchy: [chapter, verse_n]).first
+      hierarchy = [chapter, verse_n]
+      canonical_ref = CanonicalRef.find_by(canonical_work_id: canonical_work.id, hierarchy: hierarchy)
       if canonical_ref.nil? && mt_fallback
-        canonical_ref = CanonicalRef.where(canonical_work_id: mt_fallback.id,
-                                            hierarchy: [chapter, verse_n]).first
+        canonical_ref = CanonicalRef.find_by(canonical_work_id: mt_fallback.id, hierarchy: hierarchy)
         bump(:verses_via_mt_fallback) if canonical_ref
       end
+      # Create in primary canonical_work if not found anywhere
+      canonical_ref ||= ensure_canonical_ref(canonical_work, hierarchy)
 
-      unless canonical_ref
-        bump(:verses_skipped_no_canonical_ref)
-        return
-      end
+      body, footnotes = extract_footnotes(text)
 
       ActiveRecord::Base.transaction do
         work_unit = WorkUnit.find_or_initialize_by(
@@ -340,9 +340,24 @@ module Importers
             canonical_alignment_type: "exact"
           )
         end
-        work_unit.body = text
+        work_unit.body = body
         stamp(work_unit)
         work_unit.save!
+
+        # Attach footnotes as work_unit_notes
+        footnotes.each_with_index do |fn_text, idx|
+          next if fn_text.empty?
+          WorkUnitNote.find_or_create_by!(
+            work_unit_id: work_unit.id,
+            position_in_unit: idx
+          ) do |n|
+            n.note_type = "explanation"
+            n.body = fn_text
+            n.import_run_id = @import_run.id
+          end
+          bump(:notes_created)
+        end
+
         bump(:verses_imported)
       end
     end

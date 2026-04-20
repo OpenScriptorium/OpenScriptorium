@@ -84,12 +84,14 @@
 GET /api/v1/works/:work/:book/:chapter/:verse</pre>
     <p class="text-sm text-[var(--color-ink-soft)]">
       Returns verse text, notes, and markup for a chapter or single verse.
+      Add <code>?words=true</code> to include word-level data (surface form,
+      morphology, Strong&rsquo;s number, and linked lemma with gloss).
       Examples:
     </p>
     <ul class="text-sm text-[var(--color-ink-soft)] list-disc pl-6 space-y-1">
       <li><code>/api/v1/works/bsb/genesis/1</code> &mdash; BSB Genesis 1</li>
       <li><code>/api/v1/works/kjv/matthew/5/3</code> &mdash; KJV Matthew 5:3</li>
-      <li><code>/api/v1/works/wlc/genesis/1</code> &mdash; WLC Genesis 1 (Hebrew)</li>
+      <li><code>/api/v1/works/wlc/genesis/1?words=true</code> &mdash; WLC Genesis 1 with word-level data</li>
       <li><code>/api/v1/works/bavli/berakhot/2</code> &mdash; Gemara Berakhot daf 2</li>
     </ul>
 
@@ -106,16 +108,71 @@ GET /api/v1/works/:work/:book/:chapter/:verse</pre>
     </ul>
 
     <h3>Full-text search</h3>
-    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/search?q=:query&amp;work=:slug&amp;limit=:n</pre>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/search?q=:query</pre>
     <p class="text-sm text-[var(--color-ink-soft)]">
-      Case-insensitive text search across all works (or a single work if
-      <code>work</code> is specified). Returns up to 100 results
-      (default 25). Examples:
+      Case-insensitive text search with automatic query classification
+      (text, citation, Strong&rsquo;s, Hebrew/Greek script, lemma,
+      morphological, proximity, regex). Returns up to 100 results
+      (default 25) with pagination metadata.
     </p>
+    <p class="text-sm text-[var(--color-ink-soft)] font-semibold mt-3">Optional parameters:</p>
+    <ul class="text-sm text-[var(--color-ink-soft)] list-disc pl-6 space-y-1">
+      <li><code>work</code> &mdash; limit to a specific work slug</li>
+      <li><code>book</code> &mdash; limit to a canonical book slug</li>
+      <li><code>section[]</code> &mdash; filter by section: <code>ot</code>, <code>nt</code>, <code>deuterocanon</code>, etc.</li>
+      <li><code>tradition[]</code> &mdash; filter by tradition: <code>ש</code>, <code>χ-protestant</code>, <code>academic</code>, etc.</li>
+      <li><code>language</code> &mdash; filter by language code (<code>en</code>, <code>grc</code>, <code>he</code>, etc.)</li>
+      <li><code>work_types</code> &mdash; pass <code>all</code> to include commentary and treatises (scripture-only by default)</li>
+      <li><code>limit</code> &mdash; results per page (max 100, default 25)</li>
+      <li><code>page</code> &mdash; page number (default 1)</li>
+    </ul>
+    <p class="text-sm text-[var(--color-ink-soft)] mt-3">Examples:</p>
     <ul class="text-sm text-[var(--color-ink-soft)] list-disc pl-6 space-y-1">
       <li><code>/api/v1/search?q=in+the+beginning</code></li>
       <li><code>/api/v1/search?q=logos&amp;work=nestle1904</code></li>
+      <li><code>/api/v1/search?q=H7225</code> &mdash; Strong&rsquo;s number search</li>
+      <li><code>/api/v1/search?q=בראשׁית</code> &mdash; Hebrew script search</li>
+      <li><code>/api/v1/search?q=faith+NEAR/3+works</code> &mdash; proximity search</li>
     </ul>
+
+    <h3>Search completions (type-ahead)</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/search/completions?q=:prefix</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Returns book and work suggestions for type-ahead. Minimum 2 characters.
+    </p>
+
+    <h3>Lexicon (lemma data)</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/lemmas?q=:query
+GET /api/v1/lemmas/:id
+GET /api/v1/lemmas/strong/:number</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Search, retrieve, and look up lemmas (dictionary headwords). The search
+      endpoint matches on gloss, transliteration, normalized form, or
+      Strong&rsquo;s number. Each lemma includes part of speech, glosses,
+      senses, etymology, frequency, and frequency-by-book distribution.
+    </p>
+    <ul class="text-sm text-[var(--color-ink-soft)] list-disc pl-6 space-y-1">
+      <li><code>/api/v1/lemmas?q=beginning&amp;language=grc</code> &mdash; Greek lemmas glossed as &ldquo;beginning&rdquo;</li>
+      <li><code>/api/v1/lemmas/strong/G746</code> &mdash; resolve Strong&rsquo;s G746 to its lemma(s)</li>
+    </ul>
+
+    <h3>Critical apparatus</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/apparatus?book=:book&amp;chapter=:ch&amp;verse=:v</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      Returns variant units, readings, and manuscript witnesses for a passage.
+      The <code>verse</code> parameter is optional; omitting it returns
+      apparatus for the entire chapter. Each variant unit includes lemma text,
+      context, and all readings with their supporting manuscripts.
+    </p>
+
+    <h3>Manuscripts</h3>
+    <pre class="bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded font-mono text-sm overflow-x-auto">GET /api/v1/manuscripts
+GET /api/v1/manuscripts/:siglum</pre>
+    <p class="text-sm text-[var(--color-ink-soft)]">
+      List and retrieve manuscript metadata: siglum, Gregory-Aland number,
+      INTF Liste number, text family, material, date, shelfmark, and lacunae.
+      Filter by <code>family</code> (alexandrian, byzantine, western, caesarean).
+    </p>
 
     <h2>Licensing</h2>
 

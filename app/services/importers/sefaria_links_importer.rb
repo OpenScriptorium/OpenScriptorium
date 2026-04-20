@@ -163,6 +163,9 @@ module Importers
 
     def flush_batch(batch)
       return if batch.empty?
+      before = batch.size
+      batch.uniq! { |r| [r[:source_canonical_work_id], r[:target_canonical_work_id], r[:source_range], r[:target_range]] }
+      bump(:duplicates_skipped, before - batch.size) if before > batch.size
       CrossReference.insert_all(batch)
       bump(:links_inserted, batch.size)
       batch.clear

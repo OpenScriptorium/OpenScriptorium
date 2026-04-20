@@ -23,6 +23,16 @@ module Api
         units = base.to_a
         raise ActiveRecord::RecordNotFound if units.empty?
 
+        @include_words = params[:words] == "true"
+
+        # Preload words + lemmas if requested
+        if @include_words
+          ActiveRecord::Associations::Preloader.new(
+            records: units,
+            associations: { words: :lemma }
+          ).call
+        end
+
         render json: {
           work: params[:work_slug],
           book: params[:book_slug],
@@ -49,6 +59,28 @@ module Api
         end
         if u.markup.present?
           json[:markup] = u.markup
+        end
+        if @include_words && u.words.loaded?
+          json[:words] = u.words.sort_by(&:position).map { |w| word_json(w) }
+        end
+        json
+      end
+
+      def word_json(w)
+        json = {
+          position: w.position,
+          surface: w.surface,
+          normalized: w.normalized,
+          morph_code: w.morph_code,
+          strongs_number: w.strongs_number
+        }
+        if w.lemma
+          json[:lemma] = {
+            id: w.lemma.id,
+            lemma: w.lemma.lemma,
+            gloss: w.lemma.primary_gloss,
+            transliteration: w.lemma.transliteration
+          }
         end
         json
       end

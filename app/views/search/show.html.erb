@@ -1,0 +1,342 @@
+<% content_for :title, @query.present? ? "Search: #{@query}" : "Search" %>
+
+<%
+  badge_class = "cursor-pointer text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5 border transition-colors select-none"
+  badge_off   = "border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
+  badge_on    = "border-[var(--color-ink)] text-[var(--color-ink)] bg-[var(--color-ink)]/5"
+%>
+
+<div class="max-w-6xl mx-auto py-10 px-5" data-controller="search-drawer">
+  <%# ============================================================
+    # Search form + filter toggle
+    # ============================================================ %>
+  <form action="<%= search_path %>" method="get" id="search-form">
+    <div class="relative" data-controller="search-suggest">
+    <div class="flex gap-3 items-center">
+      <input type="text"
+             name="q"
+             value="<%= @query %>"
+             placeholder="Search texts, citations, Hebrew, Greek, Strong's numbers..."
+             autocomplete="off"
+             data-search-suggest-target="input"
+             data-action="input->search-suggest#suggest keydown->search-suggest#navigate"
+             class="flex-1 px-4 py-2.5 font-serif text-base
+                    bg-[var(--color-page)] text-[var(--color-ink)]
+                    border border-[var(--color-rule)] rounded-lg
+                    placeholder:text-[var(--color-ink-soft)] placeholder:italic
+                    focus:outline-none focus:border-[var(--color-link)]
+                    focus:ring-1 focus:ring-[var(--color-link)]">
+      <button type="submit"
+              class="px-5 py-2.5 font-serif text-sm
+                     bg-[var(--color-ink)] text-[var(--color-page)] rounded-lg
+                     hover:opacity-90 transition-opacity">
+        Search
+      </button>
+      <button type="button"
+              data-action="click->search-drawer#toggle"
+              class="px-2.5 py-2.5 border border-[var(--color-rule)] rounded-lg
+                     text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]
+                     hover:border-[var(--color-ink)] transition-colors"
+              title="Filters"
+              aria-label="Toggle search filters">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+    <div data-search-suggest-target="dropdown"
+         class="hidden bg-[var(--color-page)] border border-[var(--color-rule)] rounded-lg shadow-lg max-h-80 overflow-y-auto mt-1 absolute left-0 right-0" style="top: 100%; z-index: 9999;">
+    </div>
+    </div>
+
+    <%# ============================================================
+      # Active filter chips (always visible when filters active)
+      # ============================================================ %>
+    <% if @sections.any? || @traditions.any? || @active_work || @active_book %>
+      <div class="flex flex-wrap gap-1.5 mt-3">
+        <% @sections.each do |s| %>
+          <%
+            other_sections = @sections - [s]
+            remove_params = search_params(section: other_sections.presence)
+          %>
+          <%= link_to search_path(remove_params),
+                class: "#{badge_class} #{badge_on} inline-flex items-center gap-1" do %>
+            <%= SearchController::SECTION_BADGES[s] || s %>
+            <span class="text-[8px] opacity-60">&times;</span>
+          <% end %>
+        <% end %>
+        <% @traditions.each do |t| %>
+          <%
+            other_traditions = @traditions - [t]
+            remove_params = search_params(tradition: other_traditions.presence)
+          %>
+          <%= link_to search_path(remove_params),
+                class: "#{badge_class} #{badge_on} inline-flex items-center gap-1" do %>
+            <%= t %>
+            <span class="text-[8px] opacity-60">&times;</span>
+          <% end %>
+        <% end %>
+        <% if @active_work %>
+          <%= link_to search_path(search_params(work: nil)),
+                class: "#{badge_class} #{badge_on} inline-flex items-center gap-1" do %>
+            <%= @active_work %>
+            <span class="text-[8px] opacity-60">&times;</span>
+          <% end %>
+        <% end %>
+        <% if @active_book %>
+          <%= link_to search_path(search_params(book: nil)),
+                class: "#{badge_class} #{badge_on} inline-flex items-center gap-1" do %>
+            <%= @active_book %>
+            <span class="text-[8px] opacity-60">&times;</span>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%# ============================================================
+      # Filter drawer (toggleable)
+      # ============================================================ %>
+    <div data-search-drawer-target="drawer"
+         class="<%= (@drawer_open || @query.blank?) ? '' : 'hidden' %> mt-4 border border-[var(--color-rule)] rounded-lg p-5 space-y-4">
+
+      <%# Section badges %>
+      <div>
+        <h3 class="font-serif text-xs text-[var(--color-ink-soft)] mb-2">Section</h3>
+        <div class="flex flex-wrap gap-1.5">
+          <% @available_sections.each do |value, label, short| %>
+            <% active = @sections.include?(value) %>
+            <%
+              new_sections = active ? @sections - [value] : @sections + [value]
+              toggle_params = search_params(section: new_sections.presence)
+            %>
+            <%= link_to search_path(toggle_params),
+                  class: "#{badge_class} #{active ? badge_on : badge_off}",
+                  title: label do %>
+              <%= short %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Tradition badges %>
+      <div>
+        <h3 class="font-serif text-xs text-[var(--color-ink-soft)] mb-2">Tradition</h3>
+        <div class="flex flex-wrap gap-1.5">
+          <% @available_traditions.each do |t| %>
+            <% active = @traditions.include?(t) %>
+            <%
+              new_traditions = active ? @traditions - [t] : @traditions + [t]
+              toggle_params = search_params(tradition: new_traditions.presence)
+            %>
+            <%= link_to search_path(toggle_params),
+                  class: "#{badge_class} #{active ? badge_on : badge_off}" do %>
+              <%= t %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Scope to work/book (type-ahead) %>
+      <div data-controller="search-scope">
+        <h3 class="font-serif text-xs text-[var(--color-ink-soft)] mb-2">Scope to work, book, or author</h3>
+        <div class="relative">
+          <input type="text"
+                 placeholder="Type to search works, books, authors..."
+                 autocomplete="off"
+                 data-search-scope-target="input"
+                 data-action="input->search-scope#search keydown->search-scope#navigate"
+                 class="w-full px-3 py-2 font-serif text-sm
+                        bg-[var(--color-page)] text-[var(--color-ink)]
+                        border border-[var(--color-rule)] rounded-lg
+                        placeholder:text-[var(--color-ink-soft)] placeholder:italic
+                        focus:outline-none focus:border-[var(--color-link)]">
+          <div data-search-scope-target="results"
+               class="hidden absolute z-20 left-0 right-0 mt-1 bg-[var(--color-page)]
+                      border border-[var(--color-rule)] rounded-lg shadow-lg
+                      max-h-60 overflow-y-auto">
+          </div>
+        </div>
+        <%# Hidden fields for selected scopes %>
+        <% if @active_work %>
+          <input type="hidden" name="work" value="<%= @active_work %>">
+        <% end %>
+        <% if @active_book %>
+          <input type="hidden" name="book" value="<%= @active_book %>">
+        <% end %>
+      </div>
+
+      <%# Query syntax help %>
+      <details class="text-xs">
+        <summary class="cursor-pointer font-serif text-[var(--color-ink-soft)] hover:text-[var(--color-link)] select-none">
+          Query syntax reference
+        </summary>
+        <div class="mt-2 grid grid-cols-3 gap-x-4 gap-y-1 font-mono text-[var(--color-ink-soft)]">
+          <span class="font-serif text-[var(--color-ink)]">Phrase</span>
+          <span>"in the beginning"</span><span></span>
+          <span class="font-serif text-[var(--color-ink)]">Strong&rsquo;s</span>
+          <span>H430, G3056</span><span></span>
+          <span class="font-serif text-[var(--color-ink)]">Lemma</span>
+          <span>lemma:&#x05D1;&#x05E8;&#x05D0;</span><span></span>
+          <span class="font-serif text-[var(--color-ink)]">Morph</span>
+          <span>morph:V-AAI-*</span><span>requires work scope</span>
+          <span class="font-serif text-[var(--color-ink)]">Proximity</span>
+          <span>grace NEAR/5 mercy</span><span></span>
+          <span class="font-serif text-[var(--color-ink)]">Regex</span>
+          <span>regex:begat\s\w+</span><span>requires work scope</span>
+          <span class="font-serif text-[var(--color-ink)]">Cross-refs</span>
+          <span>xref:Gen 1:1</span><span></span>
+          <span class="font-serif text-[var(--color-ink)]">Apparatus</span>
+          <span>apparatus</span><span>requires work scope</span>
+
+          <span class="font-serif text-[var(--color-ink)]">Syntax role</span>
+          <span>syntax: subject(god) verb(create)</span><span></span>
+          <span class="font-serif text-[var(--color-ink)]">Syntax (short)</span>
+          <span>subj:&#x05D0;&#x05DC;&#x05D4;&#x05D9;&#x05DD; verb:&#x05D1;&#x05E8;&#x05D0;</span><span></span>
+          <span class="font-serif text-[var(--color-ink)]">Clause type</span>
+          <span>syntax: clause(relative) subject(god)</span><span></span>
+        </div>
+      </details>
+
+      <%# Hidden fields for array params %>
+      <% @sections.each do |s| %>
+        <input type="hidden" name="section[]" value="<%= s %>">
+      <% end %>
+      <% @traditions.each do |t| %>
+        <input type="hidden" name="tradition[]" value="<%= t %>">
+      <% end %>
+    </div>
+  </form>
+
+  <%# ============================================================
+    # Empty state
+    # ============================================================ %>
+  <% if @query.blank? %>
+    <div class="py-10 max-w-3xl mx-auto">
+      <h2 class="font-serif text-xl text-[var(--color-ink)] mb-6 text-center">Search the corpus</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-serif">
+        <%# Example searches as clickable cards %>
+        <% [
+          ["in the beginning God created", "Full-text search"],
+          ["Gen 1:1", "Citation lookup"],
+          ["H430", "Strong's concordance"],
+          ["golden rule", "Named passage (10,000+ aliases)"],
+          ["What did Jesus say about war?", "Natural language query"],
+          ["lemma:אלהים", "Hebrew lemma search"],
+          ["syntax: subject(god) verb(create)", "Syntactic role search"],
+          ["syntax: clause(relative) subject(god)", "Clause-type filtering"],
+          ["grace NEAR/5 mercy", "Proximity search"],
+          ["regex:begat\\s\\w+", "Regular expression"],
+        ].each do |query, label| %>
+          <%= link_to search_path(q: query),
+                class: "block p-3 border border-[var(--color-rule)] rounded-lg hover:border-[var(--color-link)] hover:bg-[var(--color-link)]/5 transition-colors" do %>
+            <span class="text-[var(--color-link)] font-mono text-xs"><%= query %></span>
+            <span class="block text-[var(--color-ink-soft)] text-xs mt-1"><%= label %></span>
+          <% end %>
+        <% end %>
+      </div>
+
+      <p class="text-center text-xs text-[var(--color-ink-soft)] mt-6 font-serif">
+        Searching across <%= Work.count %> works &middot;
+        <%= number_with_delimiter(WorkUnit.count) %> passages &middot;
+        <%= number_with_delimiter(Word.count) %> words with morphology &middot;
+        <%= number_with_delimiter(SyntaxNode.count) %> syntax nodes &middot;
+        <%= number_with_delimiter(ParticipantReference.count) %> discourse links
+      </p>
+    </div>
+
+  <% elsif @result.empty? %>
+    <div class="font-serif text-[var(--color-ink-soft)] italic text-center py-16">
+      <p class="text-lg">No results found for &ldquo;<%= @query %>&rdquo;</p>
+      <p class="mt-3 text-sm">Try a different search term, check your spelling, or adjust your filters.</p>
+    </div>
+
+  <%# ============================================================
+    # Results
+    # ============================================================ %>
+  <% else %>
+    <div class="flex flex-wrap items-baseline justify-between gap-3 mt-6 mb-4">
+      <p class="font-serif text-sm text-[var(--color-ink-soft)]">
+        <strong class="text-[var(--color-ink)]"><%= number_with_delimiter(@result.total_count) %></strong>
+        result<%= @result.total_count == 1 ? "" : "s" %>
+        for &ldquo;<span class="text-[var(--color-ink)]"><%= @query %></span>&rdquo;
+        <% if @result.query_type != :text %>
+          <span class="ml-1 <%= badge_class %> <%= badge_off %>"><%= @result.query_type %></span>
+        <% end %>
+      </p>
+      <div class="flex gap-1.5 text-xs font-serif">
+        <% all_works = params[:work_types] == "all" %>
+        <%= link_to all_works ? "Scripture only" : "All works",
+              search_path(search_params(work_types: all_works ? nil : "all")),
+              class: "#{badge_class} #{all_works ? badge_on : badge_off}" %>
+        <span class="text-[var(--color-rule)]">&middot;</span>
+        <%= link_to "By reference",
+              search_path(search_params(group: "reference")),
+              class: "#{badge_class} #{@group_by == 'reference' ? badge_on : badge_off}" %>
+        <%= link_to "By work",
+              search_path(search_params(group: "work")),
+              class: "#{badge_class} #{@group_by == 'work' ? badge_on : badge_off}" %>
+      </div>
+    </div>
+
+    <div class="flex gap-6">
+      <%# Hebrew sidebar — left, RTL %>
+      <% if @result.cross_language_card&.dig(:hebrew)&.any? %>
+        <aside class="hidden lg:block w-56 flex-shrink-0" dir="rtl">
+          <%= render partial: "search/language_sidebar",
+                locals: { entries: @result.cross_language_card[:hebrew],
+                          label: "Hebrew", dir: "rtl" } %>
+        </aside>
+      <% end %>
+
+      <%# Main results %>
+      <div class="flex-1 min-w-0">
+        <%= render partial: "search/facets", locals: { facets: @result.facets } %>
+
+        <div class="space-y-1">
+          <% if @group_by == "work" %>
+            <% @result.grouped_by_work.each do |work_slug, results| %>
+              <h3 class="font-serif text-sm font-bold text-[var(--color-ink)] mt-6 mb-2 first:mt-0">
+                <%= results.first[:work_title] %>
+              </h3>
+              <% results.each do |r| %>
+                <%= render partial: "search/result", locals: { result: r } %>
+              <% end %>
+            <% end %>
+          <% else %>
+            <% @result.results.each do |r| %>
+              <%= render partial: "search/result", locals: { result: r } %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <% if @result&.total_pages.to_i > 1 %>
+          <nav class="mt-8 flex items-center justify-center gap-2 font-serif text-sm" aria-label="Pages">
+            <% if @result.page > 1 %>
+              <%= link_to "Previous",
+                    search_path(search_params(page: @result.page - 1)),
+                    class: "px-3 py-1 border border-[var(--color-rule)] rounded text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)]" %>
+            <% end %>
+            <span class="px-2 text-[var(--color-ink-soft)]">
+              Page <%= @result.page %> of <%= @result.total_pages %>
+            </span>
+            <% if @result.page < @result.total_pages %>
+              <%= link_to "Next",
+                    search_path(search_params(page: @result.page + 1)),
+                    class: "px-3 py-1 border border-[var(--color-rule)] rounded text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink)]" %>
+            <% end %>
+          </nav>
+        <% end %>
+      </div>
+
+      <%# Greek sidebar — right, LTR %>
+      <% if @result.cross_language_card&.dig(:greek)&.any? %>
+        <aside class="hidden lg:block w-56 flex-shrink-0">
+          <%= render partial: "search/language_sidebar",
+                locals: { entries: @result.cross_language_card[:greek],
+                          label: "Greek", dir: "ltr" } %>
+        </aside>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -120,7 +120,18 @@ module Importers
       book_data = data[code]
       return unless book_data
 
-      canonical_work = (@canonical_work_cache[slug] ||= CanonicalWork.find_by(slug: slug))
+      # Find the canonical_work that the KJV actually uses for this book.
+      # The KJV importer may create KJV-specific canonical_works (e.g.
+      # "matthew-kjv") when verse numbering differs from the seed data.
+      canonical_work = @canonical_work_cache[slug] ||= begin
+        CanonicalWork
+          .joins(canonical_refs: :work_units)
+          .where(work_units: { work_id: @kjv_work.id })
+          .where(book_key: slug)
+          .group("canonical_works.id")
+          .order(Arel.sql("COUNT(work_units.id) DESC"))
+          .first || CanonicalWork.find_by(slug: slug)
+      end
       unless canonical_work
         bump(:books_no_canonical_work)
         return

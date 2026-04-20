@@ -15,6 +15,8 @@ class Pericope < ApplicationRecord
     lectionary
     heading
     section
+    superscription
+    verse_range
   ].freeze
 
   # Tradition tags identify which community of practice a pericope set
@@ -30,6 +32,7 @@ class Pericope < ApplicationRecord
     byzantine_lectionary
     lutheran_lectionary
     anglican_lectionary
+    lxx
   ].freeze
 
   validates :name, presence: true

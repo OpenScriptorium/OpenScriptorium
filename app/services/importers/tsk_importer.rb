@@ -245,6 +245,10 @@ module Importers
     end
 
     def flush_batch!(batch)
+      # Deduplicate within batch (source data has duplicate rows)
+      before = batch.size
+      batch.uniq! { |r| [r[:source_canonical_work_id], r[:target_canonical_work_id], r[:source_range], r[:target_range]] }
+      bump(:duplicates_skipped, before - batch.size) if before > batch.size
       CrossReference.insert_all(batch)
       bump(:rows_inserted, batch.size)
       if (@stats[:rows_inserted] || 0) % 25_000 < 5000

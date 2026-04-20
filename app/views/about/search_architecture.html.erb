@@ -1,0 +1,483 @@
+<% content_for :title, "Search Architecture — Open Scriptorium" %>
+
+<div class="max-w-3xl mx-auto px-5 py-12 font-serif text-[var(--color-ink)] leading-relaxed text-lg space-y-5
+            [&_h2]:font-serif [&_h2]:text-3xl [&_h2]:text-[var(--color-ink)] [&_h2]:mt-14 [&_h2]:mb-4
+            [&_h3]:font-serif [&_h3]:text-xl [&_h3]:mt-8 [&_h3]:mb-3
+            [&_p]:max-w-prose
+            [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1
+            [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1
+            [&_code]:font-mono [&_code]:text-base
+            [&_strong]:font-semibold
+            [&_table]:text-sm [&_table]:w-full [&_table]:border-collapse
+            [&_th]:text-left [&_th]:border-b [&_th]:border-[var(--color-rule)] [&_th]:pb-2 [&_th]:pr-4
+            [&_td]:border-b [&_td]:border-[var(--color-rule)]/30 [&_td]:py-2 [&_td]:pr-4 [&_td]:align-top">
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10 not-prose">
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">About</p>
+    <h1 class="font-serif text-4xl text-[var(--color-ink)] mt-1">Search Architecture</h1>
+    <p class="mt-3 italic text-[var(--color-ink-soft)]">
+      How full-text search, semantic embeddings, and query classification
+      work together to search across languages and traditions.
+    </p>
+  </header>
+
+  <h2>Overview</h2>
+
+  <p>
+    Every search query passes through three stages: classification,
+    execution, and (for text queries) semantic enrichment. The classifier
+    inspects the raw query string and dispatches it to one of eleven
+    specialised strategies. Most queries also receive a cross-language
+    sidebar showing related Hebrew and Greek lemmas.
+  </p>
+
+  <h2>Query classification</h2>
+
+  <p>
+    The classifier examines the query and assigns it one of these types:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Example</th>
+        <th>Detection</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>citation</strong></td>
+        <td><code>Gen 1:1</code>, <code>1 Cor 13</code></td>
+        <td>Matches book abbreviation + chapter pattern</td>
+      </tr>
+      <tr>
+        <td><strong>strongs</strong></td>
+        <td><code>H430</code>, <code>G3056</code></td>
+        <td>Matches <code>/^[HG]\d{1,5}$/</code></td>
+      </tr>
+      <tr>
+        <td><strong>hebrew</strong></td>
+        <td><code>&#x05D1;&#x05E8;&#x05D0;&#x05E9;&#x05D9;&#x05EA;</code></td>
+        <td>Pure Hebrew/Aramaic Unicode range</td>
+      </tr>
+      <tr>
+        <td><strong>greek</strong></td>
+        <td><code>&#x03B1;&#x0313;&#x03B3;&#x03AC;&#x03C0;&#x03B7;</code></td>
+        <td>Pure Greek Unicode range</td>
+      </tr>
+      <tr>
+        <td><strong>lemma</strong></td>
+        <td><code>lemma:&#x03BB;&#x03CC;&#x03B3;&#x03BF;&#x03C2;</code></td>
+        <td><code>lemma:</code> prefix</td>
+      </tr>
+      <tr>
+        <td><strong>morphological</strong></td>
+        <td><code>morph:V-QAI</code></td>
+        <td><code>morph:</code> prefix</td>
+      </tr>
+      <tr>
+        <td><strong>proximity</strong></td>
+        <td><code>faith NEAR/3 works</code></td>
+        <td>Contains <code>NEAR</code> operator</td>
+      </tr>
+      <tr>
+        <td><strong>regex</strong></td>
+        <td><code>regex:blessed.*Lord</code></td>
+        <td><code>regex:</code> prefix</td>
+      </tr>
+      <tr>
+        <td><strong>xref traversal</strong></td>
+        <td><code>xref:Rom 8:28</code></td>
+        <td><code>xref:</code> prefix</td>
+      </tr>
+      <tr>
+        <td><strong>apparatus</strong></td>
+        <td><code>apparatus substitution</code></td>
+        <td><code>apparatus</code> keyword</td>
+      </tr>
+      <tr>
+        <td><strong>text</strong></td>
+        <td><code>in the beginning</code></td>
+        <td>Everything else</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Full-text search</h2>
+
+  <p>
+    Text queries are the most common and the most complex strategy.
+    Every <code>work_unit</code> has a pre-computed <code>body_tsvector</code>
+    column populated by a trigger that chooses the right text search
+    configuration based on the work&rsquo;s language:
+  </p>
+
+  <ul>
+    <li>English works use <code>scriptorium_english</code> (Snowball stemmer + custom stop words)</li>
+    <li>Hebrew works are pre-processed by <code>strip_hebrew_points()</code> which removes
+        niqqud and cantillation marks, then indexed with <code>scriptorium_simple</code></li>
+    <li>Greek works are indexed with <code>scriptorium_simple</code> for exact token matching</li>
+    <li>Latin works use <code>scriptorium_simple</code></li>
+  </ul>
+
+  <p>
+    Both configurations are searched simultaneously: the query is parsed into
+    a <code>websearch_to_tsquery</code> against both <code>scriptorium_english</code>
+    (for stemmed matching) and <code>scriptorium_simple</code> (for exact matching),
+    OR&rsquo;d together. This means &ldquo;beginning&rdquo; matches English
+    works via the stemmer and Hebrew/Greek works via exact token overlap.
+    The actual tsquery combines synonym-expanded and raw forms:
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Three tsqueries OR'd: synonym-expanded stemmed, raw stemmed, raw exact</span>
+(websearch_to_tsquery('scriptorium_english', expand_bible_synonyms('honour thy father'))
+ || websearch_to_tsquery('scriptorium_english', 'honour thy father')
+ || websearch_to_tsquery('scriptorium_simple', 'honour thy father'))</pre>
+
+  <h3>Hebrew diacritics &mdash; <code>strip_hebrew_points()</code></h3>
+
+  <p>
+    The <code>body_tsvector</code> trigger calls a custom SQL function
+    to strip niqqud (vowel points) and cantillation marks before indexing
+    Hebrew text:
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto">CREATE FUNCTION strip_hebrew_points(text) RETURNS text AS $$
+  SELECT regexp_replace($1, '[\u0591-\u05BD\u05BF-\u05C7]', '', 'g')
+$$ LANGUAGE sql IMMUTABLE;</pre>
+
+  <p>
+    This means a search for
+    <code>&#x05D0;&#x05DC;&#x05D4;&#x05D9;&#x05DD;</code> (consonants
+    only) matches
+    <span dir="rtl">&#x05D0;&#x05B1;&#x05DC;&#x05B9;&#x05D4;&#x05B4;&#x05D9;&#x05DD;</span>
+    (fully pointed) &mdash; the tsvector stores only consonantal forms.
+  </p>
+
+  <h3>Synonym expansion</h3>
+
+  <p>
+    Before building the tsquery, the query is passed through
+    <code>expand_bible_synonyms()</code>, a SQL function that does a
+    per-word table lookup against <code>bible_synonyms</code>:
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Pure SQL synonym expansion, no filesystem dictionary needed.
+-- Compatible with managed Postgres (RDS, Cloud SQL, etc.).</span>
+CREATE FUNCTION expand_bible_synonyms(query text) RETURNS text AS $$
+  SELECT string_agg(COALESCE(bs.target, word), ' ')
+  FROM unnest(string_to_array(lower(query), ' ')) AS word
+  LEFT JOIN bible_synonyms bs ON bs.source = word
+$$ LANGUAGE sql STABLE;</pre>
+
+  <p>
+    This maps archaic English to modern equivalents
+    (<code>thou</code>&thinsp;&rarr;&thinsp;<code>you</code>,
+    <code>hath</code>&thinsp;&rarr;&thinsp;<code>has</code>,
+    <code>honour</code>&thinsp;&rarr;&thinsp;<code>honor</code>) and
+    normalises spelling variants
+    (<code>hallelujah</code>&thinsp;&harr;&thinsp;<code>alleluia</code>,
+    <code>immanuel</code>&thinsp;&harr;&thinsp;<code>emmanuel</code>).
+    The original query is also searched unstemmed, so exact matches
+    still rank highest.
+  </p>
+
+  <h3>Ranking</h3>
+
+  <p>
+    Results are ranked by a composite score:
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded">relevance = ts_rank(tsvector, tsquery)
+          &times; (1 + ln(1 + xref_count))
+          &times; phrase_bonus</pre>
+
+  <p>
+    The three factors:
+  </p>
+
+  <ol>
+    <li>
+      <strong><code>ts_rank</code></strong> &mdash; Postgres&rsquo;s built-in
+      relevance score based on term frequency and document length.
+    </li>
+    <li>
+      <strong>Cross-reference density</strong> &mdash; a precomputed
+      <code>xref_count</code> on each <code>canonical_ref</code> counts
+      how many cross-references touch that verse. Iconic verses like
+      Genesis 1:1 and John 3:16 have high counts and receive a
+      logarithmic boost. This is what makes &ldquo;in the beginning God
+      created&rdquo; rank Genesis 1:1 first despite many verses containing
+      similar words.
+    </li>
+    <li>
+      <strong>Phrase bonus</strong> &mdash; for multi-word queries, verses
+      containing the exact phrase (checked with punctuation stripped) get a
+      10&times; bonus. Synonym-expanded phrase matches get 8&times;. For
+      single-word queries, exact word-boundary matches
+      (<code>\y</code> regex) get 5&times;, preventing stemming contamination
+      where &ldquo;Eve&rdquo; would otherwise match &ldquo;even&rdquo; and
+      &ldquo;evening.&rdquo;
+    </li>
+  </ol>
+
+  <p>
+    The full ranking query in practice:
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto">SELECT work_units.*,
+       ts_rank(body_tsvector, tsquery)
+         * (1.0 + LN(1 + canonical_refs.xref_count))
+         * CASE
+             <span class="text-[var(--color-ink-soft)]">-- Multi-word: exact phrase in body (punctuation stripped)</span>
+             WHEN REGEXP_REPLACE(body, '[^a-zA-Z\s]', '', 'g')
+                  ILIKE '%in the beginning God created%' THEN 10.0
+             <span class="text-[var(--color-ink-soft)]">-- Synonym-expanded phrase match</span>
+             WHEN REGEXP_REPLACE(body, '[^a-zA-Z\s]', '', 'g')
+                  ILIKE '%' || expand_bible_synonyms(...) || '%' THEN 8.0
+             ELSE 1.0
+           END AS relevance
+FROM work_units
+JOIN canonical_refs ON canonical_refs.id = work_units.canonical_ref_id
+JOIN works ON works.id = work_units.work_id
+WHERE body_tsvector @@ (tsquery)
+ORDER BY relevance DESC,
+         canonical_refs.ord ASC,  <span class="text-[var(--color-ink-soft)]">-- deterministic tiebreaker</span>
+         works.slug ASC</pre>
+
+  <h3>OR fallback</h3>
+
+  <p>
+    Multi-word queries are searched with AND logic by default. If the AND
+    query returns zero results (common for long phrases with stopwords),
+    the search automatically retries with OR logic so that verses matching
+    <em>most</em> content words still appear. This is how &ldquo;put on
+    the whole armor of God&rdquo; finds Ephesians 6:11 even when the
+    stemmer disagrees about &ldquo;armor.&rdquo;
+  </p>
+
+  <h2>Semantic search (embeddings)</h2>
+
+  <p>
+    The full-text layer finds what the user <em>said</em>. The embedding
+    layer finds what the user <em>meant</em>.
+  </p>
+
+  <p>
+    A multilingual sentence embedding model (fine-tuned LaBSE, 768 dimensions)
+    encodes every work unit in the corpus into a dense vector. At query time,
+    the user&rsquo;s query is encoded into the same space and the nearest
+    neighbours are found via a pgvector HNSW index. The two result sets
+    (FTS and embedding) are merged with configurable weights.
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Find the 50 nearest verses by cosine similarity.
+-- The &lt;=&gt; operator is pgvector's cosine distance.
+-- HNSW index makes this sub-millisecond across 672,000 vectors.</span>
+SELECT work_units.*,
+       1 - (body_embedding &lt;=&gt; query_embedding) AS similarity
+FROM work_units
+ORDER BY body_embedding &lt;=&gt; query_embedding
+LIMIT 50</pre>
+
+  <h3>Training data</h3>
+
+  <p>
+    The model was fine-tuned on 1.2 million pairs extracted entirely from
+    the corpus:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Dataset</th>
+        <th>Pairs</th>
+        <th>What it teaches</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>English paraphrase pairs</td>
+        <td>96,778</td>
+        <td>Same verse in BSB, KJV, WEBBE, JPS &mdash; different wording, same meaning</td>
+      </tr>
+      <tr>
+        <td>Hebrew&ndash;English word alignments</td>
+        <td>288,067</td>
+        <td>Hebrew word &harr; English translation via Macula alignment data</td>
+      </tr>
+      <tr>
+        <td>Greek&ndash;English word alignments</td>
+        <td>123,360</td>
+        <td>Greek word &harr; English translation via Macula alignment data</td>
+      </tr>
+      <tr>
+        <td>Cross-reference pairs</td>
+        <td>200,000</td>
+        <td>Thematically related passages (sampled from 681,659 total)</td>
+      </tr>
+      <tr>
+        <td>Verse-level cross-language</td>
+        <td>57,858</td>
+        <td>Full Hebrew/Greek verses paired with their English translations</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    The training uses MultipleNegativesRankingLoss: given a pair of texts
+    that should be similar, other items in the batch serve as negatives.
+    The model learns to pull parallel and related texts together in the
+    vector space while pushing unrelated texts apart.
+  </p>
+
+  <h3>Trilingual vector space</h3>
+
+  <p>
+    Because the training data includes 411,000 word-level alignments between
+    Hebrew/Greek source words and their English translations, the model
+    learns a single vector space where all three languages coexist. A search
+    for the English word &ldquo;peace&rdquo; is geometrically close to
+    <span dir="rtl">&#x05E9;&#x05C1;&#x05B8;&#x05DC;&#x05D5;&#x05B9;&#x05DD;</span>
+    (shalom) and &#x03B5;&#x1F30;&#x03C1;&#x03AE;&#x03BD;&#x03B7;
+    (eirene) in the embedding space &mdash; not because of a dictionary
+    lookup, but because the model learned from aligned usage in parallel texts.
+  </p>
+
+  <h3>Hybrid scoring</h3>
+
+  <p>
+    The final search score combines both layers:
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Hybrid merge: FTS results + embedding results, deduplicated</span>
+WITH fts AS (
+  SELECT id, relevance AS fts_score FROM ... <span class="text-[var(--color-ink-soft)]">-- full-text query</span>
+),
+semantic AS (
+  SELECT id, 1 - (body_embedding &lt;=&gt; query_embedding) AS sem_score
+  FROM work_units
+  ORDER BY body_embedding &lt;=&gt; query_embedding
+  LIMIT 50
+)
+SELECT COALESCE(fts.id, semantic.id) AS id,
+       COALESCE(&alpha; * fts.fts_score, 0)
+         + COALESCE(&beta; * semantic.sem_score, 0) AS score
+FROM fts
+FULL OUTER JOIN semantic ON fts.id = semantic.id
+ORDER BY score DESC</pre>
+
+  <p>
+    The &alpha; and &beta; weights are tuned so that exact keyword matches
+    always rank above pure semantic matches, but semantic matches fill in
+    where keywords fail. A user searching &ldquo;forgiveness&rdquo; sees
+    verses containing that word first (FTS), followed by verses about
+    pardoning, mercy, and reconciliation that never use the word itself
+    (embeddings).
+  </p>
+
+  <p>
+    Semantic search can be disabled in the advanced search controls for
+    users who want strict keyword-only results.
+  </p>
+
+  <h2>Script and word-level search</h2>
+
+  <p>
+    Queries in Hebrew or Greek script bypass text search entirely and go
+    through the word-level index. The query is normalised (Hebrew niqqud
+    stripped, Greek accents and breathings stripped) and matched against
+    the <code>words.normalized</code> column using trigram similarity
+    (GIN-indexed). This lets a user type
+    <code>&#x05D0;&#x05DC;&#x05D4;&#x05D9;&#x05DD;</code>
+    (without pointing) and find every occurrence of
+    <span dir="rtl">&#x05D0;&#x05B1;&#x05DC;&#x05B9;&#x05D4;&#x05B4;&#x05D9;&#x05DD;</span>
+    (with pointing) across the WLC.
+  </p>
+
+  <p>
+    Strong&rsquo;s number queries (<code>H430</code>, <code>G3056</code>)
+    search the <code>words.strongs_number</code> column directly and return
+    every verse containing a word tagged with that number, with a sidebar
+    card showing the associated lemma, gloss, and frequency. The language
+    prefix (H or G) is used to filter the sidebar to the correct language
+    family.
+  </p>
+
+  <h2>Proximity search</h2>
+
+  <p>
+    The <code>NEAR</code> operator finds verses where two terms co-occur.
+    <code>faith NEAR/3 works</code> finds verses where both terms appear
+    in the same verse, or within 3 verses of each other in the same work.
+    Both terms are matched via <code>body_tsvector</code> (not ILIKE),
+    so the search is index-accelerated and avoids substring false positives.
+  </p>
+
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Same-verse: both terms in one work_unit (GIN-indexed)</span>
+WHERE body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
+  AND body_tsvector @@ plainto_tsquery('scriptorium_english', 'works')
+
+<span class="text-[var(--color-ink-soft)]">-- Cross-verse: term A in one verse, term B within N ords</span>
+SELECT DISTINCT a.id FROM work_units a
+JOIN canonical_refs cr_a ON cr_a.id = a.canonical_ref_id
+WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
+  AND EXISTS (
+    SELECT 1 FROM work_units b
+    JOIN canonical_refs cr_b ON cr_b.id = b.canonical_ref_id
+    WHERE b.work_id = a.work_id
+      AND b.body_tsvector @@ plainto_tsquery('scriptorium_english', 'works')
+      AND ABS(cr_a.ord - cr_b.ord) &lt;= 3
+  )</pre>
+
+  <h2>Cross-language sidebar</h2>
+
+  <p>
+    For English text queries, the search runs a parallel lookup against
+    the lemma glosses to find related Hebrew and Greek terms. The sidebar
+    shows up to three entries per language, with the original script,
+    transliteration, part of speech, primary gloss, and corpus frequency.
+  </p>
+
+  <p>
+    To bridge the gap between how users search and how lexicons gloss,
+    a concept synonym layer expands queries with known equivalences:
+    &ldquo;law&rdquo; also searches for &ldquo;instruction,&rdquo;
+    &ldquo;statute,&rdquo; and &ldquo;commandment&rdquo; in the glosses,
+    which is how
+    <span dir="rtl">&#x05EA;&#x05BC;&#x05D5;&#x05B9;&#x05E8;&#x05B8;&#x05D4;</span>
+    (torah, glossed as &ldquo;instruction&rdquo;) appears in the sidebar
+    for a search for &ldquo;law.&rdquo;
+  </p>
+
+  <h2>Transliteration fallback</h2>
+
+  <p>
+    When a single Latin-script word returns very few text results (fewer
+    than 5), the search checks whether it matches a lemma transliteration.
+    If it does, the search pivots to a lemma search, returning every verse
+    containing that lemma. This is how typing &ldquo;agape&rdquo; finds
+    every occurrence of &#x1F00;&#x03B3;&#x03AC;&#x03C0;&#x03B7; across
+    the Greek New Testament.
+  </p>
+
+  <h2>Default scoping</h2>
+
+  <p>
+    By default, text searches are scoped to scripture-type works in
+    English, Hebrew, Aramaic, Greek, and Latin. This prevents commentary,
+    Talmud, and non-English translations from diluting results for typical
+    searches. The scope can be widened via section filters (Hebrew Bible,
+    Greek NT, Deuterocanon, Pseudepigrapha, Apostolic Fathers, Rabbinic,
+    Patristic), tradition filters, specific work selection, or by
+    choosing &ldquo;all works&rdquo; in the search controls.
+  </p>
+
+  <h2>Things to read next</h2>
+
+  <ul>
+    <li><%= link_to "Architecture overview", about_architecture_path, class: "underline decoration-dotted" %></li>
+    <li><%= link_to "Schema reference", about_schema_path, class: "underline decoration-dotted" %></li>
+    <li><%= link_to "API documentation", downloads_path, class: "underline decoration-dotted" %> &mdash; the search endpoint supports all query types programmatically.</li>
+  </ul>
+</div>

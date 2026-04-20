@@ -1,0 +1,24 @@
+<% if facets[:works].present? || facets[:languages].present? %>
+  <div class="flex flex-wrap gap-2 mb-6">
+    <% if facets[:languages].present? %>
+      <% facets[:languages].each do |f| %>
+        <% active = params[:language] == f[:language] %>
+        <%= link_to search_path(q: params[:q], language: (active ? nil : f[:language]), work: params[:work], group: params[:group]),
+              class: "text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5 border transition-colors #{active ? 'border-[var(--color-ink)] text-[var(--color-ink)] bg-[var(--color-ink)]/5' : 'border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]'}" do %>
+          <%= f[:language] %> (<%= f[:count] %>)
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <% if facets[:works].present? %>
+      <span class="text-[var(--color-rule)]">&middot;</span>
+      <% facets[:works].first(8).each do |f| %>
+        <% active = params[:work] == f[:slug] %>
+        <%= link_to search_path(q: params[:q], work: (active ? nil : f[:slug]), language: params[:language], group: params[:group]),
+              class: "text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5 border transition-colors #{active ? 'border-[var(--color-ink)] text-[var(--color-ink)] bg-[var(--color-ink)]/5' : 'border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]'}" do %>
+          <%= f[:slug] %> (<%= f[:count] %>)
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

@@ -23,5 +23,10 @@ module Openscriptorium
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Use structure.sql instead of schema.rb so that custom Postgres
+    # objects (text search configurations, functions, triggers) are
+    # preserved when loading the test database.
+    config.active_record.schema_format = :sql
   end
 end

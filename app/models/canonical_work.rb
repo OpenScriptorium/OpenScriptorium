@@ -53,6 +53,20 @@ class CanonicalWork < ApplicationRecord
     slug
   end
 
+  # Return the native-language title appropriate for the given work.
+  # For Hebrew works → native_title (בְּרֵאשִׁית)
+  # For Greek works  → alternate_titles["grc"] (Γένεσις)
+  # For Latin works  → alternate_titles["la"] (Liber Genesis)
+  # Falls back to native_title, then title.
+  def native_title_for(language)
+    lang_key = case language
+               when "grc", "el-koine" then "grc"
+               when "la" then "la"
+               else nil
+               end
+    (lang_key && alternate_titles&.dig(lang_key)) || native_title || title
+  end
+
   # The canonical_work's title with any scheme parenthetical stripped
   # for end-user display. Internal slugs like `psalms-mt` and
   # `psalms-german` carry titles like "Psalms (MT)" / "Psalms (German)"

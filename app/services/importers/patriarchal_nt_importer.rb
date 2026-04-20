@@ -116,14 +116,7 @@ module Importers
     end
 
     def process_verse(canonical_work, chapter, verse_n, usfm)
-      canonical_ref = CanonicalRef.where(
-        canonical_work_id: canonical_work.id,
-        hierarchy: [chapter, verse_n]
-      ).first
-      unless canonical_ref
-        bump(:verses_no_canonical_ref)
-        return
-      end
+      canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse_n])
 
       # Extract words with Strong's numbers
       words_data = []
@@ -156,9 +149,21 @@ module Importers
       work_unit.save!
 
       # Create Word records with Strong's + lemmas
+      # If no \w-tagged words found, tokenize from body text (no Strong's/lemma
+      # but at least surface forms exist for completeness)
+      if words_data.empty? && body.present?
+        body.split(/\s+/).reject(&:empty?).each do |token|
+          clean = token.gsub(/[,.\-;:—·()]+\z/, "").gsub(/\A[,.\-;:—·()]+/, "")
+          next if clean.empty?
+          words_data << { surface: clean, strongs: nil }
+        end
+        bump(:verses_tokenized_from_body) if words_data.any?
+      end
+
       if words_data.any?
+        now = Time.current
         word_attrs = words_data.each_with_index.map do |wd, idx|
-          lemma = ensure_lemma(wd[:surface], wd[:strongs])
+          lemma = wd[:strongs].present? ? ensure_lemma(wd[:surface], wd[:strongs]) : nil
           {
             work_id: @work.id, work_unit_id: work_unit.id,
             position: idx + 1,
@@ -169,7 +174,7 @@ module Importers
             strongs_number: wd[:strongs],
             import_run_id: @import_run.id,
             notes: {},
-            created_at: Time.current, updated_at: Time.current
+            created_at: now, updated_at: now
           }
         end
         Word.insert_all(word_attrs)

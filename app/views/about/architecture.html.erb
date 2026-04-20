@@ -462,6 +462,48 @@
           class: "underline decoration-dotted hover:text-[var(--color-link)]" %>.
   </p>
 
+  <h2>Search</h2>
+
+  <p>
+    Search has two layers. The first is traditional full-text search:
+    Postgres <code>tsvector</code> indexes on every work unit, with a custom
+    <code>scriptorium_english</code> text search configuration that handles
+    stemming and a <code>scriptorium_simple</code> configuration for exact
+    token matching. Hebrew diacritics (niqqud, cantillation) are stripped at
+    index time via a custom <code>strip_hebrew_points()</code> SQL function
+    so that pointed and unpointed searches match the same verses. A
+    table-driven synonym system (<code>bible_synonyms</code>) expands
+    archaic English at query time so that &ldquo;honour thy father&rdquo;
+    finds &ldquo;Honor your father.&rdquo;
+  </p>
+
+  <p>
+    The second layer is semantic search via sentence embeddings.
+    A multilingual embedding model &mdash; fine-tuned on 1.2 million
+    parallel pairs extracted from the corpus itself (parallel translations,
+    Hebrew&ndash;English word alignments, Greek&ndash;English word
+    alignments, and cross-reference pairs) &mdash; maps every work unit
+    to a 768-dimensional vector stored in pgvector. At query time, the
+    search encodes the user&rsquo;s query into the same vector space and
+    finds semantically similar verses via HNSW approximate nearest-neighbor
+    lookup. This means a search for &ldquo;What did Jesus teach about
+    wealth?&rdquo; finds the parable of the rich fool and &ldquo;you
+    cannot serve God and mammon&rdquo; even though the word
+    &ldquo;wealth&rdquo; never appears in those verses.
+  </p>
+
+  <p>
+    Because the embedding model was trained on the corpus&rsquo;s own
+    word-level alignments, Hebrew, Greek, and English all share the same
+    vector space. An English query finds source-language verses by meaning,
+    not gloss lookup. The query classifier automatically detects citations,
+    Strong&rsquo;s numbers, Hebrew/Greek script, lemma prefixes, proximity
+    operators, and regex patterns, dispatching each to a specialised
+    strategy. Full details are on the
+    <%= link_to "search architecture", search_architecture_path,
+          class: "underline decoration-dotted" %> page.
+  </p>
+
   <h2>Things to read next</h2>
 
   <ul>

@@ -7,9 +7,15 @@ Rails.application.routes.draw do
   # exceptions, otherwise 500.
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Search
+  get "search",              to: "search#show",         as: :search
+  get "search/completions",  to: "search#completions",  as: :search_completions
+  get "search/advanced",     to: redirect("/search"),   as: :search_advanced
+
   # Architecture / about pages
-  get "about/architecture",  to: "about#architecture",        as: :about_architecture
-  get "about/schema",        to: "about#schema",              as: :about_schema
+  get "about/architecture",         to: "about#architecture",         as: :about_architecture
+  get "about/search-architecture",  to: "about#search_architecture",  as: :search_architecture
+  get "about/schema",               to: "about#schema",               as: :about_schema
   get "principles",          to: "about#principles",          as: :principles
   get "appeal-to-scholars",   to: "about#appeal_to_scholars",   as: :appeal_to_scholars
   get "appeal-to-publishers", to: "about#appeal_to_publishers", as: :appeal_to_publishers
@@ -108,6 +114,15 @@ Rails.application.routes.draw do
           constraints: { chapter: /\d+/ }
       get "cross-references", to: "cross_references#index"
       get "search", to: "search#index"
+      get "search/completions", to: "search#completions"
+      get "lemmas/strong/:number", to: "lemmas#strong", as: :lemma_strong
+      resources :lemmas, only: [:index, :show]
+      get "apparatus", to: "apparatus#index"
+      resources :manuscripts, only: [:index, :show], param: :siglum
+      get "syntax/:work_slug/:book/:chapter/:verse", to: "syntax#show",
+          constraints: { chapter: /\d+/, verse: /\d+/ }
+      get "discourse/:work_slug/:book/:chapter", to: "discourse#show",
+          constraints: { chapter: /\d+/ }
     end
   end
 

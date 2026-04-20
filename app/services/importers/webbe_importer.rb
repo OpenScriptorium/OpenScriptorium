@@ -45,6 +45,7 @@ module Importers
       "BEL" => "bel-and-the-dragon",
       "1MA" => "1-maccabees", "2MA" => "2-maccabees",
       "1ES" => "1-esdras", "2ES" => "2-esdras",
+      "3MA" => "3-maccabees", "4MA" => "4-maccabees",
       "MAN" => "prayer-of-manasseh",
       "PS2" => "psalm-151",
       "DAG" => "daniel"  # Greek additions to Daniel
@@ -92,7 +93,7 @@ module Importers
           native_title: "World English Bible British Edition with Deuterocanon",
           work_type: "scripture_translation",
           language: "en",
-          traditions: ["χ-protestant"],
+          traditions: ["χ"],
           genre: "translation",
           license: @license,
           default_versification_scheme: @kjv_scheme,
@@ -150,14 +151,7 @@ module Importers
     end
 
     def process_verse(canonical_work, chapter, verse_n, usfm)
-      canonical_ref = CanonicalRef.where(
-        canonical_work_id: canonical_work.id,
-        hierarchy: [chapter, verse_n]
-      ).first
-      unless canonical_ref
-        bump(:verses_skipped)
-        return
-      end
+      canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse_n])
 
       body = strip_usfm(usfm)
       return if body.empty?

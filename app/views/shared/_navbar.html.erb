@@ -9,8 +9,20 @@
       </span>
     <% end %>
 
-    <%# Search input — will be enabled when search ships %>
-    <%# <form action="search_path" ... /> %>
+    <%# Search input + link to search page %>
+    <form action="<%= search_path %>" method="get" class="hidden sm:flex items-center flex-1 max-w-xs mx-4 gap-1">
+      <input type="text" name="q" value="<%= params[:q] if controller_name == 'search' %>"
+             placeholder="Search..."
+             class="w-full px-3 py-1.5 text-sm font-serif bg-[var(--color-page)] border border-[var(--color-rule)] rounded
+                    text-[var(--color-ink)] placeholder:text-[var(--color-ink-soft)]
+                    focus:outline-none focus:ring-1 focus:ring-[var(--color-link)] focus:border-[var(--color-link)]"
+             autocomplete="off">
+      <%= link_to search_path, class: "flex-shrink-0 p-1.5 text-[var(--color-ink-soft)] hover:text-[var(--color-link)] transition-colors", title: "Advanced search", aria: { label: "Open search page" } do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+      <% end %>
+    </form>
 
     <%# Desktop nav — hidden on mobile %>
     <nav aria-label="Main" class="hidden sm:flex items-center gap-x-4 text-sm font-serif flex-shrink-0">
@@ -62,6 +74,14 @@
        class="hidden sm:hidden border-t border-[var(--color-rule)] bg-[var(--color-page)]"
        data-mobile-menu-target="panel">
     <div class="max-w-6xl mx-auto px-5 py-3 flex flex-col gap-y-1 font-serif text-sm">
+      <form action="<%= search_path %>" method="get" class="px-3 py-2">
+        <input type="text" name="q" placeholder="Search..."
+               class="w-full px-3 py-1.5 text-sm font-serif bg-[var(--color-page)] border border-[var(--color-rule)] rounded
+                      text-[var(--color-ink)] placeholder:text-[var(--color-ink-soft)]
+                      focus:outline-none focus:ring-1 focus:ring-[var(--color-link)] focus:border-[var(--color-link)]"
+               autocomplete="off">
+      </form>
+      <hr class="border-[var(--color-rule)] my-1">
       <%= link_to "Read",         works_path,
             class: "px-3 py-2 rounded text-[var(--color-ink)] hover:bg-[var(--color-rule)]/50" %>
       <%= link_to "Scholars",     appeal_to_scholars_path,

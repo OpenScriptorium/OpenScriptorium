@@ -62,17 +62,18 @@ module Importers
       @nestle_work = Work.find_by!(slug: "nestle1904")
       @canonical_work_cache = {}
 
-      # Wipe existing Nestle apparatus for idempotency
-      nestle_cw_ids = @nestle_work.work_units
-                        .joins(:canonical_ref)
-                        .distinct
-                        .pluck("canonical_refs.canonical_work_id")
-      nestle_cr_ids = CanonicalRef.where(canonical_work_id: nestle_cw_ids).pluck(:id)
-      old_vus = VariantUnit.where(canonical_ref_id: nestle_cr_ids)
-      # Null out base_reading_id first to break the FK cycle
-      old_vus.update_all(base_reading_id: nil)
-      Reading.where(variant_unit_id: old_vus.select(:id)).delete_all
-      old_vus.delete_all
+      # Wipe existing Nestle apparatus for idempotency.
+      # Scope by import_run to avoid deleting CNTR apparatus data that
+      # shares the same NT canonical_refs.
+      nestle_run_ids = ImportRun.where(importer_class: self.class.name).pluck(:id)
+      old_vus = VariantUnit.where(import_run_id: nestle_run_ids)
+      if old_vus.any?
+        old_reading_ids = Reading.where(variant_unit_id: old_vus.select(:id)).pluck(:id)
+        ReadingWitness.where(reading_id: old_reading_ids).delete_all if old_reading_ids.any?
+        old_vus.update_all(base_reading_id: nil)
+        Reading.where(id: old_reading_ids).delete_all if old_reading_ids.any?
+        old_vus.delete_all
+      end
 
       entries = JSON.parse(File.read(@path))
       Rails.logger.info "[NestleApparatusImporter] loading #{entries.size} apparatus entries"

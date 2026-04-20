@@ -160,15 +160,42 @@ module Importers
         canonical_work_id: canonical_work.id,
         hierarchy: [chapter, verse]
       ).first
+
+      # Create canonical_ref if missing (morphology source has verses
+      # not in the text source)
       unless canonical_ref
-        bump(:verses_skipped_no_canonical_ref)
-        return
+        @cref_counters ||= {}
+        @cref_counters[canonical_work.id] ||= (CanonicalRef.where(canonical_work_id: canonical_work.id).maximum(:ord) || 0)
+        @cref_counters[canonical_work.id] += 1
+        canonical_ref = CanonicalRef.create!(
+          canonical_work_id: canonical_work.id,
+          hierarchy: [chapter, verse],
+          ord: @cref_counters[canonical_work.id],
+          display_label: "#{chapter}:#{verse}",
+          sbl_citation: canonical_work.format_citation([chapter, verse]),
+          import_run_id: @import_run.id
+        )
+        bump(:canonical_refs_created)
       end
 
       work_unit = WorkUnit.find_by(work_id: @rahlfs_work.id, canonical_ref_id: canonical_ref.id)
+
+      # Create work_unit if missing — reconstruct verse text from word surfaces
       unless work_unit
-        bump(:verses_skipped_no_work_unit)
-        return
+        body = words.map { |w| w[:surface] }.join(" ")
+        @wu_counters ||= {}
+        @wu_counters[@rahlfs_work.id] ||= (WorkUnit.where(work_id: @rahlfs_work.id).maximum(:ord) || 0)
+        @wu_counters[@rahlfs_work.id] += 1
+        work_unit = WorkUnit.create!(
+          work_id: @rahlfs_work.id,
+          canonical_ref_id: canonical_ref.id,
+          ord: @wu_counters[@rahlfs_work.id],
+          label: "#{chapter}:#{verse}",
+          body: body,
+          canonical_alignment_type: "exact",
+          import_run_id: @import_run.id
+        )
+        bump(:work_units_created)
       end
 
       word_attrs = words.each_with_index.map do |w, idx|

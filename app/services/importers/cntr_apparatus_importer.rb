@@ -92,6 +92,17 @@ module Importers
       bump(:manuscripts, @manuscript_cache.size)
       $stdout.puts "[CntrApparatus] #{@manuscript_cache.size} manuscripts registered"
 
+      # Wipe existing CNTR apparatus for idempotency
+      cntr_run_ids = ImportRun.where(importer_class: self.class.name).pluck(:id)
+      old_vus = VariantUnit.where(import_run_id: cntr_run_ids)
+      if old_vus.any?
+        old_reading_ids = Reading.where(variant_unit_id: old_vus.select(:id)).pluck(:id)
+        ReadingWitness.where(reading_id: old_reading_ids).delete_all if old_reading_ids.any?
+        old_vus.update_all(base_reading_id: nil)
+        Reading.where(id: old_reading_ids).delete_all if old_reading_ids.any?
+        old_vus.delete_all
+      end
+
       # Phase 2: load all SR base-text work_units keyed by canonical_ref_id
       load_base_texts!
       $stdout.puts "[CntrApparatus] #{@base_text_cache.size} SR base-text verses cached"

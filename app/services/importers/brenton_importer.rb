@@ -85,7 +85,7 @@ module Importers
       "PRM" => "prayer-of-manasseh"
     }.freeze
 
-    REF_REGEX = /\A(?<book>[A-Z0-9]{3})\s+(?<ch>\d+):(?<v>\d+)\s+(?<text>.+)\z/
+    REF_REGEX = /\A(?<book>[A-Z0-9]{3})\s+(?<ch>\d+):(?<v>\d+)(?<part>[a-z])?(?:\s+(?<text>.+))?\s*\z/
 
     def initialize(path: nil, download: nil, **opts)
       super(**opts)
@@ -122,6 +122,10 @@ module Importers
         m = REF_REGEX.match(line)
         unless m
           bump(:unparseable_lines)
+          if (@stats[:unparseable_lines]) <= 5
+            $stdout.puts "[BrentonImporter] UNPARSED: #{line.truncate(120).inspect}"
+            $stdout.flush
+          end
           next
         end
 
@@ -134,9 +138,10 @@ module Importers
 
         chapter = m[:ch].to_i
         verse_n = m[:v].to_i
-        text    = m[:text].strip
+        part    = m[:part] ? (m[:part].ord - 'a'.ord + 1) : nil
+        text    = m[:text]&.strip || ""
 
-        process_verse(slug, chapter, verse_n, text)
+        process_verse(slug, chapter, verse_n, text, part: part)
       end
 
       @work.update!(last_imported_at: Time.current,
@@ -166,7 +171,7 @@ module Importers
           native_title: "The Septuagint Version of the Old Testament: According to the Vatican Text, Translated into English",
           work_type: "scripture_translation",
           language: "en",
-          traditions: ["χ-orthodox"],
+          traditions: ["χ", "academic-old"],
           genre: "translation",
           license: @license,
           default_versification_scheme: @lxx_scheme,
@@ -180,7 +185,7 @@ module Importers
       end
     end
 
-    def process_verse(slug, chapter, verse_n, text)
+    def process_verse(slug, chapter, verse_n, text, part: nil)
       canonical_work = (@canonical_work_cache[slug] ||= CanonicalWork.find_by(slug: slug))
       unless canonical_work
         bump(:missing_canonical_work)
@@ -189,7 +194,11 @@ module Importers
       end
 
       ActiveRecord::Base.transaction do
-        canonical_ref = ensure_canonical_ref(canonical_work, chapter, verse_n)
+        canonical_ref = ensure_canonical_ref(canonical_work,
+          part ? [chapter, verse_n, part] : [chapter, verse_n],
+          label: part ? "#{chapter}:#{verse_n}#{('a'.ord + part - 1).chr}" : nil)
+
+        label = part ? "#{chapter}:#{verse_n}#{('a'.ord + part - 1).chr}" : "#{chapter}:#{verse_n}"
 
         work_unit = WorkUnit.find_or_initialize_by(
           work_id: @work.id,
@@ -198,7 +207,7 @@ module Importers
         if work_unit.new_record?
           work_unit.assign_attributes(
             ord: next_work_unit_ord,
-            label: "#{chapter}:#{verse_n}",
+            label: label,
             canonical_alignment_type: "exact"
           )
         end
@@ -213,28 +222,6 @@ module Importers
         puts "[BrentonImporter] #{@stats[:verses_processed]} verses"
         $stdout.flush
       end
-    end
-
-    def ensure_canonical_ref(canonical_work, chapter, verse_n)
-      hierarchy = [chapter, verse_n]
-      ref = CanonicalRef.where(
-        canonical_work_id: canonical_work.id,
-        hierarchy: hierarchy
-      ).first
-      return ref if ref
-
-      next_ord = (CanonicalRef.where(canonical_work_id: canonical_work.id).maximum(:ord) || 0) + 1
-      ref = CanonicalRef.new(
-        canonical_work: canonical_work,
-        ord: next_ord,
-        hierarchy: hierarchy,
-        display_label: "#{canonical_work.title} #{chapter}:#{verse_n}",
-        osis_id: canonical_work.osis_book_id && "#{canonical_work.osis_book_id}.#{chapter}.#{verse_n}"
-      )
-      stamp(ref)
-      ref.save!
-      bump(:canonical_refs_created)
-      ref
     end
 
     def next_work_unit_ord

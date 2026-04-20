@@ -83,7 +83,9 @@ module Importers
       @cw_cache = {}
       @ord = WorkUnit.where(work_id: @work.id).maximum(:ord) || 0
 
-      # Wipe for idempotency
+      # Wipe for idempotency (work_units + their notes)
+      wu_ids = WorkUnit.where(work_id: @work.id).pluck(:id)
+      WorkUnitNote.where(work_unit_id: wu_ids).delete_all if wu_ids.any?
       WorkUnit.where(work_id: @work.id).delete_all
       @ord = 0
 
@@ -106,7 +108,7 @@ module Importers
         w.assign_attributes(
           title: "Soncino English Talmud",
           native_title: nil,
-          work_type: "scripture_translation",
+          work_type: "commentary",
           language: "en",
           traditions: ["ש-rabbinic"],
           genre: "commentary",
@@ -169,46 +171,83 @@ module Importers
       html = raw.encode("UTF-8", "ISO-8859-1", invalid: :replace, undef: :replace, replace: "")
       doc = Nokogiri::HTML(html)
 
-      # Extract all text from <p> tags, split by daf markers in <h3> or <a name="PARTb">
+      # First pass: extract all footnotes keyed by anchor name (e.g. "2a_1")
+      footnotes = {}
+      doc.css("ol li").each do |li|
+        anchor = li.at_css("a[name]")
+        next unless anchor
+        key = anchor["name"]  # e.g. "2a_1", "2b_3"
+        text = li.text.gsub(/\s+/, " ").strip
+        footnotes[key] = text unless text.empty?
+      end
+
+      # Second pass: extract body text, split by daf markers
       current_daf = nil
       current_amud = nil
       current_text = []
+      current_footnote_keys = []
 
-      # Walk all elements in document order
+      just_saved_partb = false
+
       doc.css("body *").each do |node|
         # Daf marker: <h3>Folio 2a</h3> or <h3>Berakoth 2b</h3>
         if node.name == "h3"
           h3_text = node.text.strip
           if h3_text.match?(/(\d+)([ab])\s*\z/i)
-            save_amud(cw, current_daf, current_amud, current_text) if current_daf
             m = h3_text.match(/(\d+)([ab])\s*\z/i)
-            current_daf = m[1].to_i
-            current_amud = m[2].downcase == "a" ? 1 : 2
-            current_text = []
+            new_daf = m[1].to_i
+            new_amud = m[2].downcase == "a" ? 1 : 2
+
+            # Skip if PARTb already saved this transition (avoids double-save
+            # that loses footnote keys)
+            unless just_saved_partb && new_daf == current_daf && new_amud == current_amud
+              save_amud(cw, current_daf, current_amud, current_text, current_footnote_keys, footnotes) if current_daf
+              current_text = []
+              current_footnote_keys = []
+            end
+
+            current_daf = new_daf
+            current_amud = new_amud
+            just_saved_partb = false
             next
           end
         end
 
         # PARTb anchor marks the transition to amud b
         if node.name == "a" && node["name"] == "PARTb"
-          save_amud(cw, current_daf, current_amud, current_text) if current_daf
+          save_amud(cw, current_daf, current_amud, current_text, current_footnote_keys, footnotes) if current_daf
           current_amud = 2
           current_text = []
+          current_footnote_keys = []
+          just_saved_partb = true
           next
         end
 
+        # Skip OL elements (footnote lists) — already extracted above
+        next if node.name == "ol" || node.ancestors("ol").any?
+
+        # Skip content after <hr width="50%"> (footnote section separator)
+        next if node.name == "hr"
+
         # Collect text from <p> elements only
         next unless node.name == "p" && current_daf
+
+        # Capture footnote keys referenced in this paragraph
+        node.css("a[href^='#']").each do |a|
+          ref = a["href"]&.sub("#", "")
+          current_footnote_keys << ref if ref && footnotes[ref]
+        end
 
         clean = node.inner_html
           .gsub(/<a[^>]*><sup>\d+<\/sup><\/a>\s*/, "")  # strip footnote markers
           .gsub(/<[^>]+>/, "")                            # strip all tags
           .gsub(/&[a-z]+;/, " ")                          # entities
+          .gsub(/,(\d+)/, ",")                            # strip bare number after comma (inline refs like ",1")
           .gsub(/\s+/, " ").strip
         current_text << clean unless clean.empty?
       end
 
-      save_amud(cw, current_daf, current_amud, current_text) if current_daf
+      save_amud(cw, current_daf, current_amud, current_text, current_footnote_keys, footnotes) if current_daf
     end
 
     # ── PDF parsing ───────────────────────────────────────────────
@@ -236,6 +275,8 @@ module Importers
       current_daf = nil
       current_amud = nil
       current_lines = []
+      current_footnotes = []
+      in_footnotes = false
 
       text.each_line do |line|
         line = line.strip
@@ -243,18 +284,20 @@ module Importers
         # Daf header: "Talmud - Mas. Pesachim 2a" or "Talmud - Mas. Pesachim 2b"
         if line.match?(/\ATalmud\s*-\s*Mas\.\s+.+\s+(\d+)([ab])\s*\z/i)
           m = line.match(/(\d+)([ab])\s*\z/i)
-          save_amud(cw, current_daf, current_amud, current_lines) if current_daf
+          save_amud(cw, current_daf, current_amud, current_lines, nil, nil, current_footnotes) if current_daf
           current_daf = m[1].to_i
           current_amud = m[2].downcase == "a" ? 1 : 2
           current_lines = []
+          current_footnotes = []
+          in_footnotes = false
           next
         end
 
-        # Skip footnote section (starts with ____ line)
-        next if line.match?(/\A_+\z/)
-
-        # Skip footnote lines (start with (1), (2), etc.)
-        next if line.match?(/\A\(\d+\)/)
+        # Footnote section starts with ____ line
+        if line.match?(/\A_+\z/)
+          in_footnotes = true
+          next
+        end
 
         # Skip chapter headers
         next if line.match?(/\ACHAPTER\s+[IVXLC]+\s*\z/)
@@ -262,15 +305,31 @@ module Importers
         # Skip empty lines
         next if line.empty?
 
-        current_lines << line if current_daf
+        if in_footnotes
+          # Footnote line: "(1) text..." or continuation of previous footnote
+          if line.match?(/\A\((\d+)\)\s*(.*)/)
+            m = line.match(/\A\((\d+)\)\s*(.*)/)
+            current_footnotes << { number: m[1].to_i, text: m[2] }
+          elsif current_footnotes.any?
+            # Continuation of previous footnote
+            current_footnotes.last[:text] += " " + line
+          end
+        else
+          # Strip inline footnote numbers from body text
+          cleaned = line.gsub(/(\w),(\d+)/, '\1,')  # "word,1" → "word,"
+                        .gsub(/(\w)(\d+)(\s)/, '\1\3')  # "word1 " → "word " (bare trailing numbers)
+          current_lines << cleaned if current_daf
+        end
       end
 
-      save_amud(cw, current_daf, current_amud, current_lines) if current_daf
+      save_amud(cw, current_daf, current_amud, current_lines, nil, nil, current_footnotes) if current_daf
     end
 
     # ── Shared ────────────────────────────────────────────────────
 
-    def save_amud(cw, daf, amud, text_parts)
+    # HTML path: footnote_keys + footnotes_hash
+    # PDF path: pdf_footnotes (array of {number:, text:})
+    def save_amud(cw, daf, amud, text_parts, footnote_keys = nil, footnotes_hash = nil, pdf_footnotes = nil)
       return if text_parts.empty? || daf.nil? || amud.nil?
 
       cref = CanonicalRef.where(canonical_work_id: cw.id)
@@ -278,13 +337,15 @@ module Importers
                .order(:ord).first
       return unless cref
 
-      body = text_parts.join(" ").gsub(/\s+/, " ").strip
+      body = text_parts.join(" ")
+               .gsub(/\s*\d+\s*(?=[,.\s])/, " ")  # strip orphaned inline numbers
+               .gsub(/\s+/, " ").strip
       return if body.empty?
 
       label = "#{daf}#{amud == 1 ? 'a' : 'b'}"
       @ord += 1
 
-      WorkUnit.create!(
+      wu = WorkUnit.create!(
         work_id: @work.id,
         canonical_ref_id: cref.id,
         ord: @ord,
@@ -294,6 +355,38 @@ module Importers
         import_run_id: @import_run.id
       )
       bump(:amudim_created)
+
+      # Attach footnotes from HTML
+      if footnote_keys&.any? && footnotes_hash
+        footnote_keys.uniq.each_with_index do |key, idx|
+          text = footnotes_hash[key]
+          next unless text.present?
+          WorkUnitNote.create!(
+            work_unit_id: wu.id,
+            position_in_unit: idx,
+            note_type: "explanation",
+            body: text,
+            import_run_id: @import_run.id
+          )
+          bump(:notes_created)
+        end
+      end
+
+      # Attach footnotes from PDF
+      if pdf_footnotes&.any?
+        pdf_footnotes.each_with_index do |fn, idx|
+          text = fn[:text].to_s.gsub(/\s+/, " ").strip
+          next if text.empty?
+          WorkUnitNote.create!(
+            work_unit_id: wu.id,
+            position_in_unit: idx,
+            note_type: "explanation",
+            body: text,
+            import_run_id: @import_run.id
+          )
+          bump(:notes_created)
+        end
+      end
     end
 
     def find_canonical_work(slug)

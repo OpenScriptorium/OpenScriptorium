@@ -11,9 +11,10 @@
 
   <header class="border-b border-[var(--color-rule)] pb-6 mb-8">
     <h1 class="font-serif text-4xl text-[var(--color-ink)]"><%= @canonical_work.display_title %></h1>
-    <% if @canonical_work.native_title.present? %>
+    <% display_native = @canonical_work.native_title_for(@work.language) %>
+    <% if display_native.present? && display_native != @canonical_work.display_title %>
       <p class="text-2xl font-serif text-[var(--color-ink-soft)] mt-2" lang="<%= @work.language %>">
-        <%= @canonical_work.native_title %>
+        <%= display_native %>
       </p>
     <% end %>
     <p class="text-sm text-[var(--color-ink-soft)] mt-3">

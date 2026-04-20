@@ -132,7 +132,7 @@ module Importers
         FileUtils.mkdir_p(@dir)
         zip_path = File.join(@dir, "cross-references.zip")
         URI.open(SOURCE_URL) { |io| File.binwrite(zip_path, io.read) }
-        system("unzip", "-o", zip_path, "-d", @dir, out: File::NULL) or raise "unzip failed"
+        system("unzip", "-o", zip_path, "-d", @dir.to_s, out: File::NULL) or raise "unzip failed"
         bump(:downloaded)
       end
     end
@@ -200,7 +200,7 @@ module Importers
         return nil
       end
 
-      confidence = [votes / 100.0, 1.0].min.round(3)
+      confidence = [[votes / 100.0, 0.0].max, 1.0].min.round(3)
 
       {
         source_canonical_work_id: from_ref.canonical_work_id,

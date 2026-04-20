@@ -186,6 +186,24 @@ module Importers
       @work = ensure_work
       @canonical_work_cache = {}
 
+      # Pre-load existing work_units for this work to avoid N+1 SELECTs.
+      existing_units = WorkUnit.where(work_id: @work.id)
+                               .pluck(:canonical_ref_id, :id, :body, :ord)
+      @existing_unit_map = {}
+      existing_units.each do |cref_id, id, body, ord|
+        @existing_unit_map[cref_id] = { id: id, body: body, ord: ord }
+      end
+
+      # Pre-load existing note counts per work_unit to skip delete+reinsert
+      # when nothing changed.
+      @existing_note_counts = WorkUnitNote.joins(:work_unit)
+                                          .where(work_units: { work_id: @work.id })
+                                          .group(:work_unit_id)
+                                          .count
+
+      @wu_insert_batch = []
+      @notes_insert_batch = []
+
       Rails.logger.info "[KjvaImporter] parsing notes"
       @notes_by_ref = parse_notes_file
       Rails.logger.info "[KjvaImporter] parsed #{@notes_by_ref.values.sum(&:size)} notes"
@@ -196,6 +214,9 @@ module Importers
       data["books"].each do |book_data|
         process_book(book_data)
       end
+
+      flush_work_unit_inserts!
+      flush_notes_inserts!
 
       @work.update!(last_imported_at: Time.current,
                     imported_at: @work.imported_at || Time.current,
@@ -401,25 +422,10 @@ module Importers
 
       # Populate canonical_refs for the new canonical_work from KJVA's
       # own structure.
-      ord = 0
       book_data["chapters"].each do |chapter_data|
         chapter = chapter_data["chapter"]
         chapter_data["verses"].each do |v|
-          ord += 1
-          ref = CanonicalRef.find_or_initialize_by(
-            canonical_work_id: cw.id,
-            hierarchy: [chapter, v["verse"]]
-          )
-          if ref.new_record?
-            ref.assign_attributes(
-              ord:           ord,
-              display_label: "#{cw.title} #{chapter}:#{v['verse']}",
-              osis_id:       cw.osis_book_id && "#{cw.osis_book_id}.#{chapter}.#{v['verse']}"
-            )
-            stamp(ref)
-            ref.save!
-            bump(:canonical_refs_created)
-          end
+          ensure_canonical_ref(cw, [chapter, v["verse"]])
         end
       end
 
@@ -459,57 +465,114 @@ module Importers
     end
 
     def process_verse(canonical_work, slug, chapter, verse_n, text)
-      canonical_ref = CanonicalRef.where(canonical_work_id: canonical_work.id,
-                                          hierarchy: [chapter, verse_n]).first
-      unless canonical_ref
-        bump(:verses_skipped_no_canonical_ref)
-        return
-      end
+      canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse_n])
 
-      ActiveRecord::Base.transaction do
-        work_unit = WorkUnit.find_or_initialize_by(
-          work_id: @work.id,
-          canonical_ref_id: canonical_ref.id
-        )
-        if work_unit.new_record?
-          work_unit.assign_attributes(
-            ord: next_work_unit_ord,
-            label: "#{chapter}:#{verse_n}",
-            canonical_alignment_type: "exact"
+      existing = @existing_unit_map[canonical_ref.id]
+      now = Time.current
+      notes = @notes_by_ref[[slug, chapter, verse_n]]
+
+      if existing
+        # Update body if changed
+        if existing[:body] != text
+          WorkUnit.where(id: existing[:id]).update_all(
+            body: text,
+            import_run_id: @import_run.id,
+            updated_at: now
           )
+          bump(:verses_updated)
         end
-        work_unit.body = text
-        stamp(work_unit)
-        work_unit.save!
 
-        # Attach any marginal notes for this verse. Note that the
-        # `slug` here is the ORIGINAL book slug (e.g. "tobit"), not the
-        # `*-kjv` variant — the notes file uses the original name.
-        attach_notes(work_unit, slug, chapter, verse_n)
+        # Re-attach notes only if the count differs (heuristic for
+        # idempotency — on a clean re-run the count will match).
+        if notes.any?
+          existing_count = @existing_note_counts[existing[:id]] || 0
+          if existing_count != notes.size
+            WorkUnitNote.where(work_unit_id: existing[:id]).delete_all
+            collect_notes(existing[:id], notes)
+          else
+            bump(:notes_unchanged, notes.size)
+          end
+        end
+      else
+        ord = next_work_unit_ord
+        @wu_insert_batch << {
+          work_id: @work.id,
+          canonical_ref_id: canonical_ref.id,
+          ord: ord,
+          label: "#{chapter}:#{verse_n}",
+          body: text,
+          canonical_alignment_type: "exact",
+          markup: {},
+          import_run_id: @import_run.id,
+          created_at: now,
+          updated_at: now
+        }
 
-        bump(:verses_imported)
+        # Notes for newly-inserted work_units need their work_unit_id.
+        # We defer these: after flushing the WU batch, we look up IDs
+        # and then insert notes. Store them keyed by canonical_ref_id.
+        if notes.any?
+          @deferred_notes ||= {}
+          @deferred_notes[canonical_ref.id] = notes
+        end
+
+        flush_work_unit_inserts_and_notes! if @wu_insert_batch.size >= 2000
       end
+
+      bump(:verses_imported)
     end
 
-    def attach_notes(work_unit, slug, chapter, verse_n)
-      notes = @notes_by_ref[[slug, chapter, verse_n]]
-      return if notes.empty?
-
-      # Idempotency: clear existing notes for this work_unit before re-adding
-      WorkUnitNote.where(work_unit_id: work_unit.id).delete_all
-
+    def collect_notes(work_unit_id, notes)
+      now = Time.current
       notes.each_with_index do |n, idx|
-        wun = WorkUnitNote.new(
-          work_unit:        work_unit,
+        @notes_insert_batch << {
+          work_unit_id:    work_unit_id,
           position_in_unit: idx,
-          note_type:        n[:type],
-          anchor_text:      n[:anchor],
-          body:             n[:body]
-        )
-        stamp(wun)
-        wun.save!
+          note_type:       n[:type],
+          anchor_text:     n[:anchor],
+          body:            n[:body],
+          import_run_id:   @import_run.id,
+          created_at:      now,
+          updated_at:      now
+        }
         bump(:notes_created)
       end
+      flush_notes_inserts! if @notes_insert_batch.size >= 2000
+    end
+
+    # Flush work_unit inserts, then look up the newly-created IDs to
+    # attach any deferred notes.
+    def flush_work_unit_inserts_and_notes!
+      return if @wu_insert_batch.empty?
+
+      WorkUnit.insert_all(@wu_insert_batch)
+
+      # Look up the IDs of newly-inserted work_units for deferred notes.
+      if @deferred_notes.present?
+        cref_ids = @deferred_notes.keys
+        new_units = WorkUnit.where(work_id: @work.id, canonical_ref_id: cref_ids)
+                            .pluck(:canonical_ref_id, :id)
+        id_map = new_units.to_h
+
+        @deferred_notes.each do |cref_id, notes|
+          wu_id = id_map[cref_id]
+          next unless wu_id
+          collect_notes(wu_id, notes)
+        end
+        @deferred_notes = {}
+      end
+
+      @wu_insert_batch = []
+    end
+
+    def flush_work_unit_inserts!
+      flush_work_unit_inserts_and_notes!
+    end
+
+    def flush_notes_inserts!
+      return if @notes_insert_batch.empty?
+      WorkUnitNote.insert_all(@notes_insert_batch)
+      @notes_insert_batch = []
     end
 
     def next_work_unit_ord

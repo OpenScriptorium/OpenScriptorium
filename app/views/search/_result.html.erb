@@ -1,0 +1,51 @@
+<%# Single search result — citation link, snippet, work badge %>
+<article class="py-3 border-b border-[var(--color-rule)] last:border-b-0">
+  <div class="flex items-baseline gap-2 mb-1">
+    <% reader_path = "/#{result[:work_slug]}/#{result[:book_slug]}/#{result[:hierarchy][0]}/#{result[:hierarchy][1]}" %>
+    <%= link_to result[:citation], reader_path,
+          class: "font-serif text-sm font-bold text-[var(--color-link)] hover:underline" %>
+    <span class="text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5
+                 border border-[var(--color-rule)] text-[var(--color-ink-soft)]">
+      <%= result[:work_slug] %>
+    </span>
+    <% if result[:word_surface] %>
+      <span class="text-xs font-serif text-[var(--color-ink-soft)]">
+        &middot; <%= result[:word_surface] %>
+        <% if result[:morph_code] %>
+          (<code class="text-[10px]"><%= result[:morph_code] %></code>)
+        <% end %>
+      </span>
+    <% end %>
+    <% if result[:syntax_roles].present? %>
+      <span class="text-[10px] font-mono text-[var(--color-ink-soft)] ml-1">
+        <%= result[:syntax_roles] %>
+      </span>
+    <% end %>
+    <% if result[:alias_match] %>
+      <span class="text-[10px] font-mono tracking-wider rounded px-1.5 py-0.5
+                   bg-[var(--color-link)]/10 text-[var(--color-link)] border border-[var(--color-link)]/30">
+        named passage
+      </span>
+    <% end %>
+    <% if result[:pericope_name].present? %>
+      <span class="text-[10px] font-serif italic text-[var(--color-ink-soft)] ml-1">
+        &mdash; <%= result[:pericope_name] %>
+      </span>
+    <% end %>
+  </div>
+  <p class="font-serif text-sm leading-relaxed text-[var(--color-ink)]
+            [&>mark]:bg-yellow-200 [&>mark]:dark:bg-yellow-800/50 [&>mark]:rounded-sm [&>mark]:px-0.5">
+    <%= sanitize result[:headline], tags: %w[mark], attributes: [] %>
+  </p>
+  <% if %w[wlc nestle1904].include?(result[:work_slug]) && result[:hierarchy]&.size&.>=(2) %>
+    <details class="mt-1">
+      <summary class="text-[10px] font-mono text-[var(--color-ink-soft)] cursor-pointer hover:text-[var(--color-link)]">
+        syntax tree
+      </summary>
+      <div class="mt-2 p-3 bg-[var(--color-page)] border border-[var(--color-rule)] rounded text-xs"
+           data-controller="syntax-tree"
+           data-syntax-tree-url-value="/api/v1/syntax/<%= result[:work_slug] %>/<%= result[:book_slug] %>/<%= result[:hierarchy][0] %>/<%= result[:hierarchy][1] %>">
+      </div>
+    </details>
+  <% end %>
+</article>

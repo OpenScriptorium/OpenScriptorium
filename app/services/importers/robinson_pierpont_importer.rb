@@ -88,9 +88,22 @@ module Importers
       @work = ensure_work
       @canonical_work_cache = {}
 
+      # Pre-load existing work_units for this work to avoid N+1 SELECTs.
+      existing_units = WorkUnit.where(work_id: @work.id)
+                               .pluck(:canonical_ref_id, :id, :body, :ord)
+      @existing_unit_map = {}
+      existing_units.each do |cref_id, id, body, ord|
+        @existing_unit_map[cref_id] = { id: id, body: body, ord: ord }
+      end
+
+      @wu_insert_batch = []
+      @words_insert_batch = []
+      @deferred_word_data = []  # [{canonical_ref_id:, word_attrs_template: [...]}, ...]
+
       BOOK_FILES.each do |code, slug|
         canonical_work = (@canonical_work_cache[slug] ||= CanonicalWork.find_by!(slug: slug))
         process_book(code, canonical_work)
+        flush_all_batches!
         puts "[RobinsonPierpontImporter] #{code} (#{slug}) done — #{@stats[:verses_processed]} verses, #{@stats[:words_processed]} words"
         $stdout.flush
       end
@@ -171,64 +184,90 @@ module Importers
     end
 
     def process_verse(canonical_work, chapter, verse_n, body, strongs_text)
-      ActiveRecord::Base.transaction do
-        canonical_ref = CanonicalRef.find_by(
-          canonical_work_id: canonical_work.id,
-          hierarchy: [chapter, verse_n]
-        )
-        unless canonical_ref
-          # Pericope Adulterae and similar verses may not exist in the
-          # canonical layer if BSB skipped them. Create on demand.
-          canonical_ref = ensure_canonical_ref(canonical_work, chapter, verse_n)
+      canonical_ref = CanonicalRef.find_by(
+        canonical_work_id: canonical_work.id,
+        hierarchy: [chapter, verse_n]
+      )
+      unless canonical_ref
+        # Pericope Adulterae and similar verses may not exist in the
+        # canonical layer if BSB skipped them. Create on demand.
+        canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse_n])
+      end
+
+      # Strip pilcrow (¶) markers used to mark paragraph breaks; we
+      # represent paragraphs via markup later. Keep punctuation.
+      clean_body = body.gsub(/\A¶/, "").strip
+      now = Time.current
+
+      # Pre-parse word data (needs lemma lookups which we do eagerly).
+      parsed_words = nil
+      if strongs_text.present?
+        parsed_words = parse_strongs_words(strongs_text).each_with_index.map do |(surface, strongs, morph), idx|
+          lemma = ensure_lemma(surface, strongs)
+          {
+            work_id:        @work.id,
+            position:       idx + 1,
+            surface:        surface,
+            normalized:     normalize_greek(surface),
+            lemma_id:       lemma&.id,
+            morph_code:     morph,
+            strongs_number: strongs,
+            import_run_id:  @import_run.id,
+            notes:          {},
+            created_at:     now,
+            updated_at:     now
+          }
         end
+      end
 
-        work_unit = WorkUnit.find_or_initialize_by(
-          work_id: @work.id,
-          canonical_ref_id: canonical_ref.id
-        )
+      existing = @existing_unit_map[canonical_ref.id]
 
-        if work_unit.new_record?
-          work_unit.assign_attributes(
-            ord: next_work_unit_ord(@work),
-            label: "#{chapter}:#{verse_n}",
-            canonical_alignment_type: "exact"
+      if existing
+        # Update body if changed
+        if existing[:body] != clean_body
+          WorkUnit.where(id: existing[:id]).update_all(
+            body: clean_body,
+            import_run_id: @import_run.id,
+            updated_at: now
           )
         end
 
-        # Strip pilcrow (¶) markers used to mark paragraph breaks; we
-        # represent paragraphs via markup later. Keep punctuation.
-        clean_body = body.gsub(/\A¶/, "").strip
-        work_unit.body = clean_body
-        stamp(work_unit)
-        work_unit.save!
+        # Re-insert words for existing work_units (delete + batch insert)
+        Word.where(work_unit_id: existing[:id]).delete_all
+        if parsed_words&.any?
+          parsed_words.each { |w| w[:work_unit_id] = existing[:id] }
+          @words_insert_batch.concat(parsed_words)
+          bump(:words_processed, parsed_words.size)
+          flush_words! if @words_insert_batch.size >= 3000
+        end
+      else
+        ord = next_work_unit_ord(@work)
+        @wu_insert_batch << {
+          work_id: @work.id,
+          canonical_ref_id: canonical_ref.id,
+          ord: ord,
+          label: "#{chapter}:#{verse_n}",
+          body: clean_body,
+          canonical_alignment_type: "exact",
+          markup: {},
+          import_run_id: @import_run.id,
+          created_at: now,
+          updated_at: now
+        }
 
-        Word.where(work_unit_id: work_unit.id).delete_all
-
-        if strongs_text.present?
-          word_attrs = parse_strongs_words(strongs_text).each_with_index.map do |(surface, strongs, morph), idx|
-            lemma = ensure_lemma(surface, strongs)
-            {
-              work_id:        @work.id,
-              work_unit_id:   work_unit.id,
-              position:       idx + 1,
-              surface:        surface,
-              normalized:     normalize_greek(surface),
-              lemma_id:       lemma&.id,
-              morph_code:     morph,
-              strongs_number: strongs,
-              import_run_id:  @import_run.id,
-              notes:          {},
-              created_at:     Time.current,
-              updated_at:     Time.current
-            }
-          end
-
-          Word.insert_all(word_attrs) if word_attrs.any?
-          bump(:words_processed, word_attrs.size)
+        # Defer words for newly-inserted work_units — we need the WU ID.
+        if parsed_words&.any?
+          @deferred_word_data << {
+            canonical_ref_id: canonical_ref.id,
+            word_attrs: parsed_words
+          }
+          bump(:words_processed, parsed_words.size)
         end
 
-        bump(:verses_processed)
+        flush_all_batches! if @wu_insert_batch.size >= 2000
       end
+
+      bump(:verses_processed)
     end
 
     # Parse `word 976 {N-NSF} word 1078 {N-GSF} ...` into [[word, strongs, morph], ...]
@@ -241,20 +280,39 @@ module Importers
       end.compact
     end
 
-    def ensure_canonical_ref(canonical_work, chapter, verse_n)
-      hierarchy = [chapter, verse_n]
-      next_ord = (CanonicalRef.where(canonical_work_id: canonical_work.id).maximum(:ord) || 0) + 1
-      ref = CanonicalRef.new(
-        canonical_work: canonical_work,
-        ord: next_ord,
-        hierarchy: hierarchy,
-        display_label: "#{canonical_work.title} #{chapter}:#{verse_n}",
-        osis_id: canonical_work.osis_book_id && "#{canonical_work.osis_book_id}.#{chapter}.#{verse_n}"
-      )
-      stamp(ref)
-      ref.save!
-      bump(:canonical_refs_created)
-      ref
+    def flush_all_batches!
+      flush_work_units_and_deferred_words!
+      flush_words!
+    end
+
+    def flush_work_units_and_deferred_words!
+      return if @wu_insert_batch.empty?
+
+      WorkUnit.insert_all(@wu_insert_batch)
+
+      # Look up the IDs of newly-inserted work_units for deferred words.
+      if @deferred_word_data.any?
+        cref_ids = @deferred_word_data.map { |d| d[:canonical_ref_id] }
+        new_units = WorkUnit.where(work_id: @work.id, canonical_ref_id: cref_ids)
+                            .pluck(:canonical_ref_id, :id)
+        id_map = new_units.to_h
+
+        @deferred_word_data.each do |deferred|
+          wu_id = id_map[deferred[:canonical_ref_id]]
+          next unless wu_id
+          deferred[:word_attrs].each { |w| w[:work_unit_id] = wu_id }
+          @words_insert_batch.concat(deferred[:word_attrs])
+        end
+        @deferred_word_data = []
+      end
+
+      @wu_insert_batch = []
+    end
+
+    def flush_words!
+      return if @words_insert_batch.empty?
+      Word.insert_all(@words_insert_batch)
+      @words_insert_batch = []
     end
 
     def next_work_unit_ord(work)

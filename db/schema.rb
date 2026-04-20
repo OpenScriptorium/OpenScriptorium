@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_10_224101) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_13_001603) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "ltree"
@@ -117,6 +117,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_224101) do
     t.index ["hierarchy"], name: "index_canonical_refs_on_hierarchy", using: :gin
     t.index ["import_run_id"], name: "index_canonical_refs_on_import_run_id"
     t.index ["osis_id"], name: "index_canonical_refs_on_osis_id"
+    t.index ["sbl_citation"], name: "idx_canonical_refs_citation_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["sbl_citation"], name: "index_canonical_refs_on_sbl_citation"
   end
 
@@ -222,11 +223,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_224101) do
     t.jsonb "senses", default: [], null: false
     t.string "transliteration"
     t.datetime "updated_at", null: false
+    t.index "to_tsvector('english'::regconfig, (COALESCE(primary_gloss, ''::character varying))::text)", name: "idx_lemmas_gloss_fts", using: :gin
     t.index ["import_run_id"], name: "index_lemmas_on_import_run_id"
     t.index ["language", "lemma"], name: "index_lemmas_on_language_and_lemma", unique: true
     t.index ["language", "normalized"], name: "index_lemmas_on_language_and_normalized"
     t.index ["lexicon_entry_id"], name: "index_lemmas_on_lexicon_entry_id"
+    t.index ["normalized"], name: "idx_lemmas_normalized_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["related_lemma_ids"], name: "index_lemmas_on_related_lemma_ids", using: :gin
+    t.index ["transliteration"], name: "idx_lemmas_transliteration_trgm", opclass: :gin_trgm_ops, using: :gin
   end
 
   create_table "licenses", force: :cascade do |t|
@@ -483,7 +487,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_224101) do
     t.bigint "work_unit_id", null: false
     t.index ["import_run_id"], name: "index_words_on_import_run_id"
     t.index ["lemma_id"], name: "index_words_on_lemma_id"
+    t.index ["normalized"], name: "idx_words_normalized_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["strongs_number"], name: "index_words_on_strongs_number"
+    t.index ["surface"], name: "idx_words_surface_trgm", opclass: :gin_trgm_ops, using: :gin
+    t.index ["work_id", "morph_code"], name: "idx_words_work_morph"
     t.index ["work_id"], name: "index_words_on_work_id"
     t.index ["work_unit_id", "position"], name: "index_words_on_work_unit_id_and_position"
     t.index ["work_unit_id"], name: "index_words_on_work_unit_id"
@@ -518,6 +525,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_224101) do
 
   create_table "work_units", force: :cascade do |t|
     t.text "body"
+    t.tsvector "body_tsvector"
     t.decimal "canonical_alignment_confidence", precision: 4, scale: 3
     t.string "canonical_alignment_type", default: "exact"
     t.bigint "canonical_ref_id"
@@ -531,6 +539,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_224101) do
     t.integer "position"
     t.datetime "updated_at", null: false
     t.bigint "work_id", null: false
+    t.index ["body_tsvector"], name: "idx_work_units_body_tsvector", using: :gin
     t.index ["canonical_ref_id"], name: "index_work_units_on_canonical_ref_id"
     t.index ["import_run_id"], name: "index_work_units_on_import_run_id"
     t.index ["parent_id", "position"], name: "index_work_units_on_parent_id_and_position"

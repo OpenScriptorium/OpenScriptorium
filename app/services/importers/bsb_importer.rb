@@ -84,6 +84,17 @@ module Importers
       kjv_scheme = VersificationScheme.find_by!(code: "KJV")
       canonical_work_cache = {}
 
+      # Pre-load existing work_units for this work to avoid N+1 SELECTs.
+      existing_units = WorkUnit.where(work_id: bsb.id)
+                               .pluck(:canonical_ref_id, :id, :body, :ord)
+      @existing_unit_map = {}
+      existing_units.each do |cref_id, id, body, ord|
+        @existing_unit_map[cref_id] = { id: id, body: body, ord: ord }
+      end
+
+      @wu_insert_batch = []
+      @wu_update_batch = []
+
       File.open(@path, "r:bom|utf-8") do |f|
         f.each_line.with_index do |line, idx|
           # First three lines are metadata + header
@@ -108,10 +119,13 @@ module Importers
           canonical_work = canonical_work_cache[slug] ||=
             CanonicalWork.find_by!(slug: slug)
 
-          canonical_ref = ensure_canonical_ref(canonical_work, chapter, verse)
-          ensure_work_unit(bsb, canonical_ref, chapter, verse, text)
+          canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse])
+          collect_work_unit(bsb, canonical_ref, chapter, verse, text)
         end
       end
+
+      flush_work_unit_inserts!(bsb)
+      flush_work_unit_updates!
 
       bsb.update!(last_imported_at: Time.current,
                   imported_at: bsb.imported_at || Time.current,
@@ -157,49 +171,61 @@ module Importers
       [m[:book].strip, m[:ch].to_i, m[:v].to_i]
     end
 
-    # Compute the canonical_refs.ord by counting how many refs already
-    # exist for this canonical_work plus 1. Since BSB iterates verses in
-    # canonical order, this gives a stable sequential ordinal per work.
-    def ensure_canonical_ref(canonical_work, chapter, verse)
-      hierarchy = [chapter, verse]
-      ref = CanonicalRef
-              .where(canonical_work_id: canonical_work.id, hierarchy: hierarchy)
-              .first
-      return ref if ref
+    # Collect a work_unit row into the appropriate batch (insert or update).
+    def collect_work_unit(work, canonical_ref, chapter, verse, text)
+      existing = @existing_unit_map[canonical_ref.id]
+      now = Time.current
 
-      next_ord = (CanonicalRef.where(canonical_work_id: canonical_work.id).maximum(:ord) || 0) + 1
-      ref = CanonicalRef.new(
-        canonical_work: canonical_work,
-        ord: next_ord,
-        hierarchy: hierarchy,
-        display_label: "#{canonical_work.title} #{chapter}:#{verse}",
-        osis_id: canonical_work.osis_book_id && "#{canonical_work.osis_book_id}.#{chapter}.#{verse}"
-      )
-      stamp(ref)
-      ref.save!
-      bump(:canonical_refs_created)
-      ref
+      if existing
+        # Only update if body actually changed
+        if existing[:body] != text.strip
+          @wu_update_batch << {
+            id: existing[:id],
+            work_id: work.id,
+            ord: existing[:ord],
+            body: text.strip,
+            label: "#{chapter}:#{verse}",
+            canonical_alignment_type: "exact",
+            markup: {},
+            import_run_id: @import_run.id,
+            created_at: now,
+            updated_at: now
+          }
+          bump(:work_units_updated)
+          flush_work_unit_updates! if @wu_update_batch.size >= 2000
+        else
+          bump(:work_units_unchanged)
+        end
+      else
+        ord = next_work_unit_ord(work)
+        @wu_insert_batch << {
+          work_id: work.id,
+          canonical_ref_id: canonical_ref.id,
+          ord: ord,
+          label: "#{chapter}:#{verse}",
+          body: text.strip,
+          canonical_alignment_type: "exact",
+          markup: {},
+          import_run_id: @import_run.id,
+          created_at: now,
+          updated_at: now
+        }
+        bump(:work_units_created)
+        flush_work_unit_inserts!(work) if @wu_insert_batch.size >= 2000
+      end
     end
 
-    def ensure_work_unit(work, canonical_ref, chapter, verse, text)
-      unit = WorkUnit.find_or_initialize_by(work_id: work.id, canonical_ref_id: canonical_ref.id)
-      unit_was_new = unit.new_record?
+    def flush_work_unit_inserts!(work)
+      return if @wu_insert_batch.empty?
+      WorkUnit.insert_all(@wu_insert_batch)
+      @wu_insert_batch = []
+    end
 
-      next_ord = unit_was_new ? next_work_unit_ord(work) : unit.ord
-      unit.assign_attributes(
-        ord: next_ord,
-        label: "#{chapter}:#{verse}",
-        body: text.strip,
-        canonical_alignment_type: "exact"
-      )
-
-      stamp(unit)
-      if unit.changed?
-        unit.save!
-        bump(unit_was_new ? :work_units_created : :work_units_updated)
-      else
-        bump(:work_units_unchanged)
-      end
+    def flush_work_unit_updates!
+      return if @wu_update_batch.empty?
+      # Batch updates via upsert_all on the primary key
+      WorkUnit.upsert_all(@wu_update_batch, unique_by: :id)
+      @wu_update_batch = []
     end
 
     def next_work_unit_ord(work)

@@ -1,5 +1,5 @@
 class AboutController < ApplicationController
-  allow_unauthenticated_access only: [:architecture, :schema, :principles, :appeal_to_scholars, :appeal_to_publishers, :downloads, :jslicense, :sitemap_index, :sitemap]
+  allow_unauthenticated_access only: [:architecture, :search_architecture, :schema, :principles, :appeal_to_scholars, :appeal_to_publishers, :downloads, :jslicense, :sitemap_index, :sitemap]
 
   def sitemap_index
     send_file Rails.root.join("public/sitemap.xml"), type: "application/xml", disposition: :inline
@@ -39,6 +39,9 @@ class AboutController < ApplicationController
   }.freeze
 
   def architecture
+  end
+
+  def search_architecture
   end
 
   def principles

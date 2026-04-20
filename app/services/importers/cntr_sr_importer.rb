@@ -89,7 +89,7 @@ module Importers
           native_title: "Η ΚΑΙΝΗ ΔΙΑΘΗΚΗ",
           work_type: "scripture_original",
           language: "el-koine",
-          traditions: ["academic"],
+          traditions: ["academic", "χ"],
           genre: "original",
           license: @license,
           default_versification_scheme: @kjv_scheme,
@@ -117,14 +117,7 @@ module Importers
       canonical_work = (@canonical_work_cache[slug] ||= CanonicalWork.find_by(slug: slug))
       return unless canonical_work
 
-      canonical_ref = CanonicalRef.where(
-        canonical_work_id: canonical_work.id,
-        hierarchy: [chapter, verse_n]
-      ).first
-      unless canonical_ref
-        bump(:verses_skipped_no_canonical_ref)
-        return
-      end
+      canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse_n])
 
       # Create or update work_unit
       work_unit = WorkUnit.find_or_initialize_by(

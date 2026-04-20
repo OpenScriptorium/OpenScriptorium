@@ -96,3 +96,7 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+gem "neighbor"
+
+gem "onnxruntime", "~> 0.11.1"
+gem "tokenizers", "~> 0.6.4"

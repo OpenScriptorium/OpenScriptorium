@@ -1,0 +1,49 @@
+<%# Language sidebar — shows source-language lemma matches.
+    Used twice: Hebrew on the left (RTL), Greek on the right (LTR). %>
+<%
+  decode_entities = ->(s) { s&.gsub(/&#(\d+);?/) { [$1.to_i].pack("U") } }
+%>
+<div class="border border-[var(--color-rule)] rounded-lg p-4 sticky top-20">
+  <h3 class="font-serif text-xs uppercase tracking-wider text-[var(--color-ink-soft)] mb-3"
+      dir="ltr">
+    <%= label %>
+  </h3>
+
+  <div class="space-y-3">
+    <% entries.each_with_index do |entry, i| %>
+      <div class="<%= 'pt-3 border-t border-[var(--color-rule)]' unless i == 0 %>">
+        <p class="<%= i == 0 ? 'text-2xl' : 'text-xl' %> leading-tight text-center"
+           dir="<%= dir %>">
+          <%= entry[:lemma] %>
+        </p>
+        <% if entry[:transliteration].present? %>
+          <p class="font-serif text-xs italic text-[var(--color-ink-soft)] text-center mt-0.5"
+             dir="ltr">
+            <%= entry[:transliteration] %>
+          </p>
+        <% end %>
+
+        <dl class="font-serif text-xs space-y-0.5 mt-1.5" dir="ltr">
+          <% if entry[:primary_gloss].present? %>
+            <div class="flex items-baseline gap-1">
+              <dt class="text-[var(--color-ink-soft)] shrink-0">gloss</dt>
+              <dd class="text-[var(--color-ink)]"><%= decode_entities.(entry[:primary_gloss]) %></dd>
+            </div>
+          <% end %>
+          <% if entry[:part_of_speech].present? %>
+            <div class="flex items-baseline gap-1">
+              <dt class="text-[var(--color-ink-soft)] shrink-0">pos</dt>
+              <dd class="text-[var(--color-ink)]"><%= entry[:part_of_speech] %></dd>
+            </div>
+          <% end %>
+          <% if entry[:frequency].present? && entry[:frequency] > 0 %>
+            <div class="flex items-baseline gap-1">
+              <dt class="text-[var(--color-ink-soft)] shrink-0">freq</dt>
+              <dd class="text-[var(--color-ink)]"><%= number_with_delimiter(entry[:frequency]) %></dd>
+            </div>
+          <% end %>
+        </dl>
+      </div>
+    <% end %>
+  </div>
+</div>

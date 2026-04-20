@@ -151,14 +151,7 @@ module Importers
     end
 
     def process_verse(canonical_work, chapter, verse_n, text)
-      canonical_ref = CanonicalRef.where(
-        canonical_work_id: canonical_work.id,
-        hierarchy: [chapter, verse_n]
-      ).first
-      unless canonical_ref
-        bump(:verses_skipped_no_canonical_ref)
-        return
-      end
+      canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse_n])
 
       body = text.to_s.gsub(/\s+/, " ").strip
       return if body.empty?

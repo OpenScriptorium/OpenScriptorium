@@ -157,6 +157,17 @@ module Importers
       @work = ensure_work
       @canonical_work_cache = {}
 
+      # Pre-load existing work_units for this work to avoid N+1 SELECTs.
+      existing_units = WorkUnit.where(work_id: @work.id)
+                               .pluck(:canonical_ref_id, :id, :body, :ord)
+      @existing_unit_map = {}
+      existing_units.each do |cref_id, id, body, ord|
+        @existing_unit_map[cref_id] = { id: id, body: body, ord: ord }
+      end
+
+      @wu_insert_batch = []
+      @wu_update_batch = []
+
       # Load all Greek words into memory keyed by global word_id.
       # The text_accented.csv file is ~10 MB; this fits comfortably.
       Rails.logger.info "[RahlfsImporter] loading word table"
@@ -173,10 +184,15 @@ module Importers
         process_verse(start_word_id, end_word_id, ref_str)
 
         if (idx + 1) % 1000 == 0
+          flush_work_unit_inserts!
+          flush_work_unit_updates!
           puts "[RahlfsImporter] #{idx + 1}/#{verses.size} verses, processed=#{@stats[:verses_processed]}, skipped=#{@stats[:skipped_unmapped_book] || 0}"
           $stdout.flush
         end
       end
+
+      flush_work_unit_inserts!
+      flush_work_unit_updates!
 
       @work.update!(last_imported_at: Time.current,
                     imported_at: @work.imported_at || Time.current,
@@ -268,6 +284,19 @@ module Importers
     #                      canonical_refs.
     REF_VV_REGEX     = /\A(?<book>.+?)\s+(?<ch>\d+):(?<v>\d+)(?<part>[a-z])?\z/
     REF_SINGLE_REGEX = /\A(?<book>.+?)\s+(?<v>\d+)\z/
+    # Single-chapter with sub-verse: "Sus 35a"
+    REF_SINGLE_PART  = /\A(?<book>.+?)\s+(?<v>\d+)(?<part>[a-z])\z/
+    # Prolog/named chapter: "Sir Prolog:1"
+    REF_NAMED_CH     = /\A(?<book>.+?)\s+(?<ch>[A-Za-z]+):(?<v>\d+)(?<part>[a-z])?\z/
+    # Range: "Dan 5:26-28" or "Bel 15-17"
+    REF_RANGE_REGEX  = /\A(?<book>.+?)\s+(?:(?<ch>\d+):)?(?<v1>\d+)[-–](?<v2>\d+)\z/
+    # Split versification: "Jer 7:27/28" or "Bel 31/32"
+    REF_SPLIT_REGEX  = /\A(?<book>.+?)\s+(?:(?<ch>\d+):)?(?<v1>\d+)\/(?<v2>\d+)\z/
+    # Book-only (superscription/title): "PsSol", "EpJer", "Lam", "Dan"
+    REF_BOOK_ONLY    = /\A(?<book>[A-Za-z]+)\z/
+
+    # Named chapters mapped to chapter numbers
+    NAMED_CHAPTERS = { "Prolog" => 0 }.freeze
 
     def process_verse(start_word_id, end_word_id, ref_str)
       book_code = nil
@@ -280,11 +309,48 @@ module Importers
         chapter   = m[:ch].to_i
         verse_n   = m[:v].to_i
         part      = m[:part] ? (m[:part].ord - 'a'.ord + 1) : nil
-      elsif (m = REF_SINGLE_REGEX.match(ref_str))
+      elsif (m = REF_NAMED_CH.match(ref_str))
+        # Named chapter like "Sir Prolog:1"
         book_code = m[:book]
-        # Single-chapter books: bare verse number maps to chapter 1.
+        chapter   = NAMED_CHAPTERS[m[:ch]] || 0
+        verse_n   = m[:v].to_i
+        part      = m[:part] ? (m[:part].ord - 'a'.ord + 1) : nil
+      elsif (m = REF_SINGLE_PART.match(ref_str))
+        # Single-chapter book with sub-verse like "Sus 35a"
+        book_code = m[:book]
         chapter   = 1
         verse_n   = m[:v].to_i
+        part      = m[:part].ord - 'a'.ord + 1
+      elsif (m = REF_SINGLE_REGEX.match(ref_str))
+        book_code = m[:book]
+        chapter   = 1
+        verse_n   = m[:v].to_i
+      elsif (m = REF_RANGE_REGEX.match(ref_str))
+        # Verse range (e.g., "Dan 5:26-28"): create work_unit at first
+        # verse + pericope marking the full range
+        book_code = m[:book]
+        chapter   = m[:ch]&.to_i || 1
+        verse_n   = m[:v1].to_i
+        # After creating the main work_unit, also create a pericope for the range
+        @pending_range = { book: book_code, chapter: chapter, v1: m[:v1].to_i, v2: m[:v2].to_i }
+        bump(:range_refs)
+      elsif (m = REF_SPLIT_REGEX.match(ref_str))
+        # Split versification (e.g., "Jer 7:27/28"): the text belongs to
+        # both verse numbers in different traditions. Create at first and
+        # link to second via markup.
+        book_code = m[:book]
+        chapter   = m[:ch]&.to_i || 1
+        verse_n   = m[:v1].to_i
+        @pending_split = { book: book_code, chapter: chapter, v1: m[:v1].to_i, v2: m[:v2].to_i }
+        bump(:split_refs)
+      elsif (m = REF_BOOK_ONLY.match(ref_str))
+        # Book-only ref = superscription/title → create as pericope heading
+        book_code = m[:book]
+        slug = BOOK_MAP[book_code]
+        if slug
+          create_superscription(slug, start_word_id, end_word_id)
+        end
+        return
       else
         bump(:unparseable_refs)
         Rails.logger.warn "[RahlfsImporter] could not parse #{ref_str.inspect}"
@@ -311,50 +377,130 @@ module Importers
 
       label = part ? "#{chapter}:#{verse_n}#{('a'.ord + part - 1).chr}" : "#{chapter}:#{verse_n}"
 
-      ActiveRecord::Base.transaction do
-        canonical_ref = ensure_canonical_ref(canonical_work, chapter, verse_n, part)
+      canonical_ref = ensure_canonical_ref(canonical_work,
+        part ? [chapter, verse_n, part] : [chapter, verse_n],
+        label: part ? "#{chapter}:#{verse_n}#{('a'.ord + part - 1).chr}" : nil)
 
-        work_unit = WorkUnit.find_or_initialize_by(
-          work_id: @work.id,
-          canonical_ref_id: canonical_ref.id
-        )
-        if work_unit.new_record?
-          work_unit.assign_attributes(
-            ord: next_work_unit_ord,
+      existing = @existing_unit_map[canonical_ref.id]
+      now = Time.current
+
+      if existing
+        # Only update if body actually changed
+        if existing[:body] != body
+          @wu_update_batch << {
+            id: existing[:id],
+            work_id: @work.id,
+            ord: existing[:ord],
+            body: body,
             label: label,
-            canonical_alignment_type: "exact"
+            canonical_alignment_type: "exact",
+            markup: {},
+            import_run_id: @import_run.id,
+            created_at: now,
+            updated_at: now
+          }
+          bump(:verses_updated)
+          flush_work_unit_updates! if @wu_update_batch.size >= 2000
+        end
+      else
+        @wu_insert_batch << {
+          work_id: @work.id,
+          canonical_ref_id: canonical_ref.id,
+          ord: next_work_unit_ord,
+          label: label,
+          body: body,
+          canonical_alignment_type: "exact",
+          markup: {},
+          import_run_id: @import_run.id,
+          created_at: now,
+          updated_at: now
+        }
+        flush_work_unit_inserts! if @wu_insert_batch.size >= 2000
+      end
+
+      bump(:verses_processed)
+      bump(:subverses_processed) if part
+
+      # Handle range refs: create a pericope spanning v1..v2
+      if @pending_range
+        r = @pending_range
+        @pending_range = nil
+        start_ref = ensure_canonical_ref(canonical_work, [r[:chapter], r[:v1]])
+        end_ref = ensure_canonical_ref(canonical_work, [r[:chapter], r[:v2]])
+        if start_ref && end_ref
+          Pericope.find_or_create_by!(
+            canonical_work_id: canonical_work.id,
+            source_dataset: "rahlfs_range",
+            name: "#{canonical_work.sbl_abbreviation} #{r[:chapter]}:#{r[:v1]}–#{r[:v2]}"
+          ) do |p|
+            p.canonical_range = (start_ref.ord..end_ref.ord + 1)
+            p.pericope_type = "verse_range"
+            p.tradition = "lxx"
+            p.sequence_number = start_ref.ord
+            p.import_run_id = @import_run.id
+          end
+        end
+      end
+
+      # Handle split refs: store the alternate verse number in the
+      # work_unit markup. Don't duplicate the text — the reader can
+      # display "also numbered as 7:28" from the markup.
+      if @pending_split
+        s = @pending_split
+        @pending_split = nil
+        # Ensure the alt canonical_ref exists for versification mapping
+        ensure_canonical_ref(canonical_work, [s[:chapter], s[:v2]])
+        # Tag the primary work_unit's markup with the split info
+        # (update the batch entry we just queued)
+        entry = @wu_insert_batch.last || @wu_update_batch.last
+        if entry
+          entry[:markup] = (entry[:markup] || {}).merge(
+            "also_numbered" => "#{s[:chapter]}:#{s[:v2]}"
           )
         end
-        work_unit.body = body
-        stamp(work_unit)
-        work_unit.save!
-
-        bump(:verses_processed)
-        bump(:subverses_processed) if part
+        bump(:split_refs_annotated)
       end
     end
 
-    def ensure_canonical_ref(canonical_work, chapter, verse_n, part = nil)
-      hierarchy = part ? [chapter, verse_n, part] : [chapter, verse_n]
-      ref = CanonicalRef.where(
-        canonical_work_id: canonical_work.id,
-        hierarchy: hierarchy
-      ).first
-      return ref if ref
+    def flush_work_unit_inserts!
+      return if @wu_insert_batch.empty?
+      WorkUnit.insert_all(@wu_insert_batch)
+      @wu_insert_batch = []
+    end
 
-      part_suffix = part ? ('a'.ord + part - 1).chr : ""
-      next_ord = (CanonicalRef.where(canonical_work_id: canonical_work.id).maximum(:ord) || 0) + 1
-      ref = CanonicalRef.new(
-        canonical_work: canonical_work,
-        ord: next_ord,
-        hierarchy: hierarchy,
-        display_label: "#{canonical_work.title} #{chapter}:#{verse_n}#{part_suffix}",
-        osis_id: canonical_work.osis_book_id && "#{canonical_work.osis_book_id}.#{chapter}.#{verse_n}#{part_suffix}"
-      )
-      stamp(ref)
-      ref.save!
-      bump(:canonical_refs_created)
-      ref
+    def flush_work_unit_updates!
+      return if @wu_update_batch.empty?
+      WorkUnit.upsert_all(@wu_update_batch, unique_by: :id)
+      @wu_update_batch = []
+    end
+
+    # Book-only refs (e.g., "PsSol", "Lam") are superscriptions or
+    # book titles. Create them as pericope headings attached to the
+    # first canonical_ref of the book.
+    def create_superscription(slug, start_word_id, end_word_id)
+      canonical_work = (@canonical_work_cache[slug] ||= CanonicalWork.find_by(slug: slug))
+      return unless canonical_work
+
+      # Reconstruct text from word data
+      text = (start_word_id..end_word_id).map { |id| @words_by_id[id] }.compact.join(" ")
+      return if text.blank?
+
+      # Find the first canonical_ref for this book
+      first_ref = CanonicalRef.where(canonical_work_id: canonical_work.id).order(:ord).first
+      return unless first_ref
+
+      Pericope.find_or_create_by!(
+        canonical_work_id: canonical_work.id,
+        source_dataset: "rahlfs_superscription",
+        name: text.truncate(200)
+      ) do |p|
+        p.canonical_range = (first_ref.ord...first_ref.ord + 1)
+        p.pericope_type = "superscription"
+        p.tradition = "lxx"
+        p.sequence_number = 0
+        p.import_run_id = @import_run.id
+      end
+      bump(:superscriptions_created)
     end
 
     def next_work_unit_ord

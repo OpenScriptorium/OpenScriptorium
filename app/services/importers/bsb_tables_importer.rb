@@ -212,7 +212,7 @@ module Importers
           native_title: "Η ΚΑΙΝΗ ΔΙΑΘΗΚΗ",
           work_type: "scripture_original",
           language: "el-koine",
-          traditions: ["academic"],
+          traditions: ["academic-old", "χ"],
           genre: "original",
           license: @license,
           default_versification_scheme: @kjv_scheme,
@@ -250,7 +250,7 @@ module Importers
       return unless work
 
       ActiveRecord::Base.transaction do
-        canonical_ref = ensure_canonical_ref(canonical_work, chapter, verse)
+        canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse])
 
         work_unit = WorkUnit.find_or_initialize_by(work_id: work.id, canonical_ref_id: canonical_ref.id)
         if work_unit.new_record?
@@ -268,6 +268,9 @@ module Importers
         ordered = rows.sort_by { |r| r[sort_col].to_i }
 
         body = ordered.map { |r| r[5] }.reject(&:blank?).join(" ")
+        # Disputed/omitted verses in critical editions have no source text
+        # but still get a work_unit for verse-number continuity
+        body = "⸂ ⸃" if body.blank?
         work_unit.body = body
         stamp(work_unit)
         work_unit.save!
@@ -397,32 +400,33 @@ module Importers
         bsb_unit.update_column(:markup, markup)
       end
 
-      # 1) Per-row English words → BSB Word rows + AlignmentGroups
+      # 1) Collect all BSB words + alignment data for this verse, then
+      #    flush in 3 batch inserts instead of ~100 individual creates.
+      now = Time.current
+      all_bsb_word_attrs = []
+      alignment_plan = []
       bsb_word_position = 1
+
       rows.each_with_index do |r, row_idx|
-        # 2) Footnote on this row first (independent of whether
-        #    there's an English phrase — some footnotes attach to
-        #    untranslated rows).
+        # Footnotes first (independent of English phrase)
         if (fn_html = r[21].presence)
           create_bsb_footnote(bsb_unit, fn_html, (r[18] || "").strip, row_idx)
         end
 
         english_phrase = (r[18] || "").strip
         next if english_phrase.empty?
-        next if english_phrase == "-"  # untranslated source word marker
+        next if english_phrase == "-"
 
         tokens = english_phrase.split(/\s+/).reject(&:empty?)
         next if tokens.empty?
 
-        # Strong's of the source word on this row — Hebrew is col 11,
-        # Greek is col 12 (zero-indexed: 10 / 11). The bsb_tables
-        # source layout puts both columns on the same row, with one
-        # populated and the other blank.
         source_strongs = (r[10].presence || r[11].presence)
-        source_lang    = r[4].to_s.strip  # "Hebrew", "Aramaic", or "Greek"
+        source_lang    = r[4].to_s.strip
         source_lemma   = source_strongs.present? ? lookup_lemma_for_strongs(source_lang, source_strongs) : nil
-        bsb_word_records = tokens.map do |tok|
-          rec = {
+
+        first_position = bsb_word_position
+        tokens.each do |tok|
+          all_bsb_word_attrs << {
             work_id:        @bsb_work.id,
             work_unit_id:   bsb_unit.id,
             position:       bsb_word_position,
@@ -433,38 +437,79 @@ module Importers
             strongs_number: source_strongs,
             import_run_id:  @import_run.id,
             notes:          { source_word: r[5], translit: r[7] }.compact,
-            created_at:     Time.current,
-            updated_at:     Time.current
+            created_at:     now,
+            updated_at:     now
           }
           bsb_word_position += 1
-          rec
         end
 
-        bsb_ids = Word.insert_all(bsb_word_records, returning: %w[id]).rows.flatten
-
-        # Source word for this row by position (1-based) → its id.
         src_word_id = source_words_by_position[row_idx + 1]
-        if src_word_id && bsb_ids.any?
-          ag = AlignmentGroup.create!(
+        if src_word_id
+          alignment_plan << {
+            first_position: first_position,
+            token_count:    tokens.size,
+            src_word_id:    src_word_id
+          }
+        end
+      end
+
+      # Flush all BSB words in one insert
+      if all_bsb_word_attrs.any?
+        bsb_inserted = Word.insert_all(all_bsb_word_attrs, returning: %w[id position]).rows
+        bsb_pos_to_id = bsb_inserted.each_with_object({}) { |(id, pos), h| h[pos] = id }
+      else
+        bsb_pos_to_id = {}
+      end
+
+      # Flush all alignment groups in one insert
+      if alignment_plan.any? && source_unit
+        ag_attrs = alignment_plan.map do |plan|
+          {
             canonical_ref_id: canonical_ref.id,
             source_work_id:   source_unit.work_id,
             target_work_id:   @bsb_work.id,
             alignment_type:   "literal",
             confidence:       1.0,
-            import_run_id:    @import_run.id
-          )
-          AlignmentGroupMember.create!(
-            alignment_group_id: ag.id, word_id: src_word_id, role: "source", position: 0,
-            import_run_id: @import_run.id
-          )
-          bsb_ids.each_with_index do |bid, i|
-            AlignmentGroupMember.create!(
-              alignment_group_id: ag.id, word_id: bid, role: "target", position: i,
-              import_run_id: @import_run.id
-            )
-          end
-          bump(:alignment_groups_created)
+            import_run_id:    @import_run.id,
+            created_at:       now,
+            updated_at:       now
+          }
         end
+
+        ag_ids = AlignmentGroup.insert_all(ag_attrs, returning: %w[id]).rows.flatten
+        bump(:alignment_groups_created, ag_ids.size)
+
+        # Flush all alignment group members in one insert
+        all_agm_attrs = []
+        alignment_plan.each_with_index do |plan, plan_idx|
+          ag_id = ag_ids[plan_idx]
+
+          all_agm_attrs << {
+            alignment_group_id: ag_id,
+            word_id:            plan[:src_word_id],
+            role:               "source",
+            position:           0,
+            import_run_id:      @import_run.id,
+            created_at:         now,
+            updated_at:         now
+          }
+
+          plan[:token_count].times do |i|
+            bsb_word_id = bsb_pos_to_id[plan[:first_position] + i]
+            next unless bsb_word_id
+            all_agm_attrs << {
+              alignment_group_id: ag_id,
+              word_id:            bsb_word_id,
+              role:               "target",
+              position:           i,
+              import_run_id:      @import_run.id,
+              created_at:         now,
+              updated_at:         now
+            }
+          end
+        end
+
+        AlignmentGroupMember.insert_all(all_agm_attrs) if all_agm_attrs.any?
       end
 
       # 3) Cross-references attached to this verse (col 15 — only the
@@ -518,8 +563,6 @@ module Importers
 
     # Look up the source-language Lemma for a given Strong's number,
     # so BSB English words can carry their source lemma_id.
-    LANG_TO_BCP47 = { "Hebrew" => "he", "Aramaic" => "arc", "Greek" => "el-koine" }.freeze
-
     def lookup_lemma_for_strongs(lang, strongs)
       key = [lang, strongs]
       return @strongs_lemma_cache[key] if @strongs_lemma_cache&.key?(key)
@@ -581,6 +624,48 @@ module Importers
           parsed = parse_xref_display(display.strip)
           unless parsed
             bump(:bsb_xrefs_unparsed)
+            $stdout.puts "[BsbTablesImporter] UNPARSED XREF: #{display.inspect}" if (@stats[:bsb_xrefs_unparsed]) <= 10
+            $stdout.flush
+            next
+          end
+
+          # Book range: "Joshua–Malachi" spans two different canonical_works
+          if parsed[:type] == :book_range
+            target_slug1 = BOOK_SLUGS[parsed[:book]]
+            target_slug2 = BOOK_SLUGS[parsed[:book2]]
+            unless target_slug1 && target_slug2
+              bump(:bsb_xrefs_unknown_book)
+              next
+            end
+            target_cw1 = (@canonical_work_cache[target_slug1] ||= CanonicalWork.find_by(slug: target_slug1))
+            target_cw2 = (@canonical_work_cache[target_slug2] ||= CanonicalWork.find_by(slug: target_slug2))
+            next unless target_cw1 && target_cw2
+
+            # Create xref from source to first book's entire range
+            first_ord = CanonicalRef.where(canonical_work_id: target_cw1.id).minimum(:ord)
+            last_ord  = CanonicalRef.where(canonical_work_id: target_cw2.id).maximum(:ord)
+            next unless first_ord && last_ord
+
+            # Store as two separate xrefs (start book and end book) since
+            # they're different canonical_works
+            [target_cw1, target_cw2].each do |tcw|
+              t_start = CanonicalRef.where(canonical_work_id: tcw.id).minimum(:ord)
+              t_end   = CanonicalRef.where(canonical_work_id: tcw.id).maximum(:ord)
+              next unless t_start && t_end
+              CrossReference.create!(
+                source_canonical_work_id: source_cw.id,
+                source_range:             (source_ref.ord...(source_ref.ord + 1)),
+                target_canonical_work_id: tcw.id,
+                target_range:             (t_start...(t_end + 1)),
+                relationship_type:        "parallels",
+                confidence:               1.0,
+                source_dataset:           "bsb_inline",
+                status:                   "approved",
+                notes:                    "Book range: #{display.strip}",
+                import_run_id:            @import_run.id
+              )
+              bump(:bsb_xrefs_created)
+            end
             next
           end
 
@@ -594,9 +679,24 @@ module Importers
 
           target_start = ord_for_hierarchy(target_cw, parsed[:start_ch], parsed[:start_v])
           target_end   = ord_for_hierarchy(target_cw, parsed[:end_ch],   parsed[:end_v])
+
+          # For chapter ranges, clamp end_v to the actual last verse
+          if parsed[:type] == :chapter_range && target_end.nil?
+            target_end = CanonicalRef.where(canonical_work_id: target_cw.id)
+                           .where("hierarchy[1] = ?", parsed[:end_ch])
+                           .maximum(:ord)
+          end
+
           unless target_start && target_end
             bump(:bsb_xrefs_no_target_ord)
             next
+          end
+
+          # Ensure start <= end (ords may not be monotonic when
+          # canonical_refs were created across multiple import phases)
+          if target_start > target_end
+            target_start, target_end = target_end, target_start
+            bump(:bsb_xrefs_range_swapped)
           end
 
           CrossReference.create!(
@@ -617,9 +717,6 @@ module Importers
             import_run_id:            @import_run.id
           )
           bump(:bsb_xrefs_created)
-        rescue => e
-          bump(:bsb_xrefs_failed)
-          Rails.logger.warn "[BsbTablesImporter] xref failed: #{display.inspect} (#{e.class}: #{e.message})"
         end
       end
     end
@@ -628,21 +725,66 @@ module Importers
     #   "John 1:1"                 single verse
     #   "John 1:1–5"               same-chapter range (en-dash)
     #   "1 Chronicles 15:29–16:3"  cross-chapter range
+    #   "Genesis 4–9"              chapter range (no verses)
+    #   "Joshua–Malachi"           book range
     XREF_DISPLAY_RE = /\A
       (?<book>(?:[1-3]\s)?[A-Z][A-Za-z ]+?)\s+
       (?<ch1>\d+):(?<v1>\d+)
       (?:[\u2013\-](?:(?<ch2>\d+):)?(?<v2>\d+))?
     \z/x
 
+    # Chapter-only range: "Genesis 4–9"
+    XREF_CHAPTER_RANGE_RE = /\A
+      (?<book>(?:[1-3]\s)?[A-Z][A-Za-z ]+?)\s+
+      (?<ch1>\d+)[\u2013\-](?<ch2>\d+)
+    \z/x
+
+    # Book range: "Joshua–Malachi"
+    XREF_BOOK_RANGE_RE = /\A
+      (?<book1>(?:[1-3]\s)?[A-Z][A-Za-z ]+?)
+      [\u2013\-]
+      (?<book2>(?:[1-3]\s)?[A-Z][A-Za-z ]+?)
+    \z/x
+
     def parse_xref_display(s)
-      m = XREF_DISPLAY_RE.match(s) or return nil
-      {
-        book:        m[:book].strip,
-        start_ch:    m[:ch1].to_i,
-        start_v:     m[:v1].to_i,
-        end_ch:      (m[:ch2] || m[:ch1]).to_i,
-        end_v:       (m[:v2] || m[:v1]).to_i
-      }
+      # Verse-level reference
+      if (m = XREF_DISPLAY_RE.match(s))
+        return {
+          type:        :verse,
+          book:        m[:book].strip,
+          start_ch:    m[:ch1].to_i,
+          start_v:     m[:v1].to_i,
+          end_ch:      (m[:ch2] || m[:ch1]).to_i,
+          end_v:       (m[:v2] || m[:v1]).to_i
+        }
+      end
+
+      # Chapter range: "Genesis 4–9" → first verse of ch4 to last verse of ch9
+      if (m = XREF_CHAPTER_RANGE_RE.match(s))
+        return {
+          type:        :chapter_range,
+          book:        m[:book].strip,
+          start_ch:    m[:ch1].to_i,
+          start_v:     1,
+          end_ch:      m[:ch2].to_i,
+          end_v:       999  # sentinel — will be clamped to last verse
+        }
+      end
+
+      # Book range: "Joshua–Malachi" → first verse of book1 to last verse of book2
+      if (m = XREF_BOOK_RANGE_RE.match(s))
+        return {
+          type:        :book_range,
+          book:        m[:book1].strip,
+          book2:       m[:book2].strip,
+          start_ch:    1,
+          start_v:     1,
+          end_ch:      999,
+          end_v:       999
+        }
+      end
+
+      nil
     end
 
     def ord_for_hierarchy(canonical_work, chapter, verse)
@@ -732,25 +874,6 @@ module Importers
       m = REF_REGEX.match(ref_str.strip)
       return nil unless m
       [m[:book].strip, m[:ch].to_i, m[:v].to_i]
-    end
-
-    def ensure_canonical_ref(canonical_work, chapter, verse)
-      hierarchy = [chapter, verse]
-      ref = CanonicalRef.where(canonical_work_id: canonical_work.id, hierarchy: hierarchy).first
-      return ref if ref
-
-      next_ord = (CanonicalRef.where(canonical_work_id: canonical_work.id).maximum(:ord) || 0) + 1
-      ref = CanonicalRef.new(
-        canonical_work: canonical_work,
-        ord: next_ord,
-        hierarchy: hierarchy,
-        display_label: "#{canonical_work.title} #{chapter}:#{verse}",
-        osis_id: canonical_work.osis_book_id && "#{canonical_work.osis_book_id}.#{chapter}.#{verse}"
-      )
-      stamp(ref)
-      ref.save!
-      bump(:canonical_refs_created)
-      ref
     end
 
     def next_work_unit_ord(work)
