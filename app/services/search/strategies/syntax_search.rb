@@ -84,7 +84,7 @@ module Search
                LEFT JOIN syntax_nodes sn#{idx} ON sn#{idx}.id = w#{idx}.syntax_node_id
                WHERE w#{idx}.work_unit_id = work_units.id
                  AND #{role_condition}
-                 AND (l#{idx}.lemma = ? OR l#{idx}.normalized = ?))",
+                 AND (l#{idx}.lemma = ? OR l#{idx}.normalized ILIKE ?))",
               lemma, normalized
             )
           end
