@@ -16,53 +16,59 @@ module Search
 
       def call
         tsquery = build_tsquery
-        return empty_result if tsquery.blank?
+        ilike_fallback = false
+
+        # When the English tsquery is completely empty (every word is a
+        # stop word — e.g. "I AM THAT I AM", "It is I"), FTS cannot
+        # match because the body_tsvector was built with the English
+        # config which strips stop words. Fall back to ILIKE phrase
+        # matching, which is slower but correct for these rare cases.
+        if tsquery.blank? || all_stop_words?
+          return empty_result if @query.blank?
+          ilike_fallback = true
+        end
 
         offset = (@page - 1) * @per_page
 
-        base = WorkUnit
-          .joins(:canonical_ref, :work)
-          .where("work_units.body_tsvector @@ #{tsquery}")
-          .includes(:canonical_ref, work: :license)
+        if ilike_fallback
+          conn = ApplicationRecord.connection
+          sanitized_like = conn.quote("%#{ApplicationRecord.sanitize_sql_like(@query)}%")
+          base = WorkUnit
+            .joins(:canonical_ref, :work)
+            .where("work_units.body ILIKE ?", "%#{ApplicationRecord.sanitize_sql_like(@query)}%")
+            .includes(:canonical_ref, work: :license)
+          base = apply_scope(base)
+          total = base.count
+        else
+          base = WorkUnit
+            .joins(:canonical_ref, :work)
+            .where("work_units.body_tsvector @@ #{tsquery}")
+            .includes(:canonical_ref, work: :license)
 
-        base = apply_scope(base)
+          base = apply_scope(base)
 
-        total = base.count
+          total = base.count
 
-        # Person-topic queries ("What did Jesus teach about forgiveness?")
-        # benefit from OR logic from the start: the AND query requires
-        # every word in each matching verse, but forgiveness-related
-        # verses rarely also contain "Jesus" + "teach". Use OR and let
-        # the ranking sort out relevance.
-        if total < 5 && @query.include?(" ") && person_topic_query?
-          or_tsquery = build_or_tsquery
-          if or_tsquery
-            or_base = WorkUnit
-              .joins(:canonical_ref, :work)
-              .where("work_units.body_tsvector @@ #{or_tsquery}")
-              .includes(:canonical_ref, work: :license)
-            or_base = apply_scope(or_base)
-            or_total = or_base.count
-            if or_total > total
-              base = or_base
-              total = or_total
+          # Fallback: if a multi-word AND query returns 0 results, retry
+          # with OR logic so verses matching MOST content words are found.
+          # "put on the whole armor of God" with AND fails if any word is
+          # missing, but with OR it finds Eph 6:11 which has most of them.
+          #
+          # Previously this also fired for person-topic queries with < 5
+          # results, but that caused regressions: the OR query is far too
+          # broad and drowns precise matches. Person-topic queries are
+          # better handled by SemanticMerge + PericopeRetrieval.
+          if total == 0 && @query.include?(" ")
+            or_tsquery = build_or_tsquery
+            if or_tsquery
+              base = WorkUnit
+                .joins(:canonical_ref, :work)
+                .where("work_units.body_tsvector @@ #{or_tsquery}")
+                .includes(:canonical_ref, work: :license)
+              base = apply_scope(base)
+              total = base.count
               tsquery = or_tsquery
             end
-          end
-        # Fallback: if a multi-word AND query returns 0 results, retry
-        # with OR logic so verses matching MOST content words are found.
-        # "put on the whole armor of God" with AND fails if any word is
-        # missing, but with OR it finds Eph 6:11 which has most of them.
-        elsif total == 0 && @query.include?(" ")
-          or_tsquery = build_or_tsquery
-          if or_tsquery
-            base = WorkUnit
-              .joins(:canonical_ref, :work)
-              .where("work_units.body_tsvector @@ #{or_tsquery}")
-              .includes(:canonical_ref, work: :license)
-            base = apply_scope(base)
-            total = base.count
-            tsquery = or_tsquery
           end
         end
 
@@ -74,41 +80,37 @@ module Search
         #    "honor thy father" matches "Honor your father" (BSB).
         conn = ApplicationRecord.connection
         sanitized_like = conn.quote("%#{ApplicationRecord.sanitize_sql_like(@query)}%")
-        if @query.include?(" ")
-          # Check the phrase against the body with punctuation stripped,
-          # so "my God my God why have you forsaken me" matches
-          # "My God, my God, why have You forsaken me?" in the body.
-          # Also check the synonym-expanded version.
-          stripped_body = "REGEXP_REPLACE(work_units.body, '[^a-zA-Z\\s]', '', 'g')"
-          expanded_like = "('%' || expand_bible_synonyms(#{conn.quote(@query)}) || '%')"
-          phrase_bonus = "CASE " \
-                         "WHEN work_units.body ILIKE #{sanitized_like} THEN 10.0 " \
-                         "WHEN #{stripped_body} ILIKE #{sanitized_like} THEN 10.0 " \
-                         "WHEN #{stripped_body} ILIKE #{expanded_like} THEN 8.0 " \
-                         "ELSE 1.0 END"
+        phrase_bonus = build_phrase_bonus(conn, sanitized_like)
+
+        if ilike_fallback
+          # No tsquery available — rank by xref density * phrase bonus only.
+          # ILIKE already filtered to matching rows.
+          results = base
+            .select(
+              "work_units.*",
+              "(1.0 + LN(1 + canonical_refs.xref_count)) * #{phrase_bonus} AS relevance"
+            )
+            .order(Arel.sql("relevance DESC, canonical_refs.ord ASC, works.slug ASC"))
+            .offset(offset)
+            .limit(@per_page)
+            .map { |wu| format_result(wu) }
         else
-          # For single-word queries, boost verses containing the exact word
-          # (not just the stem). Use word-boundary matching (\y) so "Eve"
-          # ranks above "even/evening/every" and "leviathan" above "Levi".
-          escaped_word = ApplicationRecord.sanitize_sql_like(@query)
-          word_like = conn.quote("%#{escaped_word}%")
-          word_boundary = conn.quote("\\y#{escape_posix_regex(@query)}\\y")
-          phrase_bonus = "CASE " \
-                         "WHEN work_units.body ~* #{word_boundary} THEN 5.0 " \
-                         "WHEN work_units.body ILIKE #{word_like} THEN 1.5 " \
-                         "ELSE 1.0 END"
+          results = base
+            .select(
+              "work_units.*",
+              "ts_rank(work_units.body_tsvector, #{tsquery}) * (1.0 + LN(1 + canonical_refs.xref_count)) * #{phrase_bonus} AS relevance",
+              headline_select(tsquery)
+            )
+            .order(Arel.sql("relevance DESC, canonical_refs.ord ASC, works.slug ASC"))
+            .offset(offset)
+            .limit(@per_page)
+            .map { |wu| format_result(wu) }
         end
 
-        results = base
-          .select(
-            "work_units.*",
-            "ts_rank(work_units.body_tsvector, #{tsquery}) * (1.0 + LN(1 + canonical_refs.xref_count)) * #{phrase_bonus} AS relevance",
-            headline_select(tsquery)
-          )
-          .order(Arel.sql("relevance DESC, canonical_refs.ord ASC, works.slug ASC"))
-          .offset(offset)
-          .limit(@per_page)
-          .map { |wu| format_result(wu) }
+        # Deduplicate by canonical_ref_id — when multiple translations
+        # of the same verse match (BSB, KJV, WEBBE all have Gen 17:7),
+        # keep only the highest-relevance one per verse.
+        results = deduplicate_by_verse(results)
 
         facets = compute_facets(base)
 
@@ -130,6 +132,18 @@ module Search
 
       private
 
+      # Detect queries where every word is an English stop word.
+      # The English FTS config strips these, leaving an empty tsquery,
+      # so we need a different approach for "I AM THAT I AM" etc.
+      def all_stop_words?
+        conn = ApplicationRecord.connection
+        sanitized = conn.quote(@query)
+        tsq = conn.select_value(
+          "SELECT websearch_to_tsquery('scriptorium_english', #{sanitized})::text"
+        )
+        tsq.blank? || tsq.strip.empty?
+      end
+
       def build_tsquery
         sanitized = ApplicationRecord.connection.quote(@query)
 
@@ -150,6 +164,42 @@ module Search
           "websearch_to_tsquery('scriptorium_simple', #{sanitized}))"
       end
 
+      def build_phrase_bonus(conn, sanitized_like)
+        if @query.include?(" ")
+          # Check the phrase against the body with punctuation stripped,
+          # so "my God my God why have you forsaken me" matches
+          # "My God, my God, why have You forsaken me?" in the body.
+          #
+          # Also check the synonym-expanded query against the body: when
+          # the user types KJV wording ("Thou shalt not kill"), the
+          # expanded form ("You shall not murder") should phrase-match
+          # against BSB text.
+          #
+          # Use [^[:alpha:]\s] instead of [^a-zA-Z\s] so Unicode letters
+          # (Hebrew, Greek, French accented) are preserved in the stripped body.
+          stripped_body = "REGEXP_REPLACE(work_units.body, '[^[:alpha:]\\s]', '', 'g')"
+          expanded_like = "('%' || expand_bible_synonyms(#{conn.quote(@query)}) || '%')"
+          expanded_body_like = "('%' || expand_bible_synonyms(#{conn.quote(@query)}) || '%')"
+          "CASE " \
+            "WHEN work_units.body ILIKE #{sanitized_like} THEN 10.0 " \
+            "WHEN #{stripped_body} ILIKE #{sanitized_like} THEN 10.0 " \
+            "WHEN work_units.body ILIKE #{expanded_body_like} THEN 9.0 " \
+            "WHEN #{stripped_body} ILIKE #{expanded_like} THEN 8.0 " \
+            "ELSE 1.0 END"
+        else
+          # For single-word queries, boost verses containing the exact word
+          # (not just the stem). Use word-boundary matching (\y) so "Eve"
+          # ranks above "even/evening/every" and "leviathan" above "Levi".
+          escaped_word = ApplicationRecord.sanitize_sql_like(@query)
+          word_like = conn.quote("%#{escaped_word}%")
+          word_boundary = conn.quote("\\y#{escape_posix_regex(@query)}\\y")
+          "CASE " \
+            "WHEN work_units.body ~* #{word_boundary} THEN 5.0 " \
+            "WHEN work_units.body ILIKE #{word_like} THEN 1.5 " \
+            "ELSE 1.0 END"
+        end
+      end
+
       # Fallback: convert the AND-based tsquery to OR-based so that
       # verses matching MOST content words still appear. Uses the
       # synonym-expanded query split into individual OR terms.
@@ -157,11 +207,20 @@ module Search
         conn = ApplicationRecord.connection
         sanitized = conn.quote(@query)
         expanded = conn.select_value("SELECT expand_bible_synonyms(#{sanitized})")
-        words = expanded.split(/\s+/).reject { |w| w.length < 3 }
+        words = expanded.split(/\s+/).uniq
+        # Keep short words only if the query is mostly short words
+        # (e.g. "I AM THAT I AM"). Otherwise filter noise.
+        long_words = words.select { |w| w.length >= 3 }
+        words = long_words.any? ? long_words : words
         return nil if words.empty?
 
-        # Build an OR tsquery from individual words
-        terms = words.map { |w| "plainto_tsquery('scriptorium_english', #{conn.quote(w)})" }
+        # Build an OR tsquery from individual words, using both English
+        # (stemmed) and simple (exact) configs so stop words like "am"
+        # are still matchable.
+        terms = words.map { |w|
+          "(plainto_tsquery('scriptorium_english', #{conn.quote(w)}) || " \
+            "plainto_tsquery('scriptorium_simple', #{conn.quote(w)}))"
+        }
         "(#{terms.join(' || ')})"
       end
 
@@ -262,35 +321,18 @@ module Search
         str.gsub(/([.\\+*?\[\](){}|^$])/, '\\\\\1')
       end
 
-      # Detect person-topic queries like "What did Jesus teach about
-      # forgiveness?" or "Moses and the burning bush". These combine a
-      # biblical figure with a topical concept and benefit from OR-based
-      # FTS since the person and topic rarely co-occur in the same verse.
-      PERSON_NAMES = %w[
-        jesus christ yeshua paul peter john james timothy titus
-        barnabas silas luke stephen philip apollos nicodemus lazarus
-        martha pilate herod moses abraham david solomon samuel elijah
-        elisha isaiah jeremiah ezekiel daniel noah jacob isaac joseph
-        joshua gideon samson ruth esther nehemiah ezra job jonah
-        adam eve cain abel sarah rebekah rachel saul bathsheba goliath
-        pharaoh balaam deborah
-      ].to_set.freeze
-
-      TOPIC_STOP_WORDS = %w[
-        what where when who why how does did do is are was were
-        the a an of in to for and or but with about from by
-        that this these those it its they them their
-        can could should would will shall may might
-        bible say says said tell tells told teach teaches taught
-        verse verses passage passages scripture scriptures
-        talk talks about regarding concerning wrote write
-      ].to_set.freeze
-
-      def person_topic_query?
-        words = @query.downcase.gsub(/[?!.,;:'"]/, "").split
-        has_person = words.any? { |w| PERSON_NAMES.include?(w) }
-        topic_words = words.reject { |w| TOPIC_STOP_WORDS.include?(w) || PERSON_NAMES.include?(w) }
-        has_person && topic_words.any?
+      def deduplicate_by_verse(results)
+        best = {}
+        results.each do |r|
+          # Dedup by citation string (not just canonical_ref_id) because
+          # different versification schemes may create separate canonical_refs
+          # for the same verse (e.g. LXX vs MT Gen 17:7).
+          key = r[:citation]
+          if best[key].nil? || r[:relevance].to_f > best[key][:relevance].to_f
+            best[key] = r
+          end
+        end
+        best.values.sort_by { |r| -r[:relevance].to_f }
       end
 
       def empty_result

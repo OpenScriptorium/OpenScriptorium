@@ -217,9 +217,18 @@ module Search
                   .limit(5)
 
       if matches.empty? && @raw_query.split.size <= 4
-        matches = PassageAliasName.fuzzy(@raw_query)
-                    .includes(passage_alias: [])
-                    .limit(3)
+        candidates = PassageAliasName.fuzzy(@raw_query)
+                       .includes(passage_alias: [])
+                       .limit(10)
+        # Filter fuzzy matches: require that the alias name shares at
+        # least one content word with the query (after synonym expansion).
+        # This prevents "Thou shalt not kill" matching "You Shall Not
+        # Steal" — they're trigram-similar but semantically different.
+        query_words = content_words_for(@raw_query)
+        matches = candidates.select { |m|
+          alias_words = m.name.downcase.split(/\s+/).to_set
+          (query_words & alias_words).any?
+        }.first(3)
       end
 
       return result if matches.empty?
@@ -301,9 +310,13 @@ module Search
                  .first
         next unless cr
 
-        # Always use the first verse of the range. Previous attempts to
-        # pick a "better" verse within the range consistently caused
-        # regressions in exact-quote ranking.
+        # For ranged aliases (Gen 5:21-24), try to find the verse within
+        # the range that actually contains the user's query text. This
+        # handles "Enoch walked with God" → Gen 5:24 (not 5:21).
+        # Fall back to the first verse if no text match is found.
+        if is_range
+          wu = find_best_verse_in_range(cr, range_end_verse, @raw_query)
+        end
         wu ||= WorkUnit.joins(:work)
                  .where(canonical_ref_id: cr.id)
                  .where(works: { language: "en" })
@@ -333,6 +346,40 @@ module Search
       end # sub_refs.each
       end # refs.each
       results
+    end
+
+    # For ranged alias matches, scan the range for a verse whose text
+    # contains the user's query (case-insensitive). Returns the WorkUnit
+    # or nil if no verse matches.
+    def find_best_verse_in_range(start_cr, range_end_verse, query)
+      return nil if query.blank?
+
+      lookahead = compute_lookahead(start_cr, range_end_verse)
+      candidate_crs = CanonicalRef
+                        .where(canonical_work_id: start_cr.canonical_work_id)
+                        .where("ord >= ? AND ord < ?", start_cr.ord, start_cr.ord + lookahead)
+                        .order(:ord)
+                        .pluck(:id)
+      return nil if candidate_crs.empty?
+
+      query_lower = query.downcase
+      # Also try with synonym expansion
+      conn = ApplicationRecord.connection
+      expanded = conn.select_value("SELECT expand_bible_synonyms(#{conn.quote(query)})")
+
+      wus = WorkUnit.joins(:work)
+              .where(canonical_ref_id: candidate_crs)
+              .where(works: { language: "en" })
+              .includes(:canonical_ref, work: :license)
+
+      wus.each do |wu|
+        body_lower = wu.body.to_s.downcase
+        if body_lower.include?(query_lower) ||
+           (expanded && body_lower.include?(expanded.downcase))
+          return wu
+        end
+      end
+      nil
     end
 
     # Given the first canonical_ref in a range and a list of alias names,
@@ -405,6 +452,33 @@ module Search
       else
         DEFAULT_LOOKAHEAD
       end
+    end
+
+    # Extract content words from a query for alias filtering.
+    # Returns a Set of lowercase words, including synonym-expanded forms,
+    # with stop words removed. Used to verify that fuzzy alias matches
+    # share semantic overlap with the query.
+    ALIAS_STOP_WORDS = %w[
+      a an the in on at to of for by is it be was were are am
+      has have had do does did will shall would should can could
+      may might must not no and or but if with from thou thy
+      thee ye shalt hast doth unto you your he she his her him
+      they them their we our us i me my who whom what that this
+      which how when where why all
+    ].to_set.freeze
+
+    def content_words_for(query)
+      words = query.downcase.gsub(/[^a-z\s]/, "").split
+      content = words.reject { |w| ALIAS_STOP_WORDS.include?(w) || w.length < 2 }.to_set
+      # Also add synonym-expanded forms
+      conn = ApplicationRecord.connection
+      expanded = conn.select_value("SELECT expand_bible_synonyms(#{conn.quote(query)})")
+      if expanded
+        expanded.downcase.split.each do |w|
+          content << w unless ALIAS_STOP_WORDS.include?(w) || w.length < 2
+        end
+      end
+      content
     end
 
     def question_query?(q)

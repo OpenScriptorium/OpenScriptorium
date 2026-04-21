@@ -43,6 +43,24 @@ module Search
       end
 
       def call
+        # When FTS already has high-confidence results (alias matches or
+        # phrase-bonus hits), semantic search only adds noise. Skip the
+        # expensive embedding encode + vector search entirely.
+        #
+        # FTS relevance = ts_rank * xref_boost * phrase_bonus. Typical
+        # ts_rank is 0.01-0.1, so a 10x phrase bonus gives ~0.1-1.0.
+        # Check if any result has an alias match, or if the top result's
+        # relevance is significantly above the non-boosted baseline.
+        fts_results = @fts_result.results
+        has_alias = fts_results.any? { |r| r[:alias_match] }
+        max_fts = fts_results.map { |r| r[:relevance].to_f }.max || 0
+        min_fts = fts_results.map { |r| r[:relevance].to_f }.min || 0
+        # If the max is 5x+ above the min, a phrase bonus fired
+        phrase_bonus_detected = fts_results.size > 1 && max_fts > min_fts * 5
+        if has_alias || (phrase_bonus_detected && max_fts > 0.05)
+          return @fts_result
+        end
+
         embedding = encode_query
         return @fts_result unless embedding
 
@@ -269,12 +287,27 @@ module Search
           if existing.nil? ||
              phrase_match > existing[:phrase_match] ||
              (phrase_match == existing[:phrase_match] && r[:relevance] > existing[:result][:relevance])
+            # Preserve alias_match flag across dedup: if any version of
+            # this citation had an alias match, keep it even when a
+            # higher-scoring translation replaces the result.
+            if existing&.dig(:result, :alias_match) && !r[:alias_match]
+              r = r.merge(alias_match: true)
+            end
             best_per_citation[cite] = { result: r, phrase_match: phrase_match }
           end
         end
         deduped = best_per_citation.values
                     .sort_by { |v| -v[:result][:relevance] }
                     .map { |v| v[:result] }
+
+        # Pin alias matches and strong phrase matches at the top.
+        # These are high-confidence results (user typed the exact text
+        # or a known passage name) that should never be outranked by
+        # semantic similarity.
+        pinned, rest = deduped.partition { |r|
+          r[:alias_match] || r[:relevance].to_f > 5.0
+        }
+        deduped = pinned + rest
 
         # Paginate
         page_results = deduped.first(@per_page)
@@ -295,16 +328,21 @@ module Search
       # Question-style queries lean heavily on semantic;
       # exact phrase matches trust FTS regardless of result count.
       def adaptive_weights(fts_results)
-        if question_query?
-          return [0.05, 0.95]
-        end
-
         max_fts = fts_results.map { |r| r[:relevance].to_f }.max || 0
         strong_fts = fts_results.count { |r| r[:relevance].to_f > 0.01 }
 
-        # High FTS score means phrase match — trust FTS even with few results
-        if max_fts > 0.1
+        # Alias matches and phrase-bonus results (relevance > 1.0) are
+        # high-confidence FTS signals. Trust FTS heavily to prevent
+        # semantic search from burying exact quotes.
+        if max_fts > 1.0
+          [0.85, 0.15]
+        # Strong FTS results (relevance > 0.1 means phrase bonus likely
+        # fired): trust FTS even for question queries.
+        elsif max_fts > 0.1
           [FTS_WEIGHT, SEM_WEIGHT]
+        elsif question_query?
+          # True question queries with weak FTS: lean on semantic
+          [0.05, 0.95]
         elsif strong_fts == 0
           [0.1, 0.9]
         elsif strong_fts < 5

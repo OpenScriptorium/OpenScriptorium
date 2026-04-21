@@ -259,12 +259,19 @@ module Search
       def merge_results(pericope_results)
         existing = @existing_result.results
 
-        # Remove existing results that overlap with pericope results
-        pericope_citations = pericope_results.map { |r| r[:citation] }.to_set
-        filtered = existing.reject { |r| pericope_citations.include?(r[:citation]) }
+        # Preserve alias matches and strong phrase matches at the top —
+        # these are high-confidence results that shouldn't be buried by
+        # pericope suggestions.
+        pinned, rest = existing.partition { |r|
+          r[:alias_match] || r[:relevance].to_f > 5.0
+        }
 
-        # Interleave: pericope results first, then existing
-        combined = pericope_results + filtered
+        # Remove non-pinned existing results that overlap with pericope results
+        pericope_citations = pericope_results.map { |r| r[:citation] }.to_set
+        filtered = rest.reject { |r| pericope_citations.include?(r[:citation]) }
+
+        # Pinned first, then pericope results, then remaining
+        combined = pinned + pericope_results + filtered
 
         ResultSet.new(
           results: combined.first(25),
