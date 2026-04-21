@@ -116,10 +116,17 @@ module Search
 
     def build_abbreviation_map
       map = {}
-      CanonicalWork.pluck(:id, :sbl_abbreviation, :book_key, :title).each do |id, abbr, bk, title|
+      # Order by id to get deterministic results. When multiple canonical_works
+      # share the same abbreviation (e.g. two "Gen" entries), prefer the one
+      # with more cross-references since that's the primary canonical_work.
+      rows = CanonicalWork
+        .left_joins(:source_cross_references)
+        .group(:id)
+        .order(Arel.sql("COUNT(cross_references.id) DESC, canonical_works.id ASC"))
+        .pluck(:id, :sbl_abbreviation)
+      rows.each do |id, abbr|
         next if abbr.blank?
         key = abbr.downcase.gsub(/[.\s]+/, " ").strip
-        # Store the full record data we need
         map[key] ||= CanonicalWork.find(id)
       end
       map

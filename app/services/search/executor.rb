@@ -220,15 +220,21 @@ module Search
         candidates = PassageAliasName.fuzzy(@raw_query)
                        .includes(passage_alias: [])
                        .limit(10)
-        # Filter fuzzy matches: require that the alias name shares at
-        # least one content word with the query (after synonym expansion).
-        # This prevents "Thou shalt not kill" matching "You Shall Not
-        # Steal" — they're trigram-similar but semantically different.
+        # Filter and rank fuzzy matches by content-word overlap with the
+        # query (after synonym expansion). Sort by overlap count so
+        # "Honor Your Father and Mother" (2 overlaps: honor, father)
+        # ranks above "Our Father" (1 overlap: father).
         query_words = content_words_for(@raw_query)
-        matches = candidates.select { |m|
-          alias_words = m.name.downcase.split(/\s+/).to_set
-          (query_words & alias_words).any?
-        }.first(3)
+        matches = candidates
+          .map { |m|
+            alias_words = m.name.downcase.split(/\s+/).to_set
+            overlap = (query_words & alias_words).size
+            [m, overlap]
+          }
+          .select { |_, overlap| overlap > 0 }
+          .sort_by { |_, overlap| -overlap }
+          .map(&:first)
+          .first(3)
       end
 
       return result if matches.empty?

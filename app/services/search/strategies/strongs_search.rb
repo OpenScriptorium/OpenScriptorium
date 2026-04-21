@@ -14,9 +14,13 @@ module Search
       def call
         offset = (@page - 1) * @per_page
 
-        # Match both "H430" and "430" formats since sources vary
-        number_only = @query.sub(/\A[HG]/, "")
+        # Match both "H430" and "430" formats since sources vary.
+        # Normalize leading zeros: "H0430" → "H430" since the DB stores
+        # numbers without leading zeros (from STEP import normalization).
         prefix = @query[0]
+        number_only = @query.sub(/\A[HG]0*/, "")
+        return ResultSet.new(query: @query, query_type: :strongs) if number_only.blank?
+        @query = "#{prefix}#{number_only}"
 
         words_base = Word
           .where("strongs_number = ? OR strongs_number = ?", @query, number_only)
@@ -27,7 +31,8 @@ module Search
 
         total = words_base.count
         words = words_base
-          .order("works.slug", "canonical_refs.ord")
+          .joins("JOIN canonical_works ON canonical_works.id = canonical_refs.canonical_work_id")
+          .order("works.slug", "canonical_works.position", "canonical_refs.ord")
           .offset(offset)
           .limit(@per_page)
 

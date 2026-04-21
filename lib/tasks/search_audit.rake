@@ -19,6 +19,7 @@ namespace :search do
 
     puts "Loaded #{all_queries.size} test queries from #{files.size} files"
     puts
+    $stdout.sync = true
 
     pass = 0
     fail = 0
@@ -112,13 +113,14 @@ namespace :search do
         }
       end
 
-      # Progress indicator every 50 queries
-      if (idx + 1) % 50 == 0
+      # Progress indicator every 10 queries
+      if (idx + 1) % 10 == 0
         elapsed = Time.now - start_time
         rate = (idx + 1) / elapsed
         eta = ((total - idx - 1) / rate).round
         pct = ((pass.to_f / (idx + 1)) * 100).round(1)
         print "\r  #{idx + 1}/#{total} (#{pct}% passing, ~#{eta}s remaining)    "
+        $stdout.flush
       end
     end
 
