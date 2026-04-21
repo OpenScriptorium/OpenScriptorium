@@ -140,6 +140,7 @@ module Importers
         verse_n = m[:v].to_i
         part    = m[:part] ? (m[:part].ord - 'a'.ord + 1) : nil
         text    = m[:text]&.strip || ""
+        next if text.empty?  # skip verses with no text (e.g. Prov 30:1 in LXX)
 
         process_verse(slug, chapter, verse_n, text, part: part)
       end

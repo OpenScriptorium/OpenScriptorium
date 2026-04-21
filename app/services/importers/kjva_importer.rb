@@ -317,14 +317,22 @@ module Importers
       }
     end
 
+    def clean_verse_text(s)
+      s.to_s
+       .gsub(/<[^>]+>/, "")       # strip any HTML tags
+       .gsub(/&\w+;/, "")         # strip HTML entities
+       .gsub(/\s+/, " ")          # collapse whitespace
+       .strip
+    end
+
     def clean_html(s)
       s.gsub(/<[^>]+>/, "")
        .gsub(/&nbsp;/, " ")
        .gsub(/&#8211;/, "–")
        .gsub(/&amp;/, "&")
-       .gsub(/&quot;/, '"')
+       .gsub(/&quot;/, ‘"’)
        .gsub(/&#8217;/, "’")
-       .gsub(/&#8216;/, "‘")
+       .gsub(/&#8216;/, "’")
        .gsub(/\s+/, " ")
        .strip
     end
@@ -371,7 +379,7 @@ module Importers
       book_data["chapters"].each do |chapter_data|
         chapter = chapter_data["chapter"]
         chapter_data["verses"].each do |v|
-          process_verse(canonical_work, slug, chapter, v["verse"], v["text"])
+          process_verse(canonical_work, slug, chapter, v["verse"], clean_verse_text(v["text"]))
         end
       end
 
