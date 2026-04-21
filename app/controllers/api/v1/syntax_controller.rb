@@ -5,11 +5,13 @@ module Api
       # Returns the syntax tree for a verse
       def show
         work = Work.find_by!(slug: params[:work_slug])
-        citation = "#{params[:book]} #{params[:chapter]}:#{params[:verse]}"
+        chapter = params[:chapter].to_i
+        verse = params[:verse].to_i
 
-        wu = WorkUnit.joins(:canonical_ref)
+        wu = WorkUnit.joins(canonical_ref: :canonical_work)
                      .where(work_id: work.id)
-                     .where("canonical_refs.sbl_citation = ?", citation)
+                     .where(canonical_works: { book_key: params[:book] })
+                     .where("canonical_refs.hierarchy = ARRAY[?, ?]", chapter, verse)
                      .first!
 
         nodes = SyntaxNode.where(work_unit_id: wu.id)
@@ -19,7 +21,7 @@ module Api
         tree = build_tree(nodes)
 
         render json: {
-          citation: citation,
+          citation: wu.canonical_ref.sbl_citation,
           work: work.slug,
           tree: tree
         }
