@@ -91,6 +91,11 @@
         <td><code>xref:</code> prefix</td>
       </tr>
       <tr>
+        <td><strong>syntax</strong></td>
+        <td><code>syntax: subject(god) verb(create)</code></td>
+        <td><code>syntax:</code> prefix, or <code>subj:</code>/<code>verb:</code>/<code>obj:</code> shorthand</td>
+      </tr>
+      <tr>
         <td><strong>apparatus</strong></td>
         <td><code>apparatus substitution</code></td>
         <td><code>apparatus</code> keyword</td>
@@ -471,6 +476,119 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
     Greek NT, Deuterocanon, Pseudepigrapha, Apostolic Fathers, Rabbinic,
     Patristic), tradition filters, specific work selection, or by
     choosing &ldquo;all works&rdquo; in the search controls.
+  </p>
+
+  <h2>Syntactic search</h2>
+
+  <p>
+    Queries with the <code>syntax:</code> prefix search by grammatical role,
+    using <strong>450,891 syntax nodes</strong> from the Macula Hebrew and
+    Greek projects. The query <code>syntax: subject(god) verb(create)</code>
+    finds every verse where a word glossed &ldquo;god&rdquo; fills the
+    subject role and a word glossed &ldquo;create&rdquo; fills the verb
+    role. Roles can be specified with full names or abbreviations:
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Full name</th><th>Short</th><th>Code</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>subject</td><td>subj</td><td>s</td></tr>
+      <tr><td>verb</td><td>&mdash;</td><td>v</td></tr>
+      <tr><td>object</td><td>obj</td><td>o</td></tr>
+      <tr><td>indirect object</td><td>iobj</td><td>io</td></tr>
+      <tr><td>complement</td><td>comp</td><td>c</td></tr>
+      <tr><td>adjunct</td><td>adj</td><td>a</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    The lemma argument accepts Hebrew or Greek script
+    (<code>subject(אלהים)</code>), English glosses
+    (<code>subject(god)</code>), or a mix of both. English glosses are
+    matched against the lemma&rsquo;s <code>primary_gloss</code> via
+    ILIKE, FTS stemming, and the <code>senses</code> JSONB array, so
+    &ldquo;speak&rdquo; finds both &ldquo;speaks&rdquo; and
+    &ldquo;spoken.&rdquo; Verb detection falls back to morphological
+    codes (<code>morph_code LIKE 'V%'</code>) when explicit role
+    annotations are absent.
+  </p>
+
+  <p>
+    Each result includes an expandable syntax tree rendered client-side,
+    showing the clause structure with colour-coded grammatical roles.
+    The tree is fetched from the
+    <code>/api/v1/syntax/:work/:book/:chapter/:verse</code> endpoint.
+  </p>
+
+  <h2>Passage aliases and named passage search</h2>
+
+  <p>
+    The corpus includes <strong>4,174 passage aliases</strong> with
+    <strong>10,194 searchable names</strong> covering well-known passages
+    across the entire Bible: parables, miracles, speeches, prophecies,
+    psalms, laws, and narrative episodes. The search executor injects
+    matching alias results alongside text search results, with a
+    &ldquo;named passage&rdquo; badge.
+  </p>
+
+  <p>
+    Name matching uses exact lookup (with parenthetical variants and
+    prefix stripping: &ldquo;parable of the sower&rdquo; matches even
+    without the &ldquo;parable of the&rdquo; prefix) and trigram
+    similarity for fuzzy matching. The alias system is many-to-many:
+    one name can map to multiple passages (e.g. the Great Commission
+    in Matthew and Mark), and one passage can have multiple names.
+  </p>
+
+  <h2>Pericope-based retrieval</h2>
+
+  <p>
+    For natural-language questions (&ldquo;What did Jesus say about
+    war?&rdquo;), the search runs a secondary retrieval pass against
+    the pericope name embeddings. Each of the 3,002+ pericopes has
+    its name encoded into the same 768-dimensional vector space as
+    the verse embeddings. The query is encoded and matched against
+    pericope names by cosine similarity, then the top-matching
+    pericopes&rsquo; verses are injected into the result set.
+  </p>
+
+  <p>
+    For broad topics, the retrieval uses multi-hop encoding: a topic
+    like &ldquo;war&rdquo; is expanded into multiple facets
+    (&ldquo;war violence battle,&rdquo; &ldquo;peace nonviolence,&rdquo;
+    &ldquo;enemies love retaliation&rdquo;), each encoded separately.
+    The union of pericope matches across all facets provides broader
+    coverage than a single query vector.
+  </p>
+
+  <h2>Search suggestions</h2>
+
+  <p>
+    As the user types, an autocomplete dropdown shows two kinds of
+    suggestions:
+  </p>
+
+  <ul>
+    <li>
+      <strong>Lemma transliterations</strong> &mdash; typing
+      &ldquo;aga&rdquo; suggests &#x1F00;&#x03B3;&#x03AC;&#x03C0;&#x03B7;
+      (agape, &ldquo;love&rdquo;). Matched against the
+      <code>transliteration</code> column on lemmas with diacritics
+      stripped (so &ldquo;agape&rdquo; matches &ldquo;agap&#x0113;&rdquo;).
+    </li>
+    <li>
+      <strong>Passage aliases</strong> &mdash; typing &ldquo;prodig&rdquo;
+      suggests &ldquo;Prodigal Son.&rdquo; Matched via trigram similarity
+      against the <code>passage_alias_names</code> table.
+    </li>
+  </ul>
+
+  <p>
+    Suggestions are fetched from <code>/search/completions?q=...</code>
+    with a 250ms debounce. Keyboard navigation (arrow keys + enter)
+    is supported.
   </p>
 
   <h2>Things to read next</h2>

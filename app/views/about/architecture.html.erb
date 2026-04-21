@@ -304,6 +304,70 @@
     </figcaption>
   </figure>
 
+  <h2>Syntax trees and discourse analysis</h2>
+
+  <p>
+    The Westminster Leningrad Codex and Nestle 1904 carry
+    <strong>450,891 syntax nodes</strong> imported from the
+    <a href="https://github.com/Clear-Bible/macula-hebrew" class="underline decoration-dotted">Macula Hebrew</a> and
+    <a href="https://github.com/Clear-Bible/macula-greek" class="underline decoration-dotted">Macula Greek</a>
+    projects (CC BY 4.0). Each node sits in a tree hierarchy stored
+    as an <code>ltree</code> path, with a <code>node_class</code>
+    (clause, phrase, word group), a grammatical <code>role</code>
+    (subject, predicate, object, adjunct, etc.), and links to the
+    words it contains.
+  </p>
+
+  <p>
+    This powers syntactic search: a query like
+    <code>syntax: subject(god) verb(create)</code> finds every verse
+    where a word glossed &ldquo;god&rdquo; fills the subject role and
+    a word glossed &ldquo;create&rdquo; fills the verb role. The
+    query works with Hebrew/Greek lemmas, English glosses, or a mix
+    of both, across both testaments simultaneously. Results include
+    an expandable syntax tree showing the clause structure of each
+    matching verse.
+  </p>
+
+  <p>
+    Alongside the syntax trees, the corpus carries
+    <strong>217,402 participant references</strong> linking pronouns
+    and verb forms to their referents (e.g. &ldquo;he&rdquo; in
+    Genesis 1:3 &rarr; God). These come from Macula&rsquo;s
+    <code>participantref</code> and <code>subjref</code> annotations
+    and enable discourse-level questions like &ldquo;who is speaking
+    in this verse?&rdquo;
+  </p>
+
+  <h2>Passage aliases</h2>
+
+  <p>
+    The corpus includes <strong>4,174 passage aliases</strong> with
+    <strong>10,194 searchable names</strong> mapping common passage
+    names to their canonical references. Searching &ldquo;Parable of
+    the Sower&rdquo; or &ldquo;Ten Commandments&rdquo; or
+    &ldquo;Shema&rdquo; returns the actual verses directly, with a
+    &ldquo;named passage&rdquo; badge on the result. The alias
+    system handles many-to-many relationships (a name like &ldquo;Great
+    Commission&rdquo; maps to both Matthew 28:18&ndash;20 and Mark
+    16:15&ndash;16, and a single passage like the Sermon on the Mount
+    has multiple names). Fuzzy matching via trigram similarity catches
+    partial and approximate name queries.
+  </p>
+
+  <h2>Localized book names</h2>
+
+  <p>
+    Each <code>canonical_work</code> carries an
+    <code>alternate_titles</code> JSONB column with book names in
+    Greek, Latin, French, and German. When reading the Lutherbibel,
+    book and chapter headings display both the English name and the
+    German name (<em>Genesis</em> / <em>1. Mose</em>); when reading
+    Crampon, the French name appears (<em>Genèse</em>). The Hebrew
+    <code>native_title</code> column provides the original Hebrew name
+    for Old Testament books (<span dir="rtl">בְּרֵאשִׁית</span>).
+  </p>
+
   <h2>Sub-verse references &mdash; <code>Gen 1:1a</code></h2>
 
   <p>
