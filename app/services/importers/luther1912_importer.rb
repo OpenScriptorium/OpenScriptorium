@@ -302,6 +302,7 @@ module Importers
       s.to_s
         .gsub(/<FI>(.*?)<Fi>/i, '\1')  # OSIS italic markers → keep content
         .gsub(/\{\}/, "")              # empty brace containers
+        .gsub("HErr", "HERR")          # Tetragrammaton: HErr → HERR
         .gsub(/\s+/, " ")
         .strip
     end

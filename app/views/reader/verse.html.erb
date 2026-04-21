@@ -17,6 +17,12 @@
     <h1 class="font-serif text-3xl text-[var(--color-ink)]">
       <%= @canonical_work.display_title %> <%= @chapter %>:<%= @verse_n %>
     </h1>
+    <% display_native = @canonical_work.native_title_for(@work.language) %>
+    <% if display_native.present? && display_native != @canonical_work.display_title %>
+      <p class="text-xl font-serif text-[var(--color-ink-soft)] mt-1" lang="<%= @work.language %>">
+        <%= display_native %> <%= @chapter %>:<%= @verse_n %>
+      </p>
+    <% end %>
     <p class="mt-2 text-sm font-serif">
       <%= link_to "Read in parallel →",
             parallel_verse_path(@canonical_work.book_key, @chapter, @verse_n,
