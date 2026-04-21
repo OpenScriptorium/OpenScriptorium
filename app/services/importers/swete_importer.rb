@@ -207,7 +207,7 @@ module Importers
       chapter, verse = ref_key.split(".").map(&:to_i)
       canonical_ref = ensure_canonical_ref(canonical_work, [chapter, verse])
 
-      body = words.join(" ")
+      body = clean_ocr(words.join(" "))
       return if body.blank?
 
       work_unit = WorkUnit.find_or_initialize_by(
@@ -229,6 +229,61 @@ module Importers
     def next_work_unit_ord
       @next_ord ||= (WorkUnit.where(work_id: @work.id).maximum(:ord) || 0)
       @next_ord += 1
+    end
+
+    # ------------------------------------------------------------------
+    # OCR cleanup for the Swete digitization (nathans/lxx-swete).
+    #
+    # The source text was OCR'd from Swete's 1887-1894 print edition and
+    # has three recurring corruption patterns:
+    #
+    #   1. Roman-numeral chapter markers that leaked into verse text,
+    #      both at the start ("XXXVIκαὶ...") and end ("...αὐτοῦ. L").
+    #   2. Latin lookalike capitals used instead of Greek:
+    #      A for Α, B for Β, E for Ε, etc.
+    #   3. Stray lowercase Latin letters inside Greek words:
+    #      m for μ, n for ν, v for ν, etc.
+    #
+    # This method normalises all three in a single pass.
+    # ------------------------------------------------------------------
+    LATIN_TO_GREEK_UPPER = {
+      "A" => "Α", "B" => "Β", "E" => "Ε", "H" => "Η",
+      "I" => "Ι", "K" => "Κ", "M" => "Μ", "N" => "Ν",
+      "O" => "Ο", "P" => "Ρ", "T" => "Τ", "X" => "Χ",
+      "Y" => "Υ", "Z" => "Ζ",
+    }.freeze
+
+    LATIN_TO_GREEK_LOWER = {
+      "a" => "α", "b" => "β", "c" => "σ", "d" => "δ",
+      "e" => "ε", "f" => "φ", "h" => "η", "i" => "ι",
+      "k" => "κ", "l" => "ι", "m" => "μ", "n" => "ν",
+      "o" => "ο", "p" => "ρ", "r" => "ρ", "s" => "ς",
+      "t" => "τ", "u" => "υ", "v" => "ν", "x" => "χ",
+      "y" => "υ", "z" => "ζ",
+    }.freeze
+
+    LATIN_TO_GREEK = LATIN_TO_GREEK_UPPER.merge(LATIN_TO_GREEK_LOWER).freeze
+
+    def clean_ocr(text)
+      # 1. Replace literal U+XXXX escape sequences with the actual character
+      text = text.gsub(/U\+([0-9A-Fa-f]{4,5})/) { [$1.hex].pack("U") }
+
+      # 2. Remove 'ABBREV' artifacts from the source
+      text = text.gsub(/\s*ABBREV\s*/, " ")
+
+      # 3. Strip leading Roman-numeral chapter markers (e.g. "XXXVI" before Greek)
+      text = text.sub(/\A[IVXLC]+\s*(?=[α-ωά-ώΑ-Ωἀ-᾿])/, "")
+
+      # 4. Strip trailing Roman-numeral chapter markers
+      text = text.sub(/\s+[IVXLC]+\z/, "")
+
+      # 5. Remove standalone stray Latin letters (single D, F, C, etc. between spaces)
+      text = text.gsub(/\s+[A-Za-z]\s+/, " ")
+
+      # 6. Replace Latin lookalikes with Greek equivalents
+      text = text.gsub(/[A-Za-z]/) { |ch| LATIN_TO_GREEK[ch] || ch }
+
+      text.strip
     end
   end
 end
