@@ -328,11 +328,11 @@ module Importers
     def clean_html(s)
       s.gsub(/<[^>]+>/, "")
        .gsub(/&nbsp;/, " ")
-       .gsub(/&#8211;/, "–")
+       .gsub(/&#8211;/, "\u2013")
        .gsub(/&amp;/, "&")
-       .gsub(/&quot;/, ‘"’)
-       .gsub(/&#8217;/, "’")
-       .gsub(/&#8216;/, "’")
+       .gsub(/&quot;/, '"')
+       .gsub(/&#8217;/, "\u2019")
+       .gsub(/&#8216;/, "\u2018")
        .gsub(/\s+/, " ")
        .strip
     end
