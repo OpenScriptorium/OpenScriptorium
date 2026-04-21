@@ -62,6 +62,8 @@ class CanonicalWork < ApplicationRecord
     lang_key = case language
                when "grc", "el-koine" then "grc"
                when "la" then "la"
+               when "fr" then "fr"
+               when "de" then "de"
                else nil
                end
     (lang_key && alternate_titles&.dig(lang_key)) || native_title || title
