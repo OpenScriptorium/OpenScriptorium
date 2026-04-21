@@ -11,7 +11,7 @@ module Api
         wu = WorkUnit.joins(canonical_ref: :canonical_work)
                      .where(work_id: work.id)
                      .where(canonical_works: { book_key: params[:book] })
-                     .where("canonical_refs.hierarchy = ARRAY[?, ?]", chapter, verse)
+                     .where("canonical_refs.hierarchy = ARRAY[?, ?]::int[]", chapter, verse)
                      .first!
 
         nodes = SyntaxNode.where(work_unit_id: wu.id)
