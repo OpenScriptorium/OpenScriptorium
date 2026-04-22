@@ -1,21 +1,16 @@
 module Search
   module Strategies
     class PersonTopicSearch
-      # Handles "What did Jesus say about money?" style queries by:
-      # 1. FTS for the topic words across all English scripture
-      # 2. Re-ranking with person proximity boosts:
-      #    - Verse names the person AND matches topic → highest
-      #    - Verse is within ±20 of a verse naming the person → high
-      #    - Verse is in the person's primary testament/books → medium
-      #    - Verse is in a pericope mentioning the person → medium
-      #    - Person is the actor/speaker in the verse → highest
+      # Handles "What did Jesus say about money?" queries using Macula
+      # participant_references to find verses where the named person is
+      # the grammatical subject or semantic agent, then ranking by topic
+      # relevance within that set + expanded nearby verses.
 
       DEFAULT_LIMIT = 25
       MAX_LIMIT = 100
-      NEAR_WINDOW = 50  # ±50 ords from a verse mentioning the person
-      WIDE_WINDOW = 150 # wider window for weaker boost (covers long speeches)
+      SPEECH_WINDOW = 100  # ords to expand around agent verses (covers long speeches)
 
-      # Person → primary books (where their speech/actions are recorded)
+      # Person name → primary books (fallback when Macula data is sparse)
       PERSON_BOOKS = {
         "jesus" => %w[matthew mark luke john],
         "christ" => %w[matthew mark luke john],
@@ -33,9 +28,11 @@ module Search
         "daniel" => %w[daniel],
         "john" => %w[john 1-john 2-john 3-john revelation],
         "james" => %w[james],
+        "ruth" => %w[ruth],
+        "esther" => %w[esther],
+        "jonah" => %w[jonah],
+        "samuel" => %w[1-samuel 2-samuel],
       }.freeze
-
-      SPEECH_VERBS = /\b(said|answered|spoke|told|asked|taught|commanded|replied|cried|declared|proclaimed|called|instructed|warned|rebuked|blessed|prayed)\b/i
 
       def initialize(person, topic_words, raw_query:, scope: nil, page: 1, per_page: DEFAULT_LIMIT)
         @person = person.downcase
@@ -53,137 +50,94 @@ module Search
         topic_query = @topic_words.join(" ")
         topic_tsq = "websearch_to_tsquery('scriptorium_english', #{conn.quote(topic_query)})"
 
-        # Also build synonym-expanded topic query
-        expanded_topic = conn.select_value("SELECT expand_bible_synonyms(#{conn.quote(topic_query)})")
-        expanded_tsq = if expanded_topic && expanded_topic != topic_query
-          "websearch_to_tsquery('scriptorium_english', #{conn.quote(expanded_topic)})"
+        # Also build synonym-expanded topic
+        expanded = conn.select_value("SELECT expand_bible_synonyms(#{conn.quote(topic_query)})")
+        combined_tsq = if expanded && expanded != topic_query
+          exp_tsq = "websearch_to_tsquery('scriptorium_english', #{conn.quote(expanded)})"
+          "(#{topic_tsq} || #{exp_tsq})"
+        else
+          topic_tsq
         end
-        combined_tsq = expanded_tsq ? "(#{topic_tsq} || #{expanded_tsq})" : topic_tsq
 
-        # Pre-compute person context
-        person_ords = precompute_person_ords(conn)
-        pericope_ref_ids = precompute_pericope_refs(conn)
+        # Step 1: Find canonical_refs where person is subject/agent (Macula data)
+        agent_cref_ids = find_agent_crefs
+        agent_cref_set = agent_cref_ids.to_set
+
+        # Step 2: Expand to nearby verses (covers speech blocks)
+        expanded_cref_ids = expand_crefs(agent_cref_ids, conn)
+
+        # Step 3: Also get primary book cref_ids as fallback
         primary_books = PERSON_BOOKS[@person] || []
+        book_cw_ids = CanonicalWork.where(book_key: primary_books).pluck(:id) if primary_books.any?
 
-        # TWO-PASS APPROACH:
-        # Pass 1: Find topic matches WITHIN the person's context (primary
-        #   books + near person mentions + pericopes). This is the focused set.
-        # Pass 2: Find topic matches globally for supplementary results.
-        # Merge with Pass 1 results on top.
+        # Step 4: Search for topic in three tiers, merge results
+        results = []
 
-        # Build the person-context scope: primary books for this person
-        book_cw_ids = CanonicalWork.where(book_key: primary_books).pluck(:id)
+        # Tier A: Topic matches in agent verses (person is subject/agent HERE)
+        if agent_cref_ids.any?
+          tier_a = topic_search_in_crefs(agent_cref_ids, combined_tsq, limit: 50)
+          results.concat(tier_a.map { |wu| score_result(wu, :agent) })
+        end
 
-        focused_results = []
-        if book_cw_ids.any?
-          focused = WorkUnit
+        # Tier B: Topic matches in expanded window (person speaks nearby)
+        if expanded_cref_ids.any?
+          tier_b = topic_search_in_crefs(expanded_cref_ids, combined_tsq, limit: 80)
+          results.concat(tier_b.map { |wu|
+            tier = agent_cref_set.include?(wu.canonical_ref_id) ? :agent : :nearby
+            score_result(wu, tier)
+          })
+        end
+
+        # Tier C: Topic matches in primary books (fallback)
+        if book_cw_ids&.any?
+          tier_c = WorkUnit
             .joins(:canonical_ref, :work)
-            .joins("JOIN canonical_works ON canonical_works.id = canonical_refs.canonical_work_id")
             .where("work_units.body_tsvector @@ #{combined_tsq}")
             .where(works: { language: "en" })
             .where("canonical_refs.canonical_work_id IN (?)", book_cw_ids)
-            .includes(:canonical_ref, work: :license)
-
-          focused = apply_scope(focused)
-
-          focused_results = focused
-            .select(
-              "work_units.*",
-              "ts_rank(work_units.body_tsvector, #{combined_tsq}) AS topic_rank",
-              "canonical_refs.ord AS cref_ord",
-              "canonical_works.book_key AS book_key",
-              "canonical_refs.canonical_work_id AS cw_id"
-            )
+            .select("work_units.*",
+              "ts_rank(work_units.body_tsvector, #{combined_tsq}) AS topic_rank")
             .order(Arel.sql("topic_rank DESC"))
-            .limit(100)
-            .to_a
-        end
-
-        # Pass 2: Global topic matches (for supplementary results from other books)
-        global = WorkUnit
-          .joins(:canonical_ref, :work)
-          .joins("JOIN canonical_works ON canonical_works.id = canonical_refs.canonical_work_id")
-          .where("work_units.body_tsvector @@ #{combined_tsq}")
-          .where(works: { language: "en" })
-          .includes(:canonical_ref, work: :license)
-        global = apply_scope(global)
-        total = global.count
-
-        global_results = global
-          .select(
-            "work_units.*",
-            "ts_rank(work_units.body_tsvector, #{combined_tsq}) AS topic_rank",
-            "canonical_refs.ord AS cref_ord",
-            "canonical_works.book_key AS book_key",
-            "canonical_refs.canonical_work_id AS cw_id"
-          )
-          .order(Arel.sql("topic_rank DESC"))
-          .limit(50)
-          .to_a
-
-        # Merge and deduplicate — focused first, then global
-        seen_ids = Set.new
-        all_candidates = []
-        (focused_results + global_results).each do |wu|
-          next if seen_ids.include?(wu.id)
-          seen_ids << wu.id
-          all_candidates << wu
-        end
-
-        return empty_result if all_candidates.empty?
-
-        # Score each candidate with person-context boosts
-        scored = all_candidates.map { |wu|
-          score = wu.topic_rank.to_f
-          body = wu.body.to_s.downcase
-          ord = wu.cref_ord.to_i
-          cw_id = wu.cw_id.to_i
-          book = wu.book_key
-
-          # The focused set already filters to the person's primary books,
-          # so topic relevance is the main ranking signal. Apply moderate
-          # contextual boosts — these are tie-breakers, not dominant factors.
-
-          # Boost 1: Person is the speaker/actor in this verse
-          if body.include?(@person) && person_is_actor?(body)
-            score *= 2.0
-          end
-
-          # Boost 2: Verse is near a verse naming the person
-          min_dist = person_ords[cw_id]&.map { |o| (ord - o).abs }&.min
-          if min_dist
-            if min_dist == 0  # person named in this verse
-              score *= 1.3
-            elsif min_dist <= NEAR_WINDOW
-              score *= 1.2
-            elsif min_dist <= WIDE_WINDOW
-              score *= 1.1
+            .limit(50)
+            .includes(:canonical_ref, work: :license)
+          results.concat(tier_c.map { |wu|
+            tier = if agent_cref_set.include?(wu.canonical_ref_id)
+              :agent
+            elsif expanded_cref_ids.to_set.include?(wu.canonical_ref_id)
+              :nearby
+            else
+              :book
             end
-          end
+            score_result(wu, tier)
+          })
+        end
 
-          # Boost 3: In a pericope mentioning the person
-          if pericope_ref_ids.include?(wu.canonical_ref_id)
-            score *= 1.3
-          end
+        return empty_result if results.empty?
 
-          format_result(wu, score)
-        }
-
-        # Deduplicate by citation
+        # Deduplicate by citation, keeping highest score
         best = {}
-        scored.each do |r|
+        results.each do |r|
           key = r[:citation]
           if best[key].nil? || r[:relevance] > best[key][:relevance]
             best[key] = r
           end
         end
 
-        results = best.values
-                    .sort_by { |r| -r[:relevance] }
-                    .first(@per_page)
+        sorted = best.values.sort_by { |r| -r[:relevance] }.first(@per_page)
+
+        # Count total from broadest tier
+        total = if book_cw_ids&.any?
+          WorkUnit.joins(:canonical_ref, :work)
+            .where("work_units.body_tsvector @@ #{combined_tsq}")
+            .where(works: { language: "en" })
+            .where("canonical_refs.canonical_work_id IN (?)", book_cw_ids)
+            .count
+        else
+          results.size
+        end
 
         ResultSet.new(
-          results: results,
+          results: sorted,
           query: @raw_query,
           query_type: :person_topic,
           total_count: total,
@@ -194,54 +148,111 @@ module Search
 
       private
 
-      def precompute_person_ords(conn)
-        rows = conn.select_all(<<~SQL)
-          SELECT DISTINCT cr.canonical_work_id, cr.ord
-          FROM work_units wu
-          JOIN canonical_refs cr ON cr.id = wu.canonical_ref_id
-          JOIN works w ON w.id = wu.work_id
-          WHERE w.language = 'en'
-            AND wu.body ILIKE #{conn.quote("%#{@person}%")}
-        SQL
+      # Find canonical_ref_ids where the person is subject or agent
+      # using Macula participant_references.
+      def find_agent_crefs
+        # Find words matching the person name via lemma gloss
+        person_word_ids = Word.joins(:lemma)
+          .where("lemmas.primary_gloss ILIKE ?", "#{@person}%")
+          .where(lemmas: { language: %w[he hbo arc el-koine grc] })
+          .pluck(:id)
 
-        by_cw = Hash.new { |h, k| h[k] = [] }
-        rows.each { |r| by_cw[r["canonical_work_id"].to_i] << r["ord"].to_i }
-        by_cw
-      end
-
-      def precompute_pericope_refs(conn)
-        return Set.new unless Pericope.table_exists?
-
-        ref_ids = conn.select_values(<<~SQL)
-          SELECT cr.id
-          FROM pericopes p
-          JOIN canonical_refs cr
-            ON cr.canonical_work_id = p.canonical_work_id
-            AND cr.ord <@ p.canonical_range
-          WHERE p.name ILIKE #{conn.quote("%#{@person}%")}
-          LIMIT 5000
-        SQL
-        ref_ids.map(&:to_i).to_set
-      end
-
-      def person_is_actor?(body)
-        escaped = Regexp.escape(@person)
-        body.match?(/\b#{escaped}\b.{0,40}#{SPEECH_VERBS}/i) ||
-          body.match?(/#{SPEECH_VERBS}.{0,20}\b#{escaped}\b/i)
-      end
-
-      def apply_scope(base)
-        if @scope.is_a?(Hash)
-          base = base.where(works: { slug: @scope[:work] }) if @scope[:work].present?
-          base = base.where(works: { work_type: @scope[:work_types] }) if @scope[:work_types].is_a?(Array)
-          if @scope[:languages].is_a?(Array)
-            base = base.where(works: { language: @scope[:languages] })
-          end
+        # Also try surface-form matching for common variants
+        surface_patterns = person_surface_patterns
+        if surface_patterns.any?
+          surface_ids = Word.where(
+            surface_patterns.map { "surface LIKE ?" }.join(" OR "),
+            *surface_patterns
+          ).pluck(:id)
+          person_word_ids = (person_word_ids + surface_ids).uniq
         end
-        base
+
+        return [] if person_word_ids.empty?
+
+        # Find work_units where this person is subject/agent
+        wu_ids = ParticipantReference
+          .where(referent_word_id: person_word_ids)
+          .where(ref_type: %w[subject frame_a0])
+          .distinct
+          .pluck(:work_unit_id)
+
+        return [] if wu_ids.empty?
+
+        WorkUnit.where(id: wu_ids).pluck(:canonical_ref_id).uniq
       end
 
-      def format_result(wu, score)
+      # Surface patterns for names that don't match via gloss
+      def person_surface_patterns
+        case @person
+        when "jesus", "yeshua" then ["Ἰησοῦ%"]
+        when "christ" then ["Χριστ%"]
+        when "moses" then ["Μω%σ%", "מֹשֶׁ%", "מֹשֶׁ%", "משׁה%"]
+        when "david" then ["Δαυ%δ%", "דָּוִ%", "דָוִ%", "דּוד%"]
+        when "paul" then ["Παῦλ%", "Σαῦλ%"]
+        when "peter" then ["Πέτρ%", "Σίμων%"]
+        when "solomon" then ["Σολομ%", "שְׁלֹמֹ%", "שׁלמה%"]
+        when "abraham" then ["Ἀβρα%μ%", "אַבְרָ%", "אברהם%"]
+        when "elijah" then ["Ἠλί%", "אֵלִיָּ%"]
+        when "isaiah" then ["Ἠσαΐ%", "יְשַׁעְיָ%"]
+        when "jeremiah" then ["Ἰερεμ%", "יִרְמְיָ%"]
+        when "job" then ["אִיּ%"]
+        when "daniel" then ["Δανι%λ%", "דָּנִיֵּ%"]
+        when "ruth" then ["Ῥούθ%", "רוּת%"]
+        when "jonah" then ["Ἰωνᾶ%", "יוֹנָ%"]
+        when "samuel" then ["שְׁמוּאֵ%"]
+        when "esther" then ["אֶסְתֵּ%"]
+        else []
+        end
+      end
+
+      # Expand canonical_ref_ids by ±SPEECH_WINDOW within each canonical_work
+      def expand_crefs(cref_ids, conn)
+        return [] if cref_ids.empty?
+
+        # Get (canonical_work_id, ord) for each cref
+        locations = CanonicalRef.where(id: cref_ids).pluck(:canonical_work_id, :ord)
+        return [] if locations.empty?
+
+        # Group by canonical_work and build ranges
+        by_cw = Hash.new { |h, k| h[k] = [] }
+        locations.each { |cw_id, ord| by_cw[cw_id] << ord }
+
+        conditions = by_cw.map { |cw_id, ords|
+          min_ord = ords.min - SPEECH_WINDOW
+          max_ord = ords.max + SPEECH_WINDOW
+          "(canonical_work_id = #{cw_id.to_i} AND ord BETWEEN #{min_ord} AND #{max_ord})"
+        }
+
+        conn.select_values(
+          "SELECT id FROM canonical_refs WHERE #{conditions.join(' OR ')} LIMIT 20000"
+        ).map(&:to_i)
+      end
+
+      def topic_search_in_crefs(cref_ids, tsq, limit:)
+        # Batch in chunks to avoid huge IN clauses
+        cref_ids = cref_ids.first(10000)
+        WorkUnit
+          .joins(:canonical_ref, :work)
+          .where(canonical_ref_id: cref_ids)
+          .where(works: { language: "en" })
+          .where("work_units.body_tsvector @@ #{tsq}")
+          .select("work_units.*",
+            "ts_rank(work_units.body_tsvector, #{tsq}) AS topic_rank")
+          .order(Arel.sql("topic_rank DESC"))
+          .limit(limit)
+          .includes(:canonical_ref, work: :license)
+      end
+
+      def score_result(wu, tier)
+        base = wu.respond_to?(:topic_rank) ? wu.topic_rank.to_f : 0.01
+
+        score = case tier
+        when :agent  then base * 10.0  # person is subject/agent in this verse
+        when :nearby then base * 5.0   # within speech window of agent verse
+        when :book   then base * 1.0   # in person's primary book, no proximity
+        else base
+        end
+
         {
           id: wu.id,
           work_slug: wu.work.slug,

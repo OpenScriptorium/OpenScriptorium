@@ -7,8 +7,8 @@ module Importers
 
     BOOK_MAP = MaculaSyntaxImporter::BOOK_MAP
 
-    # Hebrew Macula book numbers → book codes
-    HEBREW_BOOK_NUMBERS = {
+    # Macula book numbers → OSIS book codes (OT 1-39, NT 40-66)
+    BOOK_NUMBERS = {
       1 => "GEN", 2 => "EXO", 3 => "LEV", 4 => "NUM", 5 => "DEU",
       6 => "JOS", 7 => "JDG", 8 => "RUT",
       9 => "1SA", 10 => "2SA", 11 => "1KI", 12 => "2KI",
@@ -17,8 +17,17 @@ module Importers
       23 => "ISA", 24 => "JER", 25 => "LAM", 26 => "EZK", 27 => "DAN",
       28 => "HOS", 29 => "JOL", 30 => "AMO", 31 => "OBA",
       32 => "JON", 33 => "MIC", 34 => "NAM", 35 => "HAB",
-      36 => "ZEP", 37 => "HAG", 38 => "ZEC", 39 => "MAL"
+      36 => "ZEP", 37 => "HAG", 38 => "ZEC", 39 => "MAL",
+      40 => "MAT", 41 => "MRK", 42 => "LUK", 43 => "JHN", 44 => "ACT",
+      45 => "ROM", 46 => "1CO", 47 => "2CO", 48 => "GAL", 49 => "EPH",
+      50 => "PHP", 51 => "COL", 52 => "1TH", 53 => "2TH",
+      54 => "1TI", 55 => "2TI", 56 => "TIT", 57 => "PHM",
+      58 => "HEB", 59 => "JAS", 60 => "1PE", 61 => "2PE",
+      62 => "1JN", 63 => "2JN", 64 => "3JN", 65 => "JUD", 66 => "REV"
     }.freeze
+
+    # Keep backward compatibility
+    HEBREW_BOOK_NUMBERS = BOOK_NUMBERS
 
     def source_url
       "local:tmp/macula-{hebrew,greek}/*/lowfat"
@@ -142,8 +151,9 @@ module Importers
     end
 
     def resolve_macula_id(macula_id)
-      # Hebrew ID format: BBCCCVVVWWWM (12 digits)
-      # Greek ID format: varies — try ref-based lookup
+      # Hebrew ID: 12 digits BBCCCVVVWWWM (e.g. "010010010031")
+      # Greek ID:  "n" + 11 digits nBBCCCVVVWWW (e.g. "n40001002014")
+      # Both encode book(2), chapter(3), verse(3), word_pos(3)
       cleaned = macula_id.gsub(/\D/, "")
       return nil if cleaned.length < 11
 
@@ -152,7 +162,7 @@ module Importers
       verse = cleaned[5..7].to_i
       word_pos = cleaned[8..10].to_i
 
-      book_code = HEBREW_BOOK_NUMBERS[book_num]
+      book_code = BOOK_NUMBERS[book_num]
       return nil unless book_code
 
       sbl = BOOK_MAP[book_code]
