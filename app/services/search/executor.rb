@@ -23,10 +23,14 @@ module Search
 
       result = dispatch(classified)
 
+      # Person-topic queries have their own ranking pipeline — skip the
+      # general text post-processing (aliases, pericope, semantic merge).
+      is_text = classified.type == :text && result.query_type != :person_topic
+
       # Passage alias lookup: if the query matches a known passage nickname
       # (e.g. "golden rule", "shepherd psalm", "prodigal son"), inject the
       # target passage at the top of results.
-      if classified.type == :text
+      if is_text
         result = inject_alias_matches(result)
       end
 
@@ -35,14 +39,14 @@ module Search
       # "agape", "hesed", "shalom"), try matching lemma transliterations.
       # Only replace when text results are truly sparse (< 5) — words like
       # "Hallelujah" appear in English text and shouldn't be diverted.
-      if classified.type == :text && result.total_count < 5 && latin_script?(@raw_query) && !@raw_query.include?(" ")
+      if is_text && result.total_count < 5 && latin_script?(@raw_query) && !@raw_query.include?(" ")
         transliteration_result = try_transliteration_fallback(classified.query)
         result = transliteration_result if transliteration_result && !transliteration_result.empty?
       end
 
       # Pericope-based retrieval: ONLY for question queries ("What did
       # Jesus say about war?"). Non-question queries use FTS + aliases.
-      if classified.type == :text && question_query?(@raw_query)
+      if is_text && question_query?(@raw_query)
         result = Strategies::PericopeRetrieval.new(
           @raw_query, result, scope: @scope
         ).call
@@ -50,7 +54,7 @@ module Search
 
       # Semantic enrichment: if embeddings are available and mode is hybrid,
       # merge embedding results into the FTS results.
-      if classified.type == :text && semantic_mode? && embeddings_available?
+      if is_text && semantic_mode? && embeddings_available?
         result = Strategies::SemanticMerge.new(
           @raw_query, result,
           scope: @scope, page: @page, per_page: @per_page
@@ -58,7 +62,7 @@ module Search
       end
 
       # For English text searches, also run cross-language search for the sidebar card
-      if classified.type == :text && result.cross_language_card.nil?
+      if (is_text || result.query_type == :person_topic) && result.cross_language_card.nil?
         card = Strategies::CrossLanguageSearch.new(classified.query).call
         if card
           return ResultSet.new(
@@ -116,7 +120,20 @@ module Search
           scope: @scope, page: @page, per_page: @per_page
         ).call
       else
-        Strategies::TextSearch.new(classified.query, scope: @scope, page: @page, per_page: @per_page).call
+        # Person-topic queries ("What did Jesus say about money?") use a
+        # dedicated strategy that combines topic FTS with person-proximity
+        # boosting. Only fires when the query has a recognized person name
+        # AND at least one topic word.
+        person, topic_words = detect_person_topic(classified.query)
+        if person
+          Strategies::PersonTopicSearch.new(
+            person, topic_words,
+            raw_query: classified.query,
+            scope: @scope, page: @page, per_page: @per_page
+          ).call
+        else
+          Strategies::TextSearch.new(classified.query, scope: @scope, page: @page, per_page: @per_page).call
+        end
       end
     end
 
@@ -490,6 +507,57 @@ module Search
     def question_query?(q)
       q.strip.match?(/\A(what|where|when|who|why|how|is|does|did|can|should|are)\b/i) ||
         q.strip.end_with?("?")
+    end
+
+    # Detect person-topic queries like "What did Jesus say about money?"
+    # or "Paul's teaching on justification". Returns [person_name, topic_words]
+    # or nil if not a person-topic query.
+    #
+    # Only triggers when:
+    # 1. Query contains a recognized biblical person name
+    # 2. Query has topic words (not just the person name)
+    # 3. Query looks like a question or "about X" pattern (not an exact quote)
+    PERSON_NAMES = %w[
+      jesus christ yeshua paul peter john james timothy titus
+      barnabas silas luke stephen philip apollos nicodemus lazarus
+      martha pilate herod moses abraham david solomon samuel elijah
+      elisha isaiah jeremiah ezekiel daniel noah jacob isaac joseph
+      joshua gideon samson ruth esther nehemiah ezra job jonah
+      adam eve cain abel sarah rebekah rachel leah saul bathsheba
+      goliath pharaoh balaam deborah mary
+    ].to_set.freeze
+
+    PERSON_TOPIC_STOP = %w[
+      what where when who why how does did do is are was were
+      the a an of in to for and or but with about from by at on
+      that this these those it its they them their
+      can could should would will shall may might
+      bible say says said tell tells told teach teaches taught
+      verse verses passage passages scripture scriptures
+      talk talks about regarding concerning wrote write
+    ].to_set.freeze
+
+    def detect_person_topic(query)
+      words = query.downcase.gsub(/[?!.,;:'"]/, "").split
+      person = words.find { |w| PERSON_NAMES.include?(w) }
+      return nil unless person
+
+      topic_words = words.reject { |w|
+        PERSON_TOPIC_STOP.include?(w) || PERSON_NAMES.include?(w)
+      }
+      return nil if topic_words.empty?
+
+      # Don't trigger for exact quotes — if the query is 6+ words and
+      # doesn't start with a question word or end with ?, it's likely
+      # an exact quote like "Jesus wept" or "Moses said unto the people"
+      is_question = query.strip.match?(/\A(what|where|when|who|why|how|does|did|can|should)\b/i) ||
+                    query.strip.end_with?("?") ||
+                    query.downcase.include?(" about ") ||
+                    query.downcase.include?(" on ") ||
+                    query.downcase.include?(" regarding ")
+      return nil unless is_question || words.size <= 5
+
+      [person, topic_words]
     end
 
     # Semantic search is enabled by default when embeddings exist.
