@@ -518,19 +518,19 @@ module Search
     # 2. Query has topic words (not just the person name)
     # 3. Query looks like a question or "about X" pattern (not an exact quote)
     PERSON_NAMES = %w[
-      jesus christ yeshua paul peter john james timothy titus
+      god jesus christ yeshua paul peter john james timothy titus
       barnabas silas luke stephen philip apollos nicodemus lazarus
       martha pilate herod moses abraham david solomon samuel elijah
       elisha isaiah jeremiah ezekiel daniel noah jacob isaac joseph
       joshua gideon samson ruth esther nehemiah ezra job jonah
       adam eve cain abel sarah rebekah rachel leah saul bathsheba
-      goliath pharaoh balaam deborah mary
+      goliath pharaoh balaam deborah mary naomi
     ].to_set.freeze
 
     PERSON_TOPIC_STOP = %w[
       what where when who why how does did do is are was were
       the a an of in to for and or but with about from by at on
-      that this these those it its they them their
+      that this these those it its they them their he she his her
       can could should would will shall may might
       bible say says said tell tells told teach teaches taught
       verse verses passage passages scripture scriptures
@@ -542,20 +542,22 @@ module Search
       person = words.find { |w| PERSON_NAMES.include?(w) }
       return nil unless person
 
+      # Keep second person names as topic words — "David and Goliath"
+      # should use "goliath" as the topic, not discard it. Only the
+      # FIRST detected person is the subject.
       topic_words = words.reject { |w|
-        PERSON_TOPIC_STOP.include?(w) || PERSON_NAMES.include?(w)
+        PERSON_TOPIC_STOP.include?(w) || w == person
       }
       return nil if topic_words.empty?
 
-      # Don't trigger for exact quotes — if the query is 6+ words and
-      # doesn't start with a question word or end with ?, it's likely
-      # an exact quote like "Jesus wept" or "Moses said unto the people"
+      # Only trigger for clear question/topic patterns, not exact quotes
+      # or narrative queries. "David and Goliath" should stay with TextSearch.
       is_question = query.strip.match?(/\A(what|where|when|who|why|how|does|did|can|should)\b/i) ||
                     query.strip.end_with?("?") ||
                     query.downcase.include?(" about ") ||
-                    query.downcase.include?(" on ") ||
-                    query.downcase.include?(" regarding ")
-      return nil unless is_question || words.size <= 5
+                    query.downcase.include?(" regarding ") ||
+                    query.downcase.match?(/\bteach\w*\b|\bsay\b|\bsaid\b|\bwrote\b|\bwrite\b/)
+      return nil unless is_question
 
       [person, topic_words]
     end

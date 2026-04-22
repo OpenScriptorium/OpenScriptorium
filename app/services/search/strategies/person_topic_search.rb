@@ -32,6 +32,9 @@ module Search
         "esther" => %w[esther],
         "jonah" => %w[jonah],
         "samuel" => %w[1-samuel 2-samuel],
+        "god" => %w[genesis exodus leviticus numbers deuteronomy joshua judges 1-samuel 2-samuel 1-kings 2-kings isaiah jeremiah ezekiel hosea joel amos obadiah jonah micah nahum habakkuk zephaniah haggai zechariah malachi job psalms],
+        "naomi" => %w[ruth],
+        "goliath" => %w[1-samuel],
       }.freeze
 
       def initialize(person, topic_words, raw_query:, scope: nil, page: 1, per_page: DEFAULT_LIMIT)
@@ -48,16 +51,29 @@ module Search
 
         conn = ApplicationRecord.connection
         topic_query = @topic_words.join(" ")
-        topic_tsq = "websearch_to_tsquery('scriptorium_english', #{conn.quote(topic_query)})"
 
-        # Also build synonym-expanded topic
-        expanded = conn.select_value("SELECT expand_bible_synonyms(#{conn.quote(topic_query)})")
-        combined_tsq = if expanded && expanded != topic_query
-          exp_tsq = "websearch_to_tsquery('scriptorium_english', #{conn.quote(expanded)})"
-          "(#{topic_tsq} || #{exp_tsq})"
-        else
-          topic_tsq
+        # Build a broad topic tsquery that handles stemming gaps.
+        # "prayer" stems to 'prayer' but "pray" stems to 'pray' — they
+        # have different lexemes in English Snowball. Generate both the
+        # original word AND likely root forms (strip common suffixes).
+        topic_tsq = "websearch_to_tsquery('scriptorium_english', #{conn.quote(topic_query)})"
+        word_tsqs = []
+
+        # For each topic word, also add root forms that strip common
+        # English suffixes (prayer→pray, forgiveness→forgive, etc.)
+        all_forms = @topic_words.dup
+        @topic_words.each { |w| all_forms.concat(root_forms(w)) }
+        all_forms.uniq.each do |w|
+          word_tsqs << "plainto_tsquery('scriptorium_english', #{conn.quote(w)})"
         end
+
+        # Synonym expansion
+        expanded = conn.select_value("SELECT expand_bible_synonyms(#{conn.quote(topic_query)})")
+        if expanded && expanded != topic_query
+          word_tsqs << "websearch_to_tsquery('scriptorium_english', #{conn.quote(expanded)})"
+        end
+
+        combined_tsq = "(" + ([topic_tsq] + word_tsqs).join(" || ") + ")"
 
         # Step 1: Find canonical_refs where person is subject/agent (Macula data)
         agent_cref_ids = find_agent_crefs
@@ -199,6 +215,8 @@ module Search
         when "daniel" then ["Δανι%λ%", "דָּנִיֵּ%"]
         when "ruth" then ["Ῥούθ%", "רוּת%"]
         when "jonah" then ["Ἰωνᾶ%", "יוֹנָ%"]
+        when "god" then ["אֱלֹהִ%", "אלהים%", "יהוה%", "Θε%"]
+        when "naomi" then ["נָעֳמִ%"]
         when "samuel" then ["שְׁמוּאֵ%"]
         when "esther" then ["אֶסְתֵּ%"]
         else []
@@ -267,6 +285,32 @@ module Search
           license: wu.work.license.name,
           book_slug: wu.canonical_ref.canonical_work.book_key
         }
+      end
+
+      # Generate likely root forms for a word to handle noun/verb stem
+      # mismatches. "prayer" → ["pray"], "forgiveness" → ["forgive"],
+      # "suffering" → ["suffer"].
+      def root_forms(word)
+        roots = []
+        w = word.downcase
+        roots << w.sub(/er$/, "")           if w.end_with?("er") && w.length > 4    # prayer→pray
+        roots << w.sub(/ness$/, "")         if w.end_with?("ness") && w.length > 6  # forgiveness→forgive (wait, "eness")
+        roots << w.sub(/eness$/, "e")       if w.end_with?("eness")                 # forgiveness→forgive
+        roots << w.sub(/ment$/, "")         if w.end_with?("ment") && w.length > 6  # atonement→atone
+        roots << w.sub(/tion$/, "")         if w.end_with?("tion") && w.length > 6  # salvation→salva...
+        roots << w.sub(/tion$/, "te")       if w.end_with?("tion") && w.length > 6  # creation→create
+        roots << w.sub(/ation$/, "e")       if w.end_with?("ation") && w.length > 7 # creation→create
+        roots << w.sub(/ing$/, "")          if w.end_with?("ing") && w.length > 5   # suffering→suffer
+        roots << w.sub(/ing$/, "e")         if w.end_with?("ing") && w.length > 5   # forgiving→forgive
+        roots << w.sub(/ance$/, "")         if w.end_with?("ance") && w.length > 6  # repentance→repent
+        roots << w.sub(/ence$/, "")         if w.end_with?("ence") && w.length > 6
+        roots << w.sub(/ful$/, "")          if w.end_with?("ful") && w.length > 5
+        roots << w.sub(/ous$/, "")          if w.end_with?("ous") && w.length > 5
+        roots << w.sub(/ive$/, "e")         if w.end_with?("ive") && w.length > 5   # forgive stays
+        # Also try adding common suffixes to find noun from verb
+        roots << "#{w}er"                   if w.length >= 3 && w.length <= 8        # pray→prayer
+        roots << "#{w}ing"                  if w.length >= 3 && w.length <= 8        # pray→praying
+        roots.reject { |r| r.length < 3 || r == w }.uniq
       end
 
       def empty_result
