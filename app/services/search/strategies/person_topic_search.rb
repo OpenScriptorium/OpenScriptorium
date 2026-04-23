@@ -104,13 +104,15 @@ module Search
           })
         end
 
-        # Pericope context: find canonical_ref_ids that fall within
-        # pericopes whose names match the topic. Used as a BOOST on
-        # keyword results (not a separate tier) so that Matt 6:9 in
-        # "The Lord's Prayer" outranks Matt 14:23 (generic pray verse).
-        # Also provides candidate verses for the conceptual fallback.
+        # Pericope context: find canonical_ref_ids in pericopes matching
+        # the topic. Two levels:
+        # 1. topic_pericope: pericope name matches topic (3x boost)
+        # 2. dual_pericope: pericope name matches BOTH person AND topic
+        #    (6x boost) — "David Slays Goliath" for query about David+Goliath
         topic_pericope_cref_ids = find_topic_pericope_cref_ids(conn, book_cw_ids)
         @topic_pericope_set = topic_pericope_cref_ids.to_set
+        dual_pericope_cref_ids = find_dual_pericope_cref_ids(conn)
+        @dual_pericope_set = dual_pericope_cref_ids.to_set
 
         # Tier C: Topic matches in primary books (fallback)
         if book_cw_ids&.any?
@@ -339,10 +341,12 @@ module Search
         else base
         end
 
-        # Pericope name boost: if this verse is within a pericope whose
-        # name matches the topic, boost it. Matt 6:9 in "The Lord's
-        # Prayer" pericope gets boosted for a "prayer" query.
-        if @topic_pericope_set&.include?(wu.canonical_ref_id)
+        # Pericope name boost: verses in pericopes matching the topic
+        # get boosted. Dual match (person + topic both in pericope name)
+        # gets a stronger boost — "David Slays Goliath" for david+goliath.
+        if @dual_pericope_set&.include?(wu.canonical_ref_id)
+          score *= 6.0
+        elsif @topic_pericope_set&.include?(wu.canonical_ref_id)
           score *= 3.0
         end
 
@@ -360,6 +364,33 @@ module Search
           license: wu.work.license.name,
           book_slug: wu.canonical_ref.canonical_work.book_key
         }
+      end
+
+      # Find canonical_ref_ids in pericopes whose names match BOTH
+      # the person AND the topic. "David Slays Goliath" matches both
+      # "david" and "goliath" — very strong signal.
+      def find_dual_pericope_cref_ids(conn)
+        return [] unless Pericope.table_exists?
+
+        all_terms = @topic_words.dup
+        @topic_words.each { |w| all_terms.concat(root_forms(w)) }
+        all_terms.uniq!
+
+        topic_conds = all_terms.map { |t|
+          "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(t)}%")}"
+        }
+        person_cond = "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(@person)}%")}"
+
+        conn.select_values(<<~SQL).map(&:to_i)
+          SELECT DISTINCT cr.id
+          FROM pericopes p
+          JOIN canonical_refs cr
+            ON cr.canonical_work_id = p.canonical_work_id
+            AND cr.ord <@ p.canonical_range
+          WHERE #{person_cond}
+            AND (#{topic_conds.join(" OR ")})
+          LIMIT 2000
+        SQL
       end
 
       def dedup_by_citation(results)
