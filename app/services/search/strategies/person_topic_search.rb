@@ -86,7 +86,7 @@ module Search
         primary_books = PERSON_BOOKS[@person] || []
         book_cw_ids = CanonicalWork.where(book_key: primary_books).pluck(:id) if primary_books.any?
 
-        # Step 4: Search for topic in three tiers, merge results
+        # Step 4: Search for topic in four tiers, merge results
         results = []
 
         # Tier A: Topic matches in agent verses (person is subject/agent HERE)
@@ -104,6 +104,14 @@ module Search
           })
         end
 
+        # Pericope context: find canonical_ref_ids that fall within
+        # pericopes whose names match the topic. Used as a BOOST on
+        # keyword results (not a separate tier) so that Matt 6:9 in
+        # "The Lord's Prayer" outranks Matt 14:23 (generic pray verse).
+        # Also provides candidate verses for the conceptual fallback.
+        topic_pericope_cref_ids = find_topic_pericope_cref_ids(conn, book_cw_ids)
+        @topic_pericope_set = topic_pericope_cref_ids.to_set
+
         # Tier C: Topic matches in primary books (fallback)
         if book_cw_ids&.any?
           tier_c = WorkUnit
@@ -114,7 +122,7 @@ module Search
             .select("work_units.*",
               "ts_rank(work_units.body_tsvector, #{combined_tsq}) AS topic_rank")
             .order(Arel.sql("topic_rank DESC"))
-            .limit(50)
+            .limit(200)
             .includes(:canonical_ref, work: :license)
           results.concat(tier_c.map { |wu|
             tier = if agent_cref_set.include?(wu.canonical_ref_id)
@@ -126,6 +134,25 @@ module Search
             end
             score_result(wu, tier)
           })
+        end
+
+        # Conceptual fallback: add verses from topic-matching pericopes
+        # that weren't found by keyword search. These have no FTS match
+        # but are in a pericope whose name matches the topic concept.
+        if topic_pericope_cref_ids.any?
+          # Find verses in topic pericopes that aren't already in results
+          existing_cref_ids = results.map { |r| r[:canonical_ref_id] }.compact.to_set
+          new_cref_ids = topic_pericope_cref_ids.reject { |id| existing_cref_ids.include?(id) }
+          if new_cref_ids.any?
+            conceptual = WorkUnit
+              .joins(:canonical_ref, :work)
+              .where(canonical_ref_id: new_cref_ids.first(500))
+              .where(works: { language: "en" })
+              .select("work_units.*", "0.01 AS topic_rank")
+              .limit(50)
+              .includes(:canonical_ref, work: :license)
+            results.concat(conceptual.map { |wu| score_result(wu, :pericope) })
+          end
         end
 
         return empty_result if results.empty?
@@ -261,14 +288,62 @@ module Search
           .includes(:canonical_ref, work: :license)
       end
 
+      # Find verses within pericopes whose NAMES match the topic words.
+      # This bridges the keyword→concept gap: "cross" finds "The
+      # Crucifixion" pericope, "prayer" finds "The Lord's Prayer", etc.
+      # Filters to the person's primary books to keep results relevant.
+      def find_topic_pericope_cref_ids(conn, book_cw_ids)
+        return [] unless Pericope.table_exists?
+
+        # Search pericope names for topic words (and root forms)
+        all_terms = @topic_words.dup
+        @topic_words.each { |w| all_terms.concat(root_forms(w)) }
+        all_terms.uniq!
+
+        pericope_conditions = all_terms.map { |t|
+          "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(t)}%")}"
+        }
+        return [] if pericope_conditions.empty?
+
+        # Optionally filter to person's books
+        cw_filter = if book_cw_ids&.any?
+          "AND p.canonical_work_id IN (#{book_cw_ids.join(",")})"
+        else
+          ""
+        end
+
+        # Find canonical_ref_ids within matching pericopes
+        cref_ids = conn.select_values(<<~SQL)
+          SELECT DISTINCT cr.id
+          FROM pericopes p
+          JOIN canonical_refs cr
+            ON cr.canonical_work_id = p.canonical_work_id
+            AND cr.ord <@ p.canonical_range
+          WHERE (#{pericope_conditions.join(" OR ")})
+            #{cw_filter}
+          LIMIT 2000
+        SQL
+        return [] if cref_ids.empty?
+
+        cref_ids.map(&:to_i)
+      end
+
       def score_result(wu, tier)
         base = wu.respond_to?(:topic_rank) ? wu.topic_rank.to_f : 0.01
 
         score = case tier
-        when :agent  then base * 10.0  # person is subject/agent in this verse
-        when :nearby then base * 5.0   # within speech window of agent verse
-        when :book   then base * 1.0   # in person's primary book, no proximity
+        when :agent          then base * 10.0   # person is subject/agent in this verse
+        when :nearby         then base * 5.0    # within speech window of agent verse
+        when :pericope       then base * 2.0    # conceptual match (pericope name matches topic)
+        when :book           then base * 1.0    # in person's primary book, no proximity
         else base
+        end
+
+        # Pericope name boost: if this verse is within a pericope whose
+        # name matches the topic, boost it. Matt 6:9 in "The Lord's
+        # Prayer" pericope gets boosted for a "prayer" query.
+        if @topic_pericope_set&.include?(wu.canonical_ref_id)
+          score *= 3.0
         end
 
         {
@@ -285,6 +360,17 @@ module Search
           license: wu.work.license.name,
           book_slug: wu.canonical_ref.canonical_work.book_key
         }
+      end
+
+      def dedup_by_citation(results)
+        best = {}
+        results.each do |r|
+          key = r[:citation]
+          if best[key].nil? || r[:relevance] > best[key][:relevance]
+            best[key] = r
+          end
+        end
+        best.values.sort_by { |r| -r[:relevance] }
       end
 
       # Generate likely root forms for a word to handle noun/verb stem
