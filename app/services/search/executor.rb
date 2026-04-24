@@ -542,6 +542,12 @@ module Search
       person = words.find { |w| PERSON_NAMES.include?(w) }
       return nil unless person
 
+      # "verse/passage/scripture about X" is a paraphrase/topical query,
+      # not a person-topic query, even when X incidentally contains a
+      # person's name ("verse about being buried with Christ"). Leave
+      # these to TextSearch + semantic merge.
+      return nil if query.strip.match?(/\A(a\s+)?(verse|verses|passage|passages|scripture|scriptures|bible)\b/i)
+
       # Keep second person names as topic words — "David and Goliath"
       # should use "goliath" as the topic, not discard it. Only the
       # FIRST detected person is the subject.
