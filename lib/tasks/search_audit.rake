@@ -92,12 +92,18 @@ namespace :search do
           fail += 1
           by_category[category][:fail] += 1
           by_file[file][:fail] += 1
+          # Rank of expected within the full result set (1-based), or nil
+          # if absent entirely. Lets us tell near-misses ("expected at rank
+          # 12") from true misses ("not found") without re-running.
+          expected_rank = expected ? citations.index(expected)&.then { |i| i + 1 } : nil
           failures << {
             query: query,
             expected: expected,
             check: check,
             category: category,
-            got_top3: citations.first(3)
+            expected_rank: expected_rank,
+            result_count: citations.size,
+            got_top10: citations.first(10)
           }
         end
       rescue => e
