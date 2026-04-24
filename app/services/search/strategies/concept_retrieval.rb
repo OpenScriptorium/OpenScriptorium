@@ -194,15 +194,24 @@ module Search
 
       private
 
-      # Substring match on the aliases array. Uses EXISTS over unnest
-      # so the GIN index on aliases doesn't actually help here (no
-      # tsvector), but the table is small enough that a seq scan is
-      # trivial until we grow past a few thousand rows.
+      # Word-boundary match on the aliases array. SQL substring match
+      # alone false-positives on short aliases ("ur" matches "your",
+      # "purpose", etc.), so we use the SQL EXISTS as a cheap candidate
+      # filter and then verify each candidate with a Ruby word-boundary
+      # regex. The aliases table is small (≪10k rows), so the two-stage
+      # approach is fine.
       def matching_concepts
-        SearchConcept.where(
+        candidates = SearchConcept.where(
           "EXISTS (SELECT 1 FROM unnest(aliases) a WHERE ? ILIKE '%' || a || '%')",
           @normalized
         ).to_a
+        candidates.select do |concept|
+          concept.aliases.any? do |alias_phrase|
+            phrase = alias_phrase.to_s.downcase
+            next false if phrase.empty?
+            @normalized.match?(/\b#{Regexp.escape(phrase)}\b/)
+          end
+        end
       end
 
       def fetch_english_wus(cref_ids)
