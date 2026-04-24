@@ -1,0 +1,543 @@
+---
+- name: "Pentecost"
+  kind: event
+  description: "The Holy Spirit descends on the disciples fifty days after Passover; Peter preaches the first Christian sermon and three thousand are baptized."
+  aliases:
+    - pentecost
+    - day of pentecost
+    - coming of the holy spirit
+    - tongues of fire
+    - peter's sermon at pentecost
+    - birth of the church
+    - outpouring of the spirit
+  verses:
+    - citation: "Acts 2:4"
+      role: signature
+    - citation: "Acts 2:1"
+      role: context
+    - citation: "Acts 2:38"
+      role: climax
+    - citation: "Acts 2:17"
+      role: quote
+- name: "Ananias and Sapphira"
+  kind: event
+  description: "A husband and wife lie to the Holy Spirit about the price of land they sold for the apostles and are struck dead."
+  aliases:
+    - ananias and sapphira
+    - lying to the holy spirit
+    - death of ananias
+    - sapphira's deceit
+    - sold the land
+    - struck dead for lying
+  verses:
+    - citation: "Acts 5:3"
+      role: signature
+    - citation: "Acts 5:1"
+      role: context
+    - citation: "Acts 5:10"
+      role: climax
+- name: "Stephen's Martyrdom"
+  kind: event
+  description: "The first Christian martyr is stoned to death after preaching before the Sanhedrin, seeing the heavens opened and forgiving his killers."
+  aliases:
+    - stephen's martyrdom
+    - stoning of stephen
+    - first martyr
+    - stephen before the sanhedrin
+    - son of man standing
+    - stephen's vision
+    - forgive them this sin
+  verses:
+    - citation: "Acts 7:59"
+      role: signature
+    - citation: "Acts 7:56"
+      role: climax
+    - citation: "Acts 7:60"
+      role: quote
+    - citation: "Acts 6:15"
+      role: context
+- name: "Philip and the Ethiopian Eunuch"
+  kind: event
+  description: "Philip is sent by the Spirit to explain Isaiah 53 to an Ethiopian official, who believes and is baptized on the road to Gaza."
+  aliases:
+    - philip and the ethiopian
+    - ethiopian eunuch
+    - baptism of the eunuch
+    - road to gaza
+    - reading isaiah in the chariot
+    - chariot baptism
+  verses:
+    - citation: "Acts 8:36"
+      role: signature
+    - citation: "Acts 8:29"
+      role: context
+    - citation: "Acts 8:35"
+      role: climax
+- name: "Damascus Road Conversion"
+  kind: event
+  description: "Saul the persecutor is blinded by a heavenly light and hears Jesus speak, leading to his conversion and commissioning as apostle to the Gentiles."
+  aliases:
+    - damascus road
+    - conversion of paul
+    - saul's conversion
+    - light on the road to damascus
+    - why do you persecute me
+    - blinded saul
+    - ananias of damascus
+  verses:
+    - citation: "Acts 9:4"
+      role: signature
+    - citation: "Acts 9:3"
+      role: context
+    - citation: "Acts 9:15"
+      role: climax
+- name: "Peter's Vision and Cornelius"
+  kind: event
+  description: "Peter sees a sheet of unclean animals lowered from heaven and is sent to the Roman centurion Cornelius, opening the gospel to the Gentiles."
+  aliases:
+    - peter's vision
+    - cornelius the centurion
+    - sheet from heaven
+    - what god has cleansed
+    - gentile pentecost
+    - rise peter kill and eat
+    - unclean animals vision
+  verses:
+    - citation: "Acts 10:15"
+      role: signature
+    - citation: "Acts 10:11"
+      role: context
+    - citation: "Acts 10:44"
+      role: climax
+- name: "Paul and Silas in Prison"
+  kind: event
+  description: "Paul and Silas sing hymns in a Philippian jail; an earthquake opens the doors and the jailer and his household are converted and baptized."
+  aliases:
+    - paul and silas in prison
+    - philippian jailer
+    - singing in prison
+    - prison earthquake
+    - what must i do to be saved
+    - midnight hymns
+    - jailer's conversion
+  verses:
+    - citation: "Acts 16:26"
+      role: signature
+    - citation: "Acts 16:25"
+      role: context
+    - citation: "Acts 16:31"
+      role: climax
+- name: "Areopagus Sermon"
+  kind: event
+  description: "Paul addresses the philosophers of Athens at Mars Hill, proclaiming the unknown god and calling all people to repentance."
+  aliases:
+    - areopagus sermon
+    - mars hill
+    - unknown god
+    - paul in athens
+    - sermon to the philosophers
+    - in him we live and move
+    - athenian sermon
+  verses:
+    - citation: "Acts 17:23"
+      role: signature
+    - citation: "Acts 17:22"
+      role: context
+    - citation: "Acts 17:28"
+      role: quote
+    - citation: "Acts 17:30"
+      role: climax
+- name: "Paul's Shipwreck"
+  kind: event
+  description: "On his voyage to Rome, Paul survives a violent storm and shipwreck on Malta, where he is bitten by a viper without harm."
+  aliases:
+    - paul's shipwreck
+    - shipwreck on malta
+    - storm at sea
+    - viper on paul's hand
+    - voyage to rome
+    - euroclydon
+    - malta viper
+  verses:
+    - citation: "Acts 27:44"
+      role: signature
+    - citation: "Acts 27:14"
+      role: context
+    - citation: "Acts 28:5"
+      role: climax
+- name: "Justification by Faith"
+  kind: topic
+  description: "Paul's doctrine that sinners are declared righteous through faith in Christ apart from works of the law."
+  aliases:
+    - justification by faith
+    - righteousness by faith
+    - justified freely by grace
+    - faith apart from works of the law
+    - abraham believed god
+    - reckoned as righteousness
+    - the just shall live by faith
+  verses:
+    - citation: "Rom 5:1"
+      role: signature
+    - citation: "Rom 3:28"
+      role: climax
+    - citation: "Rom 4:3"
+      role: quote
+    - citation: "Rom 1:17"
+      role: context
+- name: "All Have Sinned"
+  kind: topic
+  description: "Paul's declaration that every human being has sinned and falls short of God's glory, making all dependent on grace."
+  aliases:
+    - all have sinned
+    - fall short of the glory of god
+    - none is righteous
+    - universal sinfulness
+    - wages of sin is death
+    - no one righteous not even one
+  verses:
+    - citation: "Rom 3:23"
+      role: signature
+    - citation: "Rom 3:10"
+      role: context
+    - citation: "Rom 6:23"
+      role: climax
+- name: "Nothing Can Separate Us"
+  kind: topic
+  description: "Paul's triumphant conclusion that no power in creation can separate believers from the love of God in Christ."
+  aliases:
+    - nothing can separate us
+    - more than conquerors
+    - love of god in christ jesus
+    - neither death nor life
+    - no condemnation
+    - inseparable love
+    - if god be for us who can be against us
+  verses:
+    - citation: "Rom 8:38"
+      role: signature
+    - citation: "Rom 8:39"
+      role: climax
+    - citation: "Rom 8:1"
+      role: context
+    - citation: "Rom 8:37"
+      role: quote
+- name: "Living Sacrifice"
+  kind: topic
+  description: "Paul's exhortation that believers offer their bodies as a living sacrifice, transformed by the renewing of their minds."
+  aliases:
+    - living sacrifice
+    - present your bodies
+    - renewing of your mind
+    - be transformed
+    - reasonable service
+    - spiritual worship
+    - do not conform to this world
+  verses:
+    - citation: "Rom 12:1"
+      role: signature
+    - citation: "Rom 12:2"
+      role: climax
+- name: "Love Chapter"
+  kind: topic
+  description: "Paul's poetic celebration of love as the greatest of the Christian virtues, patient, kind, and enduring forever."
+  aliases:
+    - love chapter
+    - love is patient
+    - charity never faileth
+    - greatest of these is love
+    - through a glass darkly
+    - 1 corinthians 13
+    - more excellent way
+  verses:
+    - citation: "1 Cor 13:4"
+      role: signature
+    - citation: "1 Cor 13:13"
+      role: climax
+    - citation: "1 Cor 13:12"
+      role: quote
+    - citation: "1 Cor 13:1"
+      role: context
+- name: "Body of Christ"
+  kind: topic
+  description: "Paul's image of the church as one body with many members, each with distinct spiritual gifts for the common good."
+  aliases:
+    - body of christ
+    - many members one body
+    - spiritual gifts
+    - gifts of the spirit
+    - one body many parts
+    - eye cannot say to the hand
+    - members of one body
+  verses:
+    - citation: "1 Cor 12:12"
+      role: signature
+    - citation: "1 Cor 12:27"
+      role: climax
+    - citation: "1 Cor 12:4"
+      role: context
+- name: "Resurrection Chapter"
+  kind: topic
+  description: "Paul's extended argument for the bodily resurrection of Christ and believers, defeating death itself."
+  aliases:
+    - resurrection chapter
+    - o death where is thy sting
+    - in the twinkling of an eye
+    - last trumpet
+    - if christ be not raised
+    - firstfruits of them that slept
+    - 1 corinthians 15
+  verses:
+    - citation: "1 Cor 15:55"
+      role: signature
+    - citation: "1 Cor 15:52"
+      role: climax
+    - citation: "1 Cor 15:14"
+      role: context
+    - citation: "1 Cor 15:20"
+      role: quote
+- name: "Institution of Communion"
+  kind: event
+  description: "Paul recounts the Lord's Supper, received from the Lord himself, as a proclamation of Christ's death until he comes."
+  aliases:
+    - institution of communion
+    - lord's supper
+    - this is my body broken
+    - do this in remembrance
+    - new covenant in my blood
+    - eucharist in paul
+    - cup of the lord
+  verses:
+    - citation: "1 Cor 11:24"
+      role: signature
+    - citation: "1 Cor 11:25"
+      role: climax
+    - citation: "1 Cor 11:26"
+      role: quote
+- name: "Fruit of the Spirit"
+  kind: topic
+  description: "Paul's list of nine virtues produced by the Holy Spirit in the believer's life, contrasted with the works of the flesh."
+  aliases:
+    - fruit of the spirit
+    - love joy peace
+    - longsuffering gentleness goodness
+    - against such there is no law
+    - nine fruits of the spirit
+    - works of the flesh
+  verses:
+    - citation: "Gal 5:22"
+      role: signature
+    - citation: "Gal 5:23"
+      role: climax
+    - citation: "Gal 5:16"
+      role: context
+- name: "Armor of God"
+  kind: topic
+  description: "Paul's metaphor of Christian spiritual warfare, urging believers to put on the full armor of God to stand against evil."
+  aliases:
+    - armor of god
+    - whole armour of god
+    - helmet of salvation
+    - shield of faith
+    - sword of the spirit
+    - belt of truth
+    - breastplate of righteousness
+    - wrestle not against flesh and blood
+  verses:
+    - citation: "Eph 6:11"
+      role: signature
+    - citation: "Eph 6:12"
+      role: context
+    - citation: "Eph 6:17"
+      role: climax
+- name: "Christ Hymn of Philippians"
+  kind: topic
+  description: "An early Christian hymn embedded in Philippians celebrating Christ's self-emptying humility and exaltation to the name above every name."
+  aliases:
+    - christ hymn
+    - kenosis hymn
+    - emptied himself
+    - made himself of no reputation
+    - every knee shall bow
+    - name above every name
+    - philippians 2 hymn
+    - humbled himself unto death
+  verses:
+    - citation: "Phil 2:7"
+      role: signature
+    - citation: "Phil 2:10"
+      role: climax
+    - citation: "Phil 2:5"
+      role: context
+    - citation: "Phil 2:9"
+      role: quote
+- name: "I Can Do All Things"
+  kind: topic
+  description: "Paul's confession from prison that he has learned contentment in all circumstances through the strength Christ gives him."
+  aliases:
+    - i can do all things
+    - strengtheneth me
+    - learned to be content
+    - in whatsoever state
+    - contentment in christ
+    - through christ who strengthens me
+  verses:
+    - citation: "Phil 4:13"
+      role: signature
+    - citation: "Phil 4:11"
+      role: context
+    - citation: "Phil 4:12"
+      role: climax
+- name: "Peace of God Passes Understanding"
+  kind: topic
+  description: "Paul's promise that the peace of God, surpassing all comprehension, will guard the hearts and minds of those who pray with thanksgiving."
+  aliases:
+    - peace of god passes understanding
+    - peace which passeth all understanding
+    - be anxious for nothing
+    - guard your hearts and minds
+    - supplication with thanksgiving
+    - requests made known unto god
+  verses:
+    - citation: "Phil 4:7"
+      role: signature
+    - citation: "Phil 4:6"
+      role: context
+- name: "Hall of Faith"
+  kind: topic
+  description: "Hebrews' roll call of Old Testament saints who lived by faith, from Abel through the prophets, looking for a heavenly country."
+  aliases:
+    - hall of faith
+    - by faith abraham
+    - by faith abel
+    - by faith moses
+    - cloud of witnesses
+    - hebrews 11
+    - heroes of faith
+    - faith of the elders
+  verses:
+    - citation: "Heb 11:1"
+      role: signature
+    - citation: "Heb 12:1"
+      role: climax
+    - citation: "Heb 11:6"
+      role: quote
+    - citation: "Heb 11:8"
+      role: context
+- name: "Faith Without Works Is Dead"
+  kind: topic
+  description: "James's insistence that genuine faith is demonstrated by action; faith apart from works is lifeless."
+  aliases:
+    - faith without works is dead
+    - show me your faith
+    - faith and works
+    - devils also believe and tremble
+    - abraham justified by works
+    - faith by itself is dead
+  verses:
+    - citation: "Jas 2:17"
+      role: signature
+    - citation: "Jas 2:26"
+      role: climax
+    - citation: "Jas 2:18"
+      role: quote
+    - citation: "Jas 2:14"
+      role: context
+- name: "God Is Love"
+  kind: attribute
+  description: "John's declaration that love is the essential character of God, displayed supremely in sending his Son as the propitiation for sins."
+  aliases:
+    - god is love
+    - he that loveth not knoweth not god
+    - we love him because he first loved us
+    - perfect love casts out fear
+    - propitiation for our sins
+    - love comes from god
+  verses:
+    - citation: "1 John 4:8"
+      role: signature
+    - citation: "1 John 4:16"
+      role: climax
+    - citation: "1 John 4:19"
+      role: quote
+    - citation: "1 John 4:10"
+      role: context
+- name: "Love One Another"
+  kind: topic
+  description: "John's repeated command that believers love one another as evidence that they know God and abide in the light."
+  aliases:
+    - love one another
+    - brethren let us love
+    - he that hateth his brother
+    - abide in the light
+    - walk in love
+    - love of the brethren
+  verses:
+    - citation: "1 John 4:7"
+      role: signature
+    - citation: "1 John 3:11"
+      role: context
+    - citation: "1 John 3:18"
+      role: climax
+- name: "Seven Churches of Asia"
+  kind: topic
+  description: "The risen Christ dictates letters of commendation and warning to seven churches in Asia Minor through John on Patmos."
+  aliases:
+    - seven churches of asia
+    - letters to the seven churches
+    - ephesus smyrna pergamum
+    - thyatira sardis philadelphia laodicea
+    - first love forsaken
+    - lukewarm laodicea
+    - he that hath an ear let him hear
+  verses:
+    - citation: "Rev 2:4"
+      role: signature
+    - citation: "Rev 1:11"
+      role: context
+    - citation: "Rev 3:16"
+      role: climax
+    - citation: "Rev 3:20"
+      role: quote
+- name: "Throne Room Vision"
+  kind: event
+  description: "John is caught up into heaven and sees God enthroned amid living creatures and elders, with the Lamb alone worthy to open the sealed scroll."
+  aliases:
+    - throne room vision
+    - heavenly throne
+    - four living creatures
+    - twenty four elders
+    - holy holy holy lord god almighty
+    - sea of glass
+    - worthy is the lamb
+    - sealed scroll
+  verses:
+    - citation: "Rev 4:2"
+      role: signature
+    - citation: "Rev 4:8"
+      role: quote
+    - citation: "Rev 5:9"
+      role: climax
+    - citation: "Rev 5:6"
+      role: context
+- name: "New Heaven and New Earth"
+  kind: event
+  description: "John sees the final vision of a renewed creation where God dwells with his people, wipes away every tear, and gives the water of life freely."
+  aliases:
+    - new heaven and new earth
+    - new jerusalem
+    - holy city coming down
+    - wipe away every tear
+    - former things passed away
+    - water of life freely
+    - behold i make all things new
+    - tabernacle of god with men
+  verses:
+    - citation: "Rev 21:1"
+      role: signature
+    - citation: "Rev 21:4"
+      role: climax
+    - citation: "Rev 21:5"
+      role: quote
+    - citation: "Rev 22:17"
+      role: context

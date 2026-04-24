@@ -1,0 +1,691 @@
+---
+- name: "Blessed is the Man"
+  kind: topic
+  description: "The two ways: the righteous who delights in Torah versus the wicked like chaff."
+  aliases:
+    - blessed is the man
+    - tree planted by streams of water
+    - two ways psalm
+    - chaff which the wind drives away
+    - meditates on the law day and night
+    - psalm 1 righteous
+  verses:
+    - citation: "Ps 1:1"
+      role: signature
+    - citation: "Ps 1:2"
+      role: quote
+    - citation: "Ps 1:3"
+      role: climax
+    - citation: "Ps 1:6"
+      role: context
+- name: "My God My God Why Have You Forsaken Me"
+  kind: title
+  description: "The psalm of the forsaken sufferer, pierced hands and feet, garments divided."
+  aliases:
+    - my god my god why have you forsaken me
+    - psalm 22
+    - they pierced my hands and my feet
+    - cast lots for my garments
+    - forsaken psalm
+    - all my bones out of joint
+    - cry of dereliction psalm
+  verses:
+    - citation: "Ps 22:1"
+      role: signature
+    - citation: "Ps 22:16"
+      role: quote
+    - citation: "Ps 22:18"
+      role: climax
+- name: "The Lord is My Shepherd"
+  kind: title
+  description: "The shepherd psalm of providence, comfort, and dwelling in the house of the Lord."
+  aliases:
+    - the lord is my shepherd
+    - psalm 23
+    - shepherd psalm
+    - valley of the shadow of death
+    - green pastures still waters
+    - my cup runneth over
+    - house of the lord forever
+    - goodness and mercy shall follow me
+  verses:
+    - citation: "Ps 23:1"
+      role: signature
+    - citation: "Ps 23:4"
+      role: climax
+    - citation: "Ps 23:6"
+      role: quote
+- name: "Create in Me a Clean Heart"
+  kind: topic
+  description: "David's penitential psalm after Bathsheba, pleading for cleansing and a renewed spirit."
+  aliases:
+    - create in me a clean heart
+    - psalm 51
+    - miserere psalm
+    - wash me and i shall be whiter than snow
+    - have mercy upon me o god
+    - broken and contrite heart
+    - purge me with hyssop
+    - renew a right spirit within me
+  verses:
+    - citation: "Ps 51:1"
+      role: context
+    - citation: "Ps 51:10"
+      role: signature
+    - citation: "Ps 51:17"
+      role: climax
+- name: "A Thousand Years in Your Sight"
+  kind: topic
+  description: "Moses' psalm on the brevity of human life against the eternity of God."
+  aliases:
+    - a thousand years in your sight
+    - psalm 90
+    - thousand years as one day
+    - teach us to number our days
+    - our years as a tale that is told
+    - from everlasting to everlasting thou art god
+    - prayer of moses psalm
+  verses:
+    - citation: "Ps 90:2"
+      role: context
+    - citation: "Ps 90:4"
+      role: signature
+    - citation: "Ps 90:10"
+      role: quote
+    - citation: "Ps 90:12"
+      role: climax
+- name: "I Lift Up My Eyes to the Hills"
+  kind: title
+  description: "Song of ascents affirming the Lord as keeper of Israel who neither slumbers nor sleeps."
+  aliases:
+    - i lift up my eyes to the hills
+    - psalm 121
+    - song of ascents keeper
+    - my help comes from the lord
+    - he who keeps israel neither slumbers nor sleeps
+    - the lord is your keeper
+    - lord shall preserve thy going out and coming in
+  verses:
+    - citation: "Ps 121:1"
+      role: signature
+    - citation: "Ps 121:2"
+      role: quote
+    - citation: "Ps 121:4"
+      role: context
+    - citation: "Ps 121:8"
+      role: climax
+- name: "Search Me O God and Know My Heart"
+  kind: topic
+  description: "The psalm of divine omniscience: fearfully and wonderfully made, and known before birth."
+  aliases:
+    - search me o god and know my heart
+    - psalm 139
+    - fearfully and wonderfully made
+    - whither shall i flee from thy presence
+    - knit me together in my mothers womb
+    - if i ascend to heaven you are there
+    - try me and know my thoughts
+  verses:
+    - citation: "Ps 139:1"
+      role: context
+    - citation: "Ps 139:14"
+      role: quote
+    - citation: "Ps 139:23"
+      role: signature
+    - citation: "Ps 139:24"
+      role: climax
+- name: "Let Everything That Has Breath Praise the Lord"
+  kind: topic
+  description: "The final hallelujah psalm calling all creation to praise with every instrument."
+  aliases:
+    - let everything that has breath praise the lord
+    - psalm 150
+    - praise him with trumpet sound
+    - hallelujah psalm
+    - praise him in his sanctuary
+    - praise him with timbrel and dance
+    - final hallel
+  verses:
+    - citation: "Ps 150:1"
+      role: context
+    - citation: "Ps 150:3"
+      role: quote
+    - citation: "Ps 150:6"
+      role: signature
+- name: "The Lord Answered Job Out of the Whirlwind"
+  kind: event
+  description: "God's speech from the storm confronting Job with the wonders of creation."
+  aliases:
+    - the lord answered job out of the whirlwind
+    - whirlwind speech
+    - where were you when i laid the foundations
+    - behemoth and leviathan
+    - job divine speeches
+    - voice from the storm job
+    - morning stars sang together
+  verses:
+    - citation: "Job 38:1"
+      role: signature
+    - citation: "Job 38:4"
+      role: quote
+    - citation: "Job 38:7"
+      role: context
+    - citation: "Job 40:15"
+      role: climax
+- name: "I Know That My Redeemer Lives"
+  kind: topic
+  description: "Job's confession of hope that his Redeemer will stand at last upon the earth."
+  aliases:
+    - i know that my redeemer lives
+    - job redeemer
+    - stand at the latter day upon the earth
+    - in my flesh shall i see god
+    - job 19 confession
+    - kinsman redeemer job
+  verses:
+    - citation: "Job 19:25"
+      role: signature
+    - citation: "Job 19:26"
+      role: climax
+    - citation: "Job 19:27"
+      role: quote
+- name: "Though He Slay Me Yet Will I Trust Him"
+  kind: attribute
+  description: "Job's integrity and unwavering trust amid suffering and loss."
+  aliases:
+    - though he slay me yet will i trust him
+    - job integrity
+    - the lord gave and the lord has taken away
+    - blessed be the name of the lord job
+    - naked came i out of my mothers womb
+    - shall we receive good and not evil
+    - job holds fast his integrity
+  verses:
+    - citation: "Job 1:21"
+      role: quote
+    - citation: "Job 2:10"
+      role: context
+    - citation: "Job 13:15"
+      role: signature
+    - citation: "Job 27:5"
+      role: climax
+- name: "The Fear of the Lord is the Beginning of Wisdom"
+  kind: topic
+  description: "The thematic motto of Proverbs: reverence for YHWH as the foundation of knowledge."
+  aliases:
+    - the fear of the lord is the beginning of wisdom
+    - beginning of knowledge
+    - fools despise wisdom and instruction
+    - proverbs motto
+    - fear of yhwh wisdom
+    - knowledge of the holy is understanding
+  verses:
+    - citation: "Prov 1:7"
+      role: signature
+    - citation: "Prov 9:10"
+      role: quote
+    - citation: "Job 28:28"
+      role: context
+- name: "Trust in the Lord with All Your Heart"
+  kind: topic
+  description: "The proverb commending trust in YHWH over leaning on one's own understanding."
+  aliases:
+    - trust in the lord with all your heart
+    - lean not on your own understanding
+    - in all your ways acknowledge him
+    - he shall direct your paths
+    - proverbs 3 trust
+    - he will make your paths straight
+  verses:
+    - citation: "Prov 3:5"
+      role: signature
+    - citation: "Prov 3:6"
+      role: climax
+    - citation: "Prov 3:7"
+      role: quote
+- name: "The Virtuous Woman of Proverbs 31"
+  kind: title
+  description: "The acrostic portrait of the woman of valor whose worth is far above rubies."
+  aliases:
+    - virtuous woman
+    - proverbs 31 woman
+    - woman of valor
+    - eshet chayil
+    - her price is far above rubies
+    - strength and honor are her clothing
+    - her children rise up and call her blessed
+    - charm is deceitful and beauty is vain
+  verses:
+    - citation: "Prov 31:10"
+      role: signature
+    - citation: "Prov 31:25"
+      role: quote
+    - citation: "Prov 31:28"
+      role: context
+    - citation: "Prov 31:30"
+      role: climax
+- name: "Vanity of Vanities"
+  kind: topic
+  description: "Qoheleth's declaration that all under the sun is vapor and chasing wind."
+  aliases:
+    - vanity of vanities
+    - all is vanity
+    - ecclesiastes motto
+    - hevel havelim
+    - vapor of vapors
+    - chasing after the wind
+    - nothing new under the sun
+    - qoheleth vanity
+  verses:
+    - citation: "Eccl 1:2"
+      role: signature
+    - citation: "Eccl 1:9"
+      role: quote
+    - citation: "Eccl 12:8"
+      role: climax
+- name: "A Time for Every Purpose Under Heaven"
+  kind: topic
+  description: "Qoheleth's poem of seasons: a time to be born and a time to die."
+  aliases:
+    - a time for every purpose under heaven
+    - to every thing there is a season
+    - a time to be born and a time to die
+    - ecclesiastes 3
+    - a time to weep and a time to laugh
+    - a time to kill and a time to heal
+    - he has made everything beautiful in its time
+  verses:
+    - citation: "Eccl 3:1"
+      role: signature
+    - citation: "Eccl 3:2"
+      role: quote
+    - citation: "Eccl 3:11"
+      role: climax
+- name: "I Am the Rose of Sharon"
+  kind: title
+  description: "The beloved's declaration in the Song of Songs, a lily among thorns."
+  aliases:
+    - i am the rose of sharon
+    - rose of sharon
+    - lily of the valleys
+    - lily among thorns
+    - song of songs beloved
+    - shoshanat hasharon
+    - canticles rose
+  verses:
+    - citation: "Song 2:1"
+      role: signature
+    - citation: "Song 2:2"
+      role: quote
+    - citation: "Song 2:16"
+      role: context
+- name: "Holy Holy Holy is the Lord of Hosts"
+  kind: event
+  description: "Isaiah's temple vision of the thrice-holy Lord and the coal from the altar."
+  aliases:
+    - holy holy holy is the lord of hosts
+    - isaiah temple vision
+    - trisagion vision
+    - seraphim crying
+    - whole earth is full of his glory
+    - woe is me for i am undone
+    - coal from the altar
+    - isaiah 6 vision
+  verses:
+    - citation: "Isa 6:1"
+      role: context
+    - citation: "Isa 6:3"
+      role: signature
+    - citation: "Isa 6:5"
+      role: quote
+    - citation: "Isa 6:8"
+      role: climax
+- name: "Here Am I Send Me"
+  kind: event
+  description: "Isaiah's prophetic call and commissioning to a people who will not hear."
+  aliases:
+    - here am i send me
+    - isaiahs call
+    - isaiah commission
+    - whom shall i send and who will go for us
+    - make the heart of this people fat
+    - isaiah sending
+    - prophetic call isaiah
+  verses:
+    - citation: "Isa 6:8"
+      role: signature
+    - citation: "Isa 6:9"
+      role: quote
+    - citation: "Isa 6:11"
+      role: climax
+- name: "Behold the Virgin Shall Conceive"
+  kind: topic
+  description: "The Immanuel sign given to Ahaz: a virgin shall bear a son called God-with-us."
+  aliases:
+    - behold a virgin shall conceive
+    - virgin shall conceive and bear a son
+    - immanuel sign
+    - god with us sign
+    - isaiah 7 14
+    - ahaz sign
+    - almah prophecy
+  verses:
+    - citation: "Isa 7:14"
+      role: signature
+    - citation: "Isa 8:8"
+      role: context
+    - citation: "Isa 8:10"
+      role: climax
+- name: "Wonderful Counselor Mighty God"
+  kind: title
+  description: "The oracle of the child born to us whose throne shall have no end."
+  aliases:
+    - wonderful counselor mighty god
+    - for unto us a child is born
+    - everlasting father prince of peace
+    - government shall be upon his shoulder
+    - isaiah 9 6
+    - throne of david no end
+    - child is born son is given
+  verses:
+    - citation: "Isa 9:6"
+      role: signature
+    - citation: "Isa 9:7"
+      role: climax
+    - citation: "Isa 11:1"
+      role: context
+- name: "Comfort Ye My People"
+  kind: topic
+  description: "The opening of Isaiah's book of consolation: voice in the wilderness, prepare the way."
+  aliases:
+    - comfort ye my people
+    - comfort comfort my people
+    - voice crying in the wilderness
+    - prepare the way of the lord
+    - make straight in the desert a highway
+    - every valley shall be exalted
+    - the glory of the lord shall be revealed
+    - isaiah 40
+  verses:
+    - citation: "Isa 40:1"
+      role: signature
+    - citation: "Isa 40:3"
+      role: quote
+    - citation: "Isa 40:5"
+      role: climax
+    - citation: "Isa 40:31"
+      role: context
+- name: "The Suffering Servant"
+  kind: topic
+  description: "The fourth servant song: despised, wounded for our transgressions, led as a lamb to slaughter."
+  aliases:
+    - suffering servant
+    - man of sorrows
+    - despised and rejected of men
+    - wounded for our transgressions
+    - by his stripes we are healed
+    - like a lamb led to the slaughter
+    - isaiah 53
+    - he shall see the travail of his soul
+  verses:
+    - citation: "Isa 52:13"
+      role: context
+    - citation: "Isa 53:3"
+      role: quote
+    - citation: "Isa 53:5"
+      role: signature
+    - citation: "Isa 53:7"
+      role: climax
+- name: "Seek the Lord While He May Be Found"
+  kind: topic
+  description: "Isaiah's invitation to the thirsty: come to the waters, for my thoughts are not your thoughts."
+  aliases:
+    - seek the lord while he may be found
+    - ho everyone who thirsts
+    - come to the waters
+    - my thoughts are not your thoughts
+    - my word shall not return void
+    - isaiah 55
+    - let the wicked forsake his way
+    - buy wine and milk without money
+  verses:
+    - citation: "Isa 55:1"
+      role: context
+    - citation: "Isa 55:6"
+      role: signature
+    - citation: "Isa 55:8"
+      role: quote
+    - citation: "Isa 55:11"
+      role: climax
+- name: "The Spirit of the Lord is Upon Me"
+  kind: topic
+  description: "The anointing to preach good news to the poor and proclaim the year of the Lord's favor."
+  aliases:
+    - the spirit of the lord is upon me
+    - good news to the poor
+    - proclaim liberty to the captives
+    - year of the lords favor
+    - acceptable year of the lord
+    - isaiah 61
+    - beauty for ashes
+    - oil of joy for mourning
+  verses:
+    - citation: "Isa 61:1"
+      role: signature
+    - citation: "Isa 61:2"
+      role: quote
+    - citation: "Isa 61:3"
+      role: climax
+- name: "Before I Formed You in the Womb"
+  kind: event
+  description: "Jeremiah's call: appointed a prophet to the nations before birth, touched on the mouth."
+  aliases:
+    - before i formed you in the womb
+    - jeremiahs call
+    - appointed a prophet to the nations
+    - i am a child jeremiah
+    - touched my mouth jeremiah
+    - almond branch jeremiah
+    - boiling pot vision
+    - jeremiah commission
+  verses:
+    - citation: "Jer 1:5"
+      role: signature
+    - citation: "Jer 1:6"
+      role: context
+    - citation: "Jer 1:9"
+      role: quote
+    - citation: "Jer 1:10"
+      role: climax
+- name: "I Will Make a New Covenant"
+  kind: topic
+  description: "Jeremiah's oracle of a new covenant written on the heart, with sins remembered no more."
+  aliases:
+    - i will make a new covenant
+    - new covenant jeremiah
+    - law written on the heart
+    - jeremiah 31
+    - sins remembered no more
+    - know the lord from the least to the greatest
+    - berit chadashah
+  verses:
+    - citation: "Jer 31:31"
+      role: signature
+    - citation: "Jer 31:33"
+      role: climax
+    - citation: "Jer 31:34"
+      role: quote
+- name: "A New Heart and a New Spirit"
+  kind: topic
+  description: "Ezekiel's promise to replace the heart of stone with a heart of flesh."
+  aliases:
+    - a new heart and a new spirit
+    - heart of stone heart of flesh
+    - ezekiel 36
+    - sprinkle clean water upon you
+    - put my spirit within you
+    - new heart i will give you
+    - cleansing and renewal ezekiel
+  verses:
+    - citation: "Ezek 36:25"
+      role: context
+    - citation: "Ezek 36:26"
+      role: signature
+    - citation: "Ezek 36:27"
+      role: climax
+- name: "The Valley of Dry Bones"
+  kind: event
+  description: "Ezekiel's vision of the bones rejoined and breathed upon, figuring Israel's resurrection."
+  aliases:
+    - valley of dry bones
+    - dry bones vision
+    - can these bones live
+    - breath of life ezekiel
+    - ezekiel 37
+    - prophesy to the breath
+    - exceeding great army
+    - bone to his bone
+  verses:
+    - citation: "Ezek 37:1"
+      role: signature
+    - citation: "Ezek 37:3"
+      role: quote
+    - citation: "Ezek 37:10"
+      role: climax
+    - citation: "Ezek 37:14"
+      role: context
+- name: "One Like a Son of Man"
+  kind: event
+  description: "Daniel's night vision of the Ancient of Days and the son of man receiving dominion."
+  aliases:
+    - one like a son of man
+    - ancient of days
+    - daniel 7 vision
+    - son of man came with the clouds
+    - dominion glory and a kingdom
+    - four beasts daniel
+    - everlasting dominion
+    - thrones were set
+  verses:
+    - citation: "Dan 7:9"
+      role: context
+    - citation: "Dan 7:13"
+      role: signature
+    - citation: "Dan 7:14"
+      role: climax
+- name: "Seventy Weeks are Decreed"
+  kind: topic
+  description: "Gabriel's revelation to Daniel of seventy weeks sealed up for Jerusalem and the Anointed One."
+  aliases:
+    - seventy weeks are decreed
+    - daniel 9
+    - seventy sevens
+    - anointed one cut off
+    - abomination that makes desolate
+    - gabriels revelation to daniel
+    - messiah the prince
+    - desolations determined
+  verses:
+    - citation: "Dan 9:24"
+      role: signature
+    - citation: "Dan 9:25"
+      role: quote
+    - citation: "Dan 9:26"
+      role: climax
+    - citation: "Dan 9:27"
+      role: context
+- name: "Out of the Belly of Sheol I Cried"
+  kind: event
+  description: "Jonah's psalm from inside the great fish, vowing salvation belongs to the Lord."
+  aliases:
+    - out of the belly of sheol i cried
+    - jonahs prayer from the fish
+    - jonah 2
+    - belly of the fish prayer
+    - salvation is of the lord
+    - waters compassed me about
+    - weeds wrapped about my head
+    - down to the bottoms of the mountains
+  verses:
+    - citation: "Jonah 2:1"
+      role: context
+    - citation: "Jonah 2:2"
+      role: signature
+    - citation: "Jonah 2:5"
+      role: quote
+    - citation: "Jonah 2:9"
+      role: climax
+- name: "I Will Pour Out My Spirit on All Flesh"
+  kind: topic
+  description: "Joel's promise of the outpoured Spirit: sons and daughters prophesying, before the day of the Lord."
+  aliases:
+    - i will pour out my spirit on all flesh
+    - outpouring of the spirit
+    - joel 2 28
+    - sons and daughters shall prophesy
+    - old men shall dream dreams
+    - young men shall see visions
+    - before the great and terrible day of the lord
+    - afterward i will pour out my spirit
+  verses:
+    - citation: "Joel 2:28"
+      role: signature
+    - citation: "Joel 2:29"
+      role: quote
+    - citation: "Joel 2:31"
+      role: climax
+- name: "Let Justice Roll Down Like Waters"
+  kind: topic
+  description: "Amos' rejection of empty worship and call for justice to flow like an ever-flowing stream."
+  aliases:
+    - let justice roll down like waters
+    - amos 5 24
+    - righteousness like a mighty stream
+    - i hate i despise your feasts
+    - take away from me the noise of your songs
+    - ever flowing stream righteousness
+    - justice like waters
+  verses:
+    - citation: "Amos 5:21"
+      role: context
+    - citation: "Amos 5:24"
+      role: signature
+    - citation: "Mic 6:8"
+      role: quote
+- name: "Do Justice Love Mercy Walk Humbly"
+  kind: topic
+  description: "Micah's summary of what the Lord requires: justice, kindness, and humble walking with God."
+  aliases:
+    - do justice love mercy walk humbly
+    - what does the lord require of you
+    - micah 6 8
+    - love kindness
+    - walk humbly with your god
+    - hesed and mishpat
+    - he has shown you o man what is good
+  verses:
+    - citation: "Mic 6:6"
+      role: context
+    - citation: "Mic 6:8"
+      role: signature
+- name: "The Great and Dreadful Day of the Lord"
+  kind: event
+  description: "Malachi's closing oracle of the sun of righteousness and Elijah before the day of the Lord."
+  aliases:
+    - the great and dreadful day of the lord
+    - malachi 4
+    - sun of righteousness shall arise
+    - healing in his wings
+    - elijah the prophet before the day
+    - turn the hearts of the fathers to the children
+    - day burning like an oven
+    - end of the old testament prophecy
+  verses:
+    - citation: "Mal 4:1"
+      role: context
+    - citation: "Mal 4:2"
+      role: signature
+    - citation: "Mal 4:5"
+      role: climax
+    - citation: "Mal 4:6"
+      role: quote

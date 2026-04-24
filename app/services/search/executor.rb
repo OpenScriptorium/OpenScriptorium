@@ -11,6 +11,12 @@ module Search
       pseudepigraphon apocalypse apostolic_father
     ].freeze
 
+    # SEARCH_PLAN.md Phase 2. On by default; set SEARCH_CONCEPTS=off
+    # to disable the concept layer (a rollback knob if anything looks
+    # wrong in prod without needing a redeploy). When off, the concept
+    # path makes zero DB calls.
+    CONCEPTS_ENABLED = ENV.fetch("SEARCH_CONCEPTS", "on") != "off"
+
     def initialize(raw_query, scope: nil, page: 1, per_page: 25)
       @raw_query = raw_query.to_s.strip
       @scope = apply_default_scope(scope)
@@ -59,6 +65,18 @@ module Search
           @raw_query, result,
           scope: @scope, page: @page, per_page: @per_page
         ).call
+      end
+
+      # Concept retrieval: merge curated concept → signature-verse
+      # matches into the result set. Runs for text AND person-topic
+      # query types so "what did Jesus say about forgiveness" also
+      # benefits from a "Forgiveness" concept pointing at Matt 6:14.
+      # Gated by CONCEPTS_ENABLED so it's a zero-cost no-op when off.
+      if CONCEPTS_ENABLED && (is_text || result.query_type == :person_topic)
+        concept_result = Strategies::ConceptRetrieval.new(
+          @raw_query, scope: @scope, per_page: @per_page
+        ).call
+        result = Strategies::ConceptRetrieval.merge(result, concept_result, per_page: @per_page)
       end
 
       # For English text searches, also run cross-language search for the sidebar card

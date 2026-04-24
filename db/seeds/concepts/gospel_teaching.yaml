@@ -1,0 +1,638 @@
+---
+- name: "The Beatitudes"
+  kind: topic
+  description: "Jesus blesses the poor in spirit, those who mourn, the meek, and others in the opening of the Sermon on the Mount."
+  aliases:
+    - beatitudes
+    - blessed are the poor in spirit
+    - blessed are the meek
+    - blessed are the peacemakers
+    - blessed are those who mourn
+    - sermon on the mount beatitudes
+  verses:
+    - citation: "Matt 5:3"
+      role: signature
+    - citation: "Matt 5:4"
+      role: quote
+    - citation: "Matt 5:9"
+      role: quote
+    - citation: "Luke 6:20"
+      role: context
+- name: "Salt and Light"
+  kind: topic
+  description: "Jesus calls disciples the salt of the earth and the light of the world, a city on a hill."
+  aliases:
+    - salt of the earth
+    - light of the world disciples
+    - city on a hill
+    - let your light shine
+    - salt and light
+  verses:
+    - citation: "Matt 5:13"
+      role: signature
+    - citation: "Matt 5:14"
+      role: climax
+    - citation: "Matt 5:16"
+      role: quote
+- name: "Turn the Other Cheek and Love Your Enemies"
+  kind: topic
+  description: "Jesus teaches non-retaliation and love for enemies in the Sermon on the Mount."
+  aliases:
+    - turn the other cheek
+    - love your enemies
+    - pray for those who persecute you
+    - do not resist an evil person
+    - go the extra mile
+  verses:
+    - citation: "Matt 5:39"
+      role: signature
+    - citation: "Matt 5:44"
+      role: climax
+    - citation: "Luke 6:27"
+      role: quote
+- name: "The Lord's Prayer"
+  kind: topic
+  description: "Jesus teaches his disciples to pray with the words 'Our Father in heaven, hallowed be your name.'"
+  aliases:
+    - lords prayer
+    - our father
+    - our father in heaven
+    - thy kingdom come
+    - give us this day our daily bread
+    - hallowed be thy name
+  verses:
+    - citation: "Matt 6:9"
+      role: signature
+    - citation: "Matt 6:10"
+      role: quote
+    - citation: "Matt 6:11"
+      role: quote
+    - citation: "Luke 11:2"
+      role: context
+- name: "Do Not Worry and Seek First the Kingdom"
+  kind: topic
+  description: "Jesus urges disciples not to be anxious about food or clothing but to seek first the kingdom of God."
+  aliases:
+    - do not worry
+    - consider the lilies
+    - birds of the air
+    - seek first the kingdom
+    - do not be anxious
+    - lilies of the field
+  verses:
+    - citation: "Matt 6:33"
+      role: signature
+    - citation: "Matt 6:26"
+      role: quote
+    - citation: "Matt 6:28"
+      role: quote
+    - citation: "Luke 12:27"
+      role: context
+- name: "The Golden Rule"
+  kind: topic
+  description: "Jesus commands doing to others as you would have them do to you."
+  aliases:
+    - golden rule
+    - do unto others
+    - do to others as you would have them do to you
+    - whatever you wish that others would do to you
+  verses:
+    - citation: "Matt 7:12"
+      role: signature
+    - citation: "Luke 6:31"
+      role: quote
+- name: "The Narrow Gate"
+  kind: topic
+  description: "Jesus urges entering by the narrow gate that leads to life, for wide is the gate that leads to destruction."
+  aliases:
+    - narrow gate
+    - narrow way
+    - enter by the narrow gate
+    - small is the gate
+    - broad is the road to destruction
+  verses:
+    - citation: "Matt 7:13"
+      role: signature
+    - citation: "Matt 7:14"
+      role: climax
+    - citation: "Luke 13:24"
+      role: context
+- name: "The Wise and Foolish Builders"
+  kind: parable
+  description: "Jesus likens those who hear and obey his words to a man building his house on rock, versus one building on sand."
+  aliases:
+    - wise and foolish builders
+    - house on the rock
+    - house built on sand
+    - parable of the two builders
+    - foundation on rock
+  verses:
+    - citation: "Matt 7:24"
+      role: signature
+    - citation: "Matt 7:26"
+      role: climax
+    - citation: "Luke 6:48"
+      role: quote
+- name: "The Parable of the Sower"
+  kind: parable
+  description: "A sower scatters seed on four soils: path, rocky ground, thorns, and good soil, representing different responses to the word."
+  aliases:
+    - parable of the sower
+    - the sower
+    - seed on rocky ground
+    - seed among thorns
+    - seed on good soil
+    - four soils
+  verses:
+    - citation: "Matt 13:3"
+      role: signature
+    - citation: "Matt 13:8"
+      role: climax
+    - citation: "Mark 4:3"
+      role: quote
+    - citation: "Luke 8:5"
+      role: context
+- name: "The Parable of the Wheat and Tares"
+  kind: parable
+  description: "An enemy sows weeds among a farmer's wheat; both grow together until the harvest when they are separated."
+  aliases:
+    - wheat and tares
+    - parable of the weeds
+    - wheat and weeds
+    - tares among the wheat
+    - enemy sowed weeds
+  verses:
+    - citation: "Matt 13:24"
+      role: signature
+    - citation: "Matt 13:30"
+      role: climax
+    - citation: "Matt 13:39"
+      role: quote
+- name: "The Parable of the Mustard Seed"
+  kind: parable
+  description: "Jesus compares the kingdom of heaven to a mustard seed, the smallest of seeds, that grows into a great tree."
+  aliases:
+    - mustard seed
+    - parable of the mustard seed
+    - smallest of all seeds
+    - kingdom like a mustard seed
+    - birds nest in its branches
+  verses:
+    - citation: "Matt 13:31"
+      role: signature
+    - citation: "Mark 4:31"
+      role: quote
+    - citation: "Luke 13:19"
+      role: context
+- name: "The Parable of the Pearl of Great Price"
+  kind: parable
+  description: "A merchant sells everything he has to buy one pearl of great value, illustrating the worth of the kingdom."
+  aliases:
+    - pearl of great price
+    - parable of the pearl
+    - pearl of great value
+    - merchant seeking fine pearls
+    - sold all he had
+  verses:
+    - citation: "Matt 13:45"
+      role: signature
+    - citation: "Matt 13:46"
+      role: climax
+- name: "The Parable of the Hidden Treasure"
+  kind: parable
+  description: "A man finds treasure hidden in a field and joyfully sells everything to buy that field."
+  aliases:
+    - hidden treasure
+    - treasure in a field
+    - parable of the hidden treasure
+    - treasure hidden in the field
+    - sold all to buy the field
+  verses:
+    - citation: "Matt 13:44"
+      role: signature
+- name: "The Parable of the Prodigal Son"
+  kind: parable
+  description: "A younger son squanders his inheritance and returns home to a forgiving father, while the elder son resents the welcome."
+  aliases:
+    - prodigal son
+    - parable of the prodigal son
+    - lost son
+    - the father and two sons
+    - elder brother
+    - returning son
+  verses:
+    - citation: "Luke 15:11"
+      role: signature
+    - citation: "Luke 15:20"
+      role: climax
+    - citation: "Luke 15:24"
+      role: quote
+- name: "The Parable of the Good Samaritan"
+  kind: parable
+  description: "A Samaritan helps a robbed traveler; Jesus answers 'who is my neighbor?'"
+  aliases:
+    - good samaritan
+    - parable of the good samaritan
+    - who is my neighbor
+    - a man went down from jerusalem to jericho
+    - fell among robbers
+  verses:
+    - citation: "Luke 10:33"
+      role: signature
+    - citation: "Luke 10:37"
+      role: climax
+    - citation: "Luke 10:29"
+      role: quote
+- name: "The Parable of the Lost Sheep"
+  kind: parable
+  description: "A shepherd leaves ninety-nine sheep to search for one that is lost and rejoices when he finds it."
+  aliases:
+    - lost sheep
+    - parable of the lost sheep
+    - ninety nine sheep
+    - leave the ninety nine
+    - shepherd seeking the lost
+  verses:
+    - citation: "Luke 15:4"
+      role: signature
+    - citation: "Luke 15:6"
+      role: climax
+    - citation: "Matt 18:12"
+      role: quote
+- name: "The Parable of the Lost Coin"
+  kind: parable
+  description: "A woman sweeps her house to find one lost coin and calls her friends to rejoice when she finds it."
+  aliases:
+    - lost coin
+    - parable of the lost coin
+    - woman and the lost coin
+    - ten silver coins
+    - sweeps the house
+  verses:
+    - citation: "Luke 15:8"
+      role: signature
+    - citation: "Luke 15:9"
+      role: climax
+- name: "The Parable of the Unforgiving Servant"
+  kind: parable
+  description: "A servant forgiven a great debt refuses to forgive a fellow servant a small debt and is punished."
+  aliases:
+    - unforgiving servant
+    - unmerciful servant
+    - parable of the unforgiving servant
+    - ten thousand talents
+    - seventy times seven
+  verses:
+    - citation: "Matt 18:23"
+      role: signature
+    - citation: "Matt 18:33"
+      role: climax
+    - citation: "Matt 18:22"
+      role: quote
+- name: "The Parable of the Rich Fool"
+  kind: parable
+  description: "A wealthy man builds larger barns to store his crops but dies that night, called a fool by God."
+  aliases:
+    - rich fool
+    - parable of the rich fool
+    - bigger barns
+    - eat drink and be merry
+    - you fool this night your soul
+  verses:
+    - citation: "Luke 12:16"
+      role: signature
+    - citation: "Luke 12:20"
+      role: climax
+- name: "The Rich Man and Lazarus"
+  kind: parable
+  description: "A rich man ignores poor Lazarus at his gate; after death their fates are reversed, with Lazarus in Abraham's bosom."
+  aliases:
+    - rich man and lazarus
+    - lazarus and the rich man
+    - abrahams bosom
+    - dives and lazarus
+    - beggar at the gate
+  verses:
+    - citation: "Luke 16:19"
+      role: signature
+    - citation: "Luke 16:22"
+      role: climax
+    - citation: "Luke 16:31"
+      role: quote
+- name: "The Parable of the Talents"
+  kind: parable
+  description: "A master entrusts his servants with talents; two invest and gain, one buries his and is condemned."
+  aliases:
+    - parable of the talents
+    - the talents
+    - five talents
+    - well done good and faithful servant
+    - buried talent
+    - parable of the minas
+  verses:
+    - citation: "Matt 25:14"
+      role: signature
+    - citation: "Matt 25:21"
+      role: climax
+    - citation: "Luke 19:13"
+      role: context
+- name: "The Parable of the Ten Virgins"
+  kind: parable
+  description: "Ten virgins await the bridegroom; five are wise with oil and five foolish without, and only the wise enter the feast."
+  aliases:
+    - ten virgins
+    - parable of the ten virgins
+    - wise and foolish virgins
+    - bridegroom is coming
+    - oil for the lamps
+  verses:
+    - citation: "Matt 25:1"
+      role: signature
+    - citation: "Matt 25:10"
+      role: climax
+    - citation: "Matt 25:13"
+      role: quote
+- name: "The Sheep and the Goats"
+  kind: parable
+  description: "At judgment the Son of Man separates nations as sheep from goats based on care for the least of these."
+  aliases:
+    - sheep and goats
+    - parable of the sheep and goats
+    - least of these
+    - separate the sheep from the goats
+    - i was hungry and you fed me
+    - final judgment
+  verses:
+    - citation: "Matt 25:32"
+      role: signature
+    - citation: "Matt 25:40"
+      role: climax
+    - citation: "Matt 25:35"
+      role: quote
+- name: "The Workers in the Vineyard"
+  kind: parable
+  description: "A landowner pays laborers hired at different hours the same wage, illustrating God's generosity."
+  aliases:
+    - workers in the vineyard
+    - laborers in the vineyard
+    - parable of the vineyard workers
+    - eleventh hour workers
+    - last will be first
+  verses:
+    - citation: "Matt 20:1"
+      role: signature
+    - citation: "Matt 20:15"
+      role: climax
+    - citation: "Matt 20:16"
+      role: quote
+- name: "The Pharisee and the Tax Collector"
+  kind: parable
+  description: "Two men pray in the temple; the self-righteous Pharisee is not justified, but the humble tax collector is."
+  aliases:
+    - pharisee and the tax collector
+    - pharisee and publican
+    - parable of the pharisee and tax collector
+    - god be merciful to me a sinner
+    - two men went up to the temple
+  verses:
+    - citation: "Luke 18:10"
+      role: signature
+    - citation: "Luke 18:13"
+      role: climax
+    - citation: "Luke 18:14"
+      role: quote
+- name: "The Persistent Widow"
+  kind: parable
+  description: "A widow wears down an unjust judge by her persistence; Jesus teaches his disciples to always pray and not give up."
+  aliases:
+    - persistent widow
+    - parable of the persistent widow
+    - unjust judge
+    - importunate widow
+    - always pray and do not give up
+  verses:
+    - citation: "Luke 18:2"
+      role: signature
+    - citation: "Luke 18:7"
+      role: climax
+    - citation: "Luke 18:1"
+      role: quote
+- name: "The Great Banquet"
+  kind: parable
+  description: "A host invites many to a great banquet; the invited refuse, so he fills his house with the poor and outcasts."
+  aliases:
+    - great banquet
+    - parable of the great banquet
+    - wedding feast
+    - parable of the wedding banquet
+    - invited guests made excuses
+    - compel them to come in
+  verses:
+    - citation: "Luke 14:16"
+      role: signature
+    - citation: "Luke 14:23"
+      role: climax
+    - citation: "Matt 22:2"
+      role: context
+- name: "I Am the Bread of Life"
+  kind: title
+  description: "Jesus declares himself the bread of life who gives eternal life to those who come to him."
+  aliases:
+    - bread of life
+    - i am the bread of life
+    - living bread
+    - bread from heaven
+    - he who comes to me shall not hunger
+  verses:
+    - citation: "John 6:35"
+      role: signature
+    - citation: "John 6:51"
+      role: climax
+    - citation: "John 6:48"
+      role: quote
+- name: "I Am the Light of the World"
+  kind: title
+  description: "Jesus declares himself the light of the world; whoever follows him will not walk in darkness."
+  aliases:
+    - light of the world
+    - i am the light of the world
+    - whoever follows me will not walk in darkness
+    - jesus light of the world
+    - light of life
+  verses:
+    - citation: "John 8:12"
+      role: signature
+    - citation: "John 9:5"
+      role: quote
+- name: "I Am the Good Shepherd"
+  kind: title
+  description: "Jesus declares himself the good shepherd who lays down his life for the sheep."
+  aliases:
+    - good shepherd
+    - i am the good shepherd
+    - lays down his life for the sheep
+    - my sheep hear my voice
+    - one flock one shepherd
+  verses:
+    - citation: "John 10:11"
+      role: signature
+    - citation: "John 10:14"
+      role: climax
+    - citation: "John 10:27"
+      role: quote
+- name: "I Am the Resurrection and the Life"
+  kind: title
+  description: "Jesus declares to Martha that he is the resurrection and the life before raising Lazarus."
+  aliases:
+    - resurrection and the life
+    - i am the resurrection and the life
+    - whoever believes in me though he die
+    - martha at the tomb
+    - raising of lazarus saying
+  verses:
+    - citation: "John 11:25"
+      role: signature
+    - citation: "John 11:26"
+      role: climax
+- name: "I Am the Way, the Truth, and the Life"
+  kind: title
+  description: "Jesus tells his disciples he is the way, the truth, and the life, and no one comes to the Father except through him."
+  aliases:
+    - way truth and life
+    - i am the way the truth and the life
+    - no one comes to the father except through me
+    - i am the way
+    - way the truth the life
+  verses:
+    - citation: "John 14:6"
+      role: signature
+    - citation: "John 14:7"
+      role: quote
+- name: "I Am the True Vine"
+  kind: title
+  description: "Jesus declares himself the true vine and his disciples the branches who must abide in him to bear fruit."
+  aliases:
+    - true vine
+    - i am the true vine
+    - vine and branches
+    - abide in me
+    - apart from me you can do nothing
+  verses:
+    - citation: "John 15:1"
+      role: signature
+    - citation: "John 15:5"
+      role: climax
+    - citation: "John 15:4"
+      role: quote
+- name: "Before Abraham Was, I Am"
+  kind: title
+  description: "Jesus declares his divine preexistence to the crowd, prompting them to pick up stones against him."
+  aliases:
+    - before abraham was i am
+    - i am sayings before abraham
+    - abraham rejoiced to see my day
+    - jesus divine preexistence
+    - stones against jesus
+  verses:
+    - citation: "John 8:58"
+      role: signature
+    - citation: "John 8:59"
+      role: climax
+    - citation: "John 8:56"
+      role: quote
+- name: "The Great Commandment"
+  kind: topic
+  description: "Jesus names love of God and love of neighbor as the greatest commandments on which all the Law and Prophets hang."
+  aliases:
+    - great commandment
+    - greatest commandment
+    - love the lord your god
+    - love your neighbor as yourself
+    - on these two commandments hang all the law
+  verses:
+    - citation: "Matt 22:37"
+      role: signature
+    - citation: "Matt 22:39"
+      role: climax
+    - citation: "Mark 12:30"
+      role: quote
+    - citation: "Luke 10:27"
+      role: context
+- name: "The New Commandment"
+  kind: topic
+  description: "At the Last Supper Jesus gives a new commandment to love one another as he has loved them."
+  aliases:
+    - new commandment
+    - love one another as i have loved you
+    - a new commandment i give you
+    - by this all will know you are my disciples
+    - mandatum novum
+  verses:
+    - citation: "John 13:34"
+      role: signature
+    - citation: "John 13:35"
+      role: climax
+    - citation: "John 15:12"
+      role: quote
+- name: "Render Unto Caesar"
+  kind: event
+  description: "Jesus answers a question about taxes by telling his questioners to render to Caesar what is Caesar's and to God what is God's."
+  aliases:
+    - render unto caesar
+    - give to caesar what is caesars
+    - tribute to caesar
+    - whose image is this
+    - coin of tribute
+  verses:
+    - citation: "Matt 22:21"
+      role: signature
+    - citation: "Mark 12:17"
+      role: quote
+    - citation: "Luke 20:25"
+      role: quote
+- name: "Let the Children Come to Me"
+  kind: event
+  description: "Jesus rebukes the disciples for hindering children and blesses them, saying the kingdom belongs to such as these."
+  aliases:
+    - let the children come to me
+    - suffer the little children
+    - do not hinder them
+    - kingdom belongs to such as these
+    - jesus blesses the children
+  verses:
+    - citation: "Mark 10:14"
+      role: signature
+    - citation: "Matt 19:14"
+      role: quote
+    - citation: "Luke 18:16"
+      role: quote
+- name: "It Is Finished"
+  kind: event
+  description: "Jesus's final word from the cross in John's Gospel, declaring his work completed before he gives up his spirit."
+  aliases:
+    - it is finished
+    - tetelestai
+    - jesus last words from the cross
+    - gave up his spirit
+    - final word from the cross
+  verses:
+    - citation: "John 19:30"
+      role: signature
+    - citation: "John 19:28"
+      role: context
+- name: "The High Priestly Prayer"
+  kind: event
+  description: "Jesus prays for himself, his disciples, and all future believers that they may be one as he and the Father are one."
+  aliases:
+    - high priestly prayer
+    - jesus prayer in john 17
+    - that they may be one
+    - prayer for the disciples
+    - priestly prayer of jesus
+  verses:
+    - citation: "John 17:1"
+      role: signature
+    - citation: "John 17:21"
+      role: climax
+    - citation: "John 17:3"
+      role: quote

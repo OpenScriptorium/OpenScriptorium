@@ -1,0 +1,580 @@
+---
+- name: "Creation of the World"
+  kind: event
+  description: "God creates the heavens and the earth in six days and rests on the seventh."
+  aliases:
+    - creation
+    - in the beginning
+    - six days of creation
+    - god creates the world
+    - let there be light
+    - genesis creation account
+  verses:
+    - citation: "Gen 1:1"
+      role: signature
+    - citation: "Gen 1:3"
+      role: quote
+    - citation: "Gen 2:2"
+      role: context
+- name: "The Fall of Adam and Eve"
+  kind: event
+  description: "Adam and Eve eat the forbidden fruit in Eden and are expelled from the garden."
+  aliases:
+    - the fall
+    - adam and eve
+    - forbidden fruit
+    - garden of eden
+    - original sin
+    - eating the fruit
+    - expulsion from eden
+  verses:
+    - citation: "Gen 3:6"
+      role: signature
+    - citation: "Gen 3:15"
+      role: climax
+    - citation: "Gen 2:17"
+      role: context
+- name: "Noah's Flood"
+  kind: event
+  description: "God floods the earth and preserves Noah, his family, and the animals in the ark."
+  aliases:
+    - the flood
+    - noahs ark
+    - noah and the ark
+    - the deluge
+    - great flood
+    - rainbow covenant
+  verses:
+    - citation: "Gen 7:11"
+      role: signature
+    - citation: "Gen 6:14"
+      role: context
+    - citation: "Gen 9:13"
+      role: climax
+- name: "Tower of Babel"
+  kind: event
+  description: "Humanity builds a tower to reach heaven; God confuses their language and scatters them."
+  aliases:
+    - babel
+    - tower of babel
+    - confusion of tongues
+    - scattering at babel
+    - babel languages
+    - one language one speech
+  verses:
+    - citation: "Gen 11:4"
+      role: signature
+    - citation: "Gen 11:7"
+      role: climax
+    - citation: "Gen 11:9"
+      role: context
+- name: "Call of Abraham"
+  kind: event
+  description: "God calls Abram out of Haran and promises to make him a great nation."
+  aliases:
+    - abrahams call
+    - call of abram
+    - get thee out of thy country
+    - promise to abraham
+    - abrahamic covenant
+    - leaving haran
+  verses:
+    - citation: "Gen 12:1"
+      role: signature
+    - citation: "Gen 12:3"
+      role: climax
+    - citation: "Gen 15:6"
+      role: context
+- name: "Binding of Isaac"
+  kind: event
+  description: "Abraham is commanded to sacrifice Isaac on Mount Moriah, and a ram is provided instead."
+  aliases:
+    - the akedah
+    - binding of isaac
+    - sacrifice of isaac
+    - abraham and isaac on moriah
+    - ram in the thicket
+    - jehovah jireh
+  verses:
+    - citation: "Gen 22:2"
+      role: signature
+    - citation: "Gen 22:13"
+      role: climax
+    - citation: "Gen 22:14"
+      role: context
+- name: "Jacob's Ladder"
+  kind: event
+  description: "Jacob dreams at Bethel of a ladder reaching heaven with angels ascending and descending."
+  aliases:
+    - jacobs ladder
+    - jacobs dream
+    - stairway to heaven
+    - bethel vision
+    - angels ascending and descending
+    - house of god
+  verses:
+    - citation: "Gen 28:12"
+      role: signature
+    - citation: "Gen 28:17"
+      role: climax
+    - citation: "Gen 28:19"
+      role: context
+- name: "Joseph's Coat and Dreams"
+  kind: event
+  description: "Joseph receives a special coat from Jacob and dreams of his brothers bowing to him."
+  aliases:
+    - josephs coat
+    - coat of many colors
+    - josephs dreams
+    - joseph sold into slavery
+    - sheaves bowing down
+    - joseph and his brothers
+  verses:
+    - citation: "Gen 37:3"
+      role: signature
+    - citation: "Gen 37:7"
+      role: climax
+    - citation: "Gen 37:28"
+      role: context
+- name: "The Burning Bush"
+  kind: event
+  description: "Moses encounters God in a bush that burns without being consumed and is commissioned to free Israel."
+  aliases:
+    - burning bush
+    - moses at the burning bush
+    - i am that i am
+    - god reveals his name
+    - holy ground
+    - mosess commissioning
+  verses:
+    - citation: "Exod 3:14"
+      role: signature
+    - citation: "Exod 3:2"
+      role: context
+    - citation: "Exod 3:5"
+      role: quote
+- name: "The Ten Plagues"
+  kind: event
+  description: "God sends ten plagues upon Egypt to compel Pharaoh to release Israel."
+  aliases:
+    - plagues of egypt
+    - ten plagues
+    - plagues on pharaoh
+    - frogs and locusts
+    - death of the firstborn
+    - hardening of pharaohs heart
+  verses:
+    - citation: "Exod 12:29"
+      role: signature
+    - citation: "Exod 7:20"
+      role: context
+    - citation: "Exod 10:22"
+      role: climax
+- name: "The Passover"
+  kind: event
+  description: "Israel marks their doorposts with lamb's blood so the destroyer passes over them in Egypt."
+  aliases:
+    - passover
+    - paschal lamb
+    - blood on the doorposts
+    - first passover
+    - feast of unleavened bread
+    - pesach
+  verses:
+    - citation: "Exod 12:13"
+      role: signature
+    - citation: "Exod 12:7"
+      role: context
+    - citation: "Exod 12:14"
+      role: climax
+- name: "Crossing the Red Sea"
+  kind: event
+  description: "God parts the Red Sea so Israel crosses on dry ground while Pharaoh's army is drowned."
+  aliases:
+    - red sea crossing
+    - parting of the red sea
+    - exodus from egypt
+    - pharaohs army drowned
+    - sea of reeds
+    - song of moses
+  verses:
+    - citation: "Exod 14:21"
+      role: signature
+    - citation: "Exod 14:22"
+      role: climax
+    - citation: "Exod 15:1"
+      role: context
+- name: "Giving of the Ten Commandments"
+  kind: event
+  description: "God gives Moses the Ten Commandments on Mount Sinai amid thunder and fire."
+  aliases:
+    - ten commandments
+    - decalogue
+    - law at sinai
+    - tablets of stone
+    - sinai covenant
+    - thunder on sinai
+  verses:
+    - citation: "Exod 20:1"
+      role: signature
+    - citation: "Exod 19:18"
+      role: context
+    - citation: "Deut 5:22"
+      role: climax
+- name: "The Golden Calf"
+  kind: event
+  description: "While Moses is on Sinai, Israel makes and worships a golden calf and Moses breaks the tablets."
+  aliases:
+    - golden calf
+    - calf of gold
+    - aarons calf
+    - idolatry at sinai
+    - breaking the tablets
+    - dancing around the calf
+  verses:
+    - citation: "Exod 32:4"
+      role: signature
+    - citation: "Exod 32:19"
+      role: climax
+    - citation: "Exod 32:1"
+      role: context
+- name: "Manna in the Wilderness"
+  kind: event
+  description: "God feeds Israel with manna from heaven and brings water from the rock in the wilderness."
+  aliases:
+    - manna from heaven
+    - bread from heaven
+    - water from the rock
+    - wilderness wanderings
+    - quail and manna
+    - striking the rock
+  verses:
+    - citation: "Exod 16:15"
+      role: signature
+    - citation: "Exod 17:6"
+      role: climax
+    - citation: "Num 20:11"
+      role: context
+- name: "The Twelve Spies"
+  kind: event
+  description: "Twelve spies scout Canaan; ten bring a bad report while Caleb and Joshua trust God."
+  aliases:
+    - twelve spies
+    - spies in canaan
+    - caleb and joshua
+    - bad report of the spies
+    - grapes of eshcol
+    - giants in the land
+  verses:
+    - citation: "Num 13:32"
+      role: signature
+    - citation: "Num 14:24"
+      role: climax
+    - citation: "Num 13:23"
+      role: context
+- name: "The Bronze Serpent"
+  kind: event
+  description: "Moses lifts up a bronze serpent on a pole so that bitten Israelites who look on it live."
+  aliases:
+    - bronze serpent
+    - brazen serpent
+    - nehushtan
+    - serpent on a pole
+    - fiery serpents
+    - look and live
+  verses:
+    - citation: "Num 21:9"
+      role: signature
+    - citation: "Num 21:6"
+      role: context
+    - citation: "Num 21:8"
+      role: quote
+- name: "Fall of Jericho"
+  kind: event
+  description: "Israel marches around Jericho for seven days and the walls collapse at the shout and trumpets."
+  aliases:
+    - jericho
+    - walls of jericho
+    - battle of jericho
+    - marching around jericho
+    - rahab and the spies
+    - trumpets at jericho
+  verses:
+    - citation: "Josh 6:20"
+      role: signature
+    - citation: "Josh 6:4"
+      role: context
+    - citation: "Josh 2:1"
+      role: context
+- name: "Gideon's Fleece"
+  kind: event
+  description: "Gideon tests God's promise by laying out a fleece to confirm his call to deliver Israel."
+  aliases:
+    - gideons fleece
+    - fleece on the threshing floor
+    - wet fleece dry ground
+    - gideons sign
+    - gideon and the fleece
+    - testing god with a fleece
+  verses:
+    - citation: "Judg 6:37"
+      role: signature
+    - citation: "Judg 6:40"
+      role: climax
+    - citation: "Judg 7:7"
+      role: context
+- name: "Samson and Delilah"
+  kind: event
+  description: "Delilah seduces Samson into revealing that his strength lies in his uncut hair."
+  aliases:
+    - samson and delilah
+    - samsons strength
+    - secret of samsons hair
+    - nazarite vow
+    - samson in the temple
+    - pulling down the pillars
+  verses:
+    - citation: "Judg 16:17"
+      role: signature
+    - citation: "Judg 16:19"
+      role: climax
+    - citation: "Judg 16:30"
+      role: context
+- name: "Ruth and Boaz"
+  kind: event
+  description: "Ruth the Moabitess gleans in Boaz's field and is redeemed as his wife, becoming David's ancestor."
+  aliases:
+    - ruth and boaz
+    - ruth the moabitess
+    - gleaning in the field
+    - kinsman redeemer
+    - whither thou goest
+    - ruth at boazs feet
+  verses:
+    - citation: "Ruth 1:16"
+      role: signature
+    - citation: "Ruth 2:3"
+      role: context
+    - citation: "Ruth 4:13"
+      role: climax
+- name: "Call of Samuel"
+  kind: event
+  description: "The boy Samuel is called by God in the night at the tabernacle in Shiloh."
+  aliases:
+    - call of samuel
+    - samuel hears god
+    - speak lord for thy servant heareth
+    - samuel in shiloh
+    - eli and samuel
+    - samuels night vision
+  verses:
+    - citation: "1 Sam 3:10"
+      role: signature
+    - citation: "1 Sam 3:4"
+      role: context
+    - citation: "1 Sam 3:20"
+      role: climax
+- name: "David Anointed King"
+  kind: event
+  description: "Samuel anoints the shepherd boy David as the future king of Israel at Bethlehem."
+  aliases:
+    - anointing of david
+    - david anointed
+    - samuel anoints david
+    - man after gods own heart
+    - david the shepherd
+    - jesses youngest son
+  verses:
+    - citation: "1 Sam 16:13"
+      role: signature
+    - citation: "1 Sam 16:7"
+      role: quote
+    - citation: "1 Sam 16:11"
+      role: context
+- name: "David and Goliath"
+  kind: event
+  description: "The young David defeats the Philistine giant Goliath with a sling and a stone."
+  aliases:
+    - david and goliath
+    - goliath the philistine
+    - sling and stone
+    - valley of elah
+    - slaying the giant
+    - davids five smooth stones
+  verses:
+    - citation: "1 Sam 17:49"
+      role: signature
+    - citation: "1 Sam 17:45"
+      role: quote
+    - citation: "1 Sam 17:4"
+      role: context
+- name: "David and Bathsheba"
+  kind: event
+  description: "David commits adultery with Bathsheba and arranges Uriah's death; Nathan confronts him."
+  aliases:
+    - david and bathsheba
+    - bathsheba on the rooftop
+    - uriah the hittite
+    - nathan rebukes david
+    - thou art the man
+    - davids sin with bathsheba
+  verses:
+    - citation: "2 Sam 11:4"
+      role: signature
+    - citation: "2 Sam 12:7"
+      role: climax
+    - citation: "2 Sam 11:15"
+      role: context
+- name: "Solomon's Wise Judgment"
+  kind: event
+  description: "Solomon discerns the true mother of a living child by proposing to divide it with a sword."
+  aliases:
+    - judgment of solomon
+    - solomons wisdom
+    - two mothers and a baby
+    - divide the child
+    - cut the baby in two
+    - wise king solomon
+  verses:
+    - citation: "1 Kgs 3:25"
+      role: signature
+    - citation: "1 Kgs 3:9"
+      role: context
+    - citation: "1 Kgs 3:28"
+      role: climax
+- name: "Elijah on Mount Carmel"
+  kind: event
+  description: "Elijah challenges the prophets of Baal on Mount Carmel and fire falls from heaven on his altar."
+  aliases:
+    - elijah and the prophets of baal
+    - mount carmel contest
+    - fire from heaven
+    - baal worshippers defeated
+    - how long halt ye between two opinions
+    - elijah vs baal
+  verses:
+    - citation: "1 Kgs 18:38"
+      role: signature
+    - citation: "1 Kgs 18:21"
+      role: quote
+    - citation: "1 Kgs 18:24"
+      role: context
+- name: "Still Small Voice at Horeb"
+  kind: event
+  description: "At Horeb Elijah hears God not in wind, earthquake, or fire but in a still small voice."
+  aliases:
+    - still small voice
+    - elijah at horeb
+    - gentle whisper
+    - cave at horeb
+    - wind earthquake fire
+    - elijah flees jezebel
+  verses:
+    - citation: "1 Kgs 19:12"
+      role: signature
+    - citation: "1 Kgs 19:9"
+      role: context
+    - citation: "1 Kgs 19:13"
+      role: climax
+- name: "Elijah's Chariot of Fire"
+  kind: event
+  description: "Elijah is taken up to heaven in a whirlwind by a chariot of fire while Elisha watches."
+  aliases:
+    - chariot of fire
+    - elijah taken up
+    - whirlwind to heaven
+    - elijah and elisha
+    - double portion of the spirit
+    - elijahs ascension
+  verses:
+    - citation: "2 Kgs 2:11"
+      role: signature
+    - citation: "2 Kgs 2:9"
+      role: context
+    - citation: "2 Kgs 2:14"
+      role: climax
+- name: "Naaman Healed of Leprosy"
+  kind: event
+  description: "The Syrian commander Naaman is healed of leprosy after washing seven times in the Jordan."
+  aliases:
+    - naaman the syrian
+    - naaman healed
+    - seven times in the jordan
+    - leprosy cleansed
+    - elisha and naaman
+    - gehazis greed
+  verses:
+    - citation: "2 Kgs 5:14"
+      role: signature
+    - citation: "2 Kgs 5:10"
+      role: context
+    - citation: "2 Kgs 5:1"
+      role: context
+- name: "Building of Solomon's Temple"
+  kind: event
+  description: "Solomon builds the first temple in Jerusalem and dedicates it with prayer as glory fills the house."
+  aliases:
+    - solomons temple
+    - first temple
+    - dedication of the temple
+    - glory filled the house
+    - building the house of the lord
+    - temple in jerusalem
+  verses:
+    - citation: "1 Kgs 6:1"
+      role: signature
+    - citation: "2 Chr 7:1"
+      role: climax
+    - citation: "1 Kgs 8:10"
+      role: context
+- name: "Return from Exile under Cyrus"
+  kind: event
+  description: "Cyrus decrees that the exiles may return to Jerusalem and rebuild the temple."
+  aliases:
+    - return from exile
+    - decree of cyrus
+    - rebuilding the temple
+    - zerubbabels return
+    - end of babylonian captivity
+    - second temple begun
+  verses:
+    - citation: "Ezra 1:2"
+      role: signature
+    - citation: "Ezra 3:11"
+      role: climax
+    - citation: "Ezra 6:15"
+      role: context
+- name: "Nehemiah Rebuilds the Wall"
+  kind: event
+  description: "Nehemiah leads the returned exiles in rebuilding the wall of Jerusalem despite opposition."
+  aliases:
+    - rebuilding the wall
+    - nehemiahs wall
+    - walls of jerusalem
+    - sword and trowel
+    - sanballat and tobiah
+    - fifty two days
+  verses:
+    - citation: "Neh 6:15"
+      role: signature
+    - citation: "Neh 2:17"
+      role: context
+    - citation: "Neh 4:17"
+      role: climax
+- name: "Esther Before the King"
+  kind: event
+  description: "Esther risks her life to approach King Ahasuerus and expose Haman's plot against the Jews."
+  aliases:
+    - esther and ahasuerus
+    - esthers courage
+    - for such a time as this
+    - if i perish i perish
+    - hamans plot
+    - queen esther intercedes
+  verses:
+    - citation: "Esth 4:16"
+      role: signature
+    - citation: "Esth 4:14"
+      role: quote
+    - citation: "Esth 7:6"
+      role: climax

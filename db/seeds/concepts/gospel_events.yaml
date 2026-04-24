@@ -1,0 +1,610 @@
+---
+- name: "The Annunciation to Mary"
+  kind: event
+  description: "Gabriel announces to Mary that she will conceive Jesus by the Holy Spirit."
+  aliases:
+    - annunciation
+    - gabriel visits mary
+    - hail full of grace
+    - behold the handmaid of the lord
+    - overshadow thee
+    - virgin conception announced
+  verses:
+    - citation: "Luke 1:31"
+      role: signature
+    - citation: "Luke 1:28"
+      role: quote
+    - citation: "Luke 1:35"
+      role: climax
+    - citation: "Luke 1:38"
+      role: quote
+- name: "The Magnificat"
+  kind: event
+  description: "Mary's song of praise during her visit to Elizabeth, exalting God for lifting the lowly."
+  aliases:
+    - magnificat
+    - mary's song
+    - my soul doth magnify the lord
+    - he hath regarded the low estate
+    - visitation of mary
+    - song of mary
+  verses:
+    - citation: "Luke 1:46"
+      role: signature
+    - citation: "Luke 1:48"
+      role: quote
+    - citation: "Luke 1:52"
+      role: climax
+- name: "The Nativity of Jesus"
+  kind: event
+  description: "The birth of Jesus in Bethlehem, laid in a manger because there was no room in the inn."
+  aliases:
+    - nativity
+    - birth of jesus
+    - laid in a manger
+    - no room in the inn
+    - christ is born
+    - bethlehem birth
+  verses:
+    - citation: "Luke 2:7"
+      role: signature
+    - citation: "Luke 2:6"
+      role: context
+    - citation: "Matt 1:25"
+      role: context
+- name: "Shepherds and the Angels"
+  kind: event
+  description: "Angels announce the Savior's birth to shepherds watching their flocks by night."
+  aliases:
+    - shepherds and angels
+    - glory to god in the highest
+    - heavenly host
+    - good tidings of great joy
+    - shepherds watching their flocks
+    - angel of the lord to shepherds
+  verses:
+    - citation: "Luke 2:10"
+      role: signature
+    - citation: "Luke 2:14"
+      role: quote
+    - citation: "Luke 2:8"
+      role: context
+    - citation: "Luke 2:11"
+      role: climax
+- name: "Visit of the Magi"
+  kind: event
+  description: "Wise men from the east follow a star and present gold, frankincense, and myrrh to the child Jesus."
+  aliases:
+    - visit of the magi
+    - wise men from the east
+    - star of bethlehem
+    - gold frankincense and myrrh
+    - we have seen his star
+    - adoration of the magi
+  verses:
+    - citation: "Matt 2:11"
+      role: signature
+    - citation: "Matt 2:2"
+      role: quote
+    - citation: "Matt 2:9"
+      role: context
+- name: "Flight into Egypt"
+  kind: event
+  description: "Joseph takes Mary and Jesus to Egypt to escape Herod's slaughter of the innocents."
+  aliases:
+    - flight to egypt
+    - flight into egypt
+    - out of egypt have i called my son
+    - herod's massacre
+    - slaughter of the innocents
+    - joseph's dream of escape
+  verses:
+    - citation: "Matt 2:14"
+      role: signature
+    - citation: "Matt 2:13"
+      role: quote
+    - citation: "Matt 2:15"
+      role: climax
+- name: "Young Jesus in the Temple"
+  kind: event
+  description: "At twelve, Jesus astounds the teachers in the temple and speaks of his Father's business."
+  aliases:
+    - boy jesus in the temple
+    - jesus at twelve
+    - about my father's business
+    - finding in the temple
+    - jesus among the doctors
+    - lost and found in jerusalem
+  verses:
+    - citation: "Luke 2:46"
+      role: signature
+    - citation: "Luke 2:49"
+      role: quote
+    - citation: "Luke 2:47"
+      role: context
+- name: "Baptism of Jesus"
+  kind: event
+  description: "Jesus is baptized by John in the Jordan; the Spirit descends and the Father speaks from heaven."
+  aliases:
+    - baptism of jesus
+    - jordan baptism
+    - spirit descending like a dove
+    - this is my beloved son in whom i am well pleased
+    - john baptizes jesus
+    - heavens opened at baptism
+  verses:
+    - citation: "Matt 3:16"
+      role: signature
+    - citation: "Matt 3:17"
+      role: quote
+    - citation: "Mark 1:10"
+      role: climax
+- name: "Temptation in the Wilderness"
+  kind: event
+  description: "Jesus fasts forty days and is tempted three times by Satan in the wilderness."
+  aliases:
+    - temptation of jesus
+    - wilderness temptation
+    - forty days and forty nights
+    - get thee behind me satan
+    - man shall not live by bread alone
+    - three temptations
+  verses:
+    - citation: "Matt 4:1"
+      role: signature
+    - citation: "Matt 4:4"
+      role: quote
+    - citation: "Matt 4:10"
+      role: climax
+    - citation: "Luke 4:2"
+      role: context
+- name: "Wedding at Cana"
+  kind: event
+  description: "Jesus turns water into wine at a wedding in Cana, the first of his signs."
+  aliases:
+    - wedding at cana
+    - water into wine
+    - first miracle of jesus
+    - mine hour is not yet come
+    - fill the waterpots
+    - marriage in cana of galilee
+  verses:
+    - citation: "John 2:9"
+      role: signature
+    - citation: "John 2:4"
+      role: quote
+    - citation: "John 2:11"
+      role: climax
+- name: "Call of the First Disciples"
+  kind: event
+  description: "Jesus calls Peter, Andrew, James, and John from their nets to become fishers of men."
+  aliases:
+    - call of the first disciples
+    - fishers of men
+    - follow me
+    - leaving their nets
+    - calling of peter and andrew
+    - calling of james and john
+  verses:
+    - citation: "Matt 4:19"
+      role: signature
+    - citation: "Matt 4:20"
+      role: climax
+    - citation: "Mark 1:17"
+      role: quote
+- name: "Miraculous Catch of Fish"
+  kind: event
+  description: "At Jesus' word, Peter lets down the nets and hauls in a miraculous draught of fish."
+  aliases:
+    - miraculous catch of fish
+    - great draught of fishes
+    - launch out into the deep
+    - depart from me a sinful man
+    - nets breaking with fish
+    - catch at gennesaret
+  verses:
+    - citation: "Luke 5:6"
+      role: signature
+    - citation: "Luke 5:4"
+      role: quote
+    - citation: "Luke 5:8"
+      role: climax
+- name: "Calming the Storm"
+  kind: event
+  description: "Jesus rebukes wind and sea on Galilee, bringing a great calm and astonishing his disciples."
+  aliases:
+    - calming the storm
+    - stilling the tempest
+    - peace be still
+    - what manner of man is this
+    - jesus asleep in the boat
+    - wind and waves obey him
+  verses:
+    - citation: "Mark 4:39"
+      role: signature
+    - citation: "Mark 4:41"
+      role: quote
+    - citation: "Matt 8:26"
+      role: climax
+- name: "Feeding of the Five Thousand"
+  kind: event
+  description: "Jesus multiplies five loaves and two fish to feed a multitude in a desert place."
+  aliases:
+    - feeding of the 5000
+    - feeding the five thousand
+    - five loaves and two fishes
+    - twelve baskets of fragments
+    - miracle of the loaves
+    - desert place feeding
+  verses:
+    - citation: "Matt 14:19"
+      role: signature
+    - citation: "John 6:9"
+      role: context
+    - citation: "Mark 6:42"
+      role: climax
+- name: "Walking on Water"
+  kind: event
+  description: "Jesus walks on the Sea of Galilee to his disciples and invites Peter to come to him."
+  aliases:
+    - walking on water
+    - jesus walks on the sea
+    - be of good cheer it is i
+    - peter walks on water
+    - lord save me
+    - fourth watch of the night
+  verses:
+    - citation: "Matt 14:25"
+      role: signature
+    - citation: "Matt 14:27"
+      role: quote
+    - citation: "Matt 14:30"
+      role: climax
+- name: "Woman with the Issue of Blood"
+  kind: event
+  description: "A woman with a twelve-year hemorrhage is healed by touching the hem of Jesus' garment."
+  aliases:
+    - woman with the issue of blood
+    - hem of his garment
+    - daughter thy faith hath made thee whole
+    - who touched me
+    - twelve years of bleeding
+    - hemorrhaging woman healed
+  verses:
+    - citation: "Mark 5:29"
+      role: signature
+    - citation: "Mark 5:34"
+      role: quote
+    - citation: "Luke 8:46"
+      role: context
+- name: "Raising of Lazarus"
+  kind: event
+  description: "Jesus calls Lazarus out of the tomb four days after his death in Bethany."
+  aliases:
+    - raising of lazarus
+    - lazarus come forth
+    - i am the resurrection and the life
+    - jesus wept
+    - lazarus raised from the dead
+    - four days in the tomb
+  verses:
+    - citation: "John 11:43"
+      role: signature
+    - citation: "John 11:25"
+      role: quote
+    - citation: "John 11:35"
+      role: context
+    - citation: "John 11:44"
+      role: climax
+- name: "Healing of Blind Bartimaeus"
+  kind: event
+  description: "A blind beggar near Jericho cries out to the Son of David and receives his sight."
+  aliases:
+    - blind bartimaeus
+    - son of david have mercy on me
+    - bartimaeus healed
+    - blind beggar of jericho
+    - thy faith hath made thee whole
+    - receive thy sight
+  verses:
+    - citation: "Mark 10:46"
+      role: signature
+    - citation: "Mark 10:47"
+      role: quote
+    - citation: "Mark 10:52"
+      role: climax
+- name: "The Transfiguration"
+  kind: event
+  description: "Jesus is transfigured before Peter, James, and John; Moses and Elijah appear in glory."
+  aliases:
+    - transfiguration
+    - jesus transfigured
+    - mount of transfiguration
+    - this is my beloved son hear ye him
+    - moses and elijah appear
+    - raiment white as light
+  verses:
+    - citation: "Matt 17:2"
+      role: signature
+    - citation: "Matt 17:5"
+      role: quote
+    - citation: "Luke 9:29"
+      role: climax
+- name: "Peter's Confession at Caesarea Philippi"
+  kind: event
+  description: "Peter confesses Jesus as the Christ, and Jesus promises to build his church upon this rock."
+  aliases:
+    - peter's confession
+    - caesarea philippi
+    - thou art the christ the son of the living god
+    - upon this rock i will build my church
+    - keys of the kingdom
+    - who do men say that i am
+  verses:
+    - citation: "Matt 16:16"
+      role: signature
+    - citation: "Matt 16:18"
+      role: quote
+    - citation: "Mark 8:29"
+      role: climax
+- name: "Triumphal Entry"
+  kind: event
+  description: "Jesus enters Jerusalem on a donkey while crowds cry Hosanna and spread palm branches."
+  aliases:
+    - triumphal entry
+    - palm sunday
+    - hosanna to the son of david
+    - blessed is he that cometh in the name of the lord
+    - riding on a donkey
+    - entry into jerusalem
+  verses:
+    - citation: "Matt 21:9"
+      role: signature
+    - citation: "John 12:13"
+      role: quote
+    - citation: "Luke 19:38"
+      role: context
+- name: "Cleansing of the Temple"
+  kind: event
+  description: "Jesus drives out the money changers and overturns their tables, calling the temple a house of prayer."
+  aliases:
+    - cleansing of the temple
+    - money changers
+    - den of thieves
+    - my house shall be called a house of prayer
+    - overturning the tables
+    - whip of cords
+  verses:
+    - citation: "Matt 21:12"
+      role: signature
+    - citation: "Matt 21:13"
+      role: quote
+    - citation: "John 2:15"
+      role: context
+- name: "Institution of the Last Supper"
+  kind: event
+  description: "At Passover Jesus gives bread and cup to his disciples, instituting the new covenant in his blood."
+  aliases:
+    - last supper
+    - institution of the eucharist
+    - this is my body
+    - new testament in my blood
+    - breaking of bread at passover
+    - do this in remembrance of me
+  verses:
+    - citation: "Luke 22:19"
+      role: signature
+    - citation: "Matt 26:26"
+      role: quote
+    - citation: "Luke 22:20"
+      role: climax
+- name: "Agony in Gethsemane"
+  kind: event
+  description: "Jesus prays in the garden that the cup pass from him, sweating as it were great drops of blood."
+  aliases:
+    - agony in gethsemane
+    - garden of gethsemane
+    - let this cup pass from me
+    - not my will but thine be done
+    - sweat as great drops of blood
+    - watch and pray
+  verses:
+    - citation: "Luke 22:44"
+      role: signature
+    - citation: "Matt 26:39"
+      role: quote
+    - citation: "Mark 14:36"
+      role: climax
+- name: "Peter's Denial"
+  kind: event
+  description: "Peter three times denies knowing Jesus, and the cock crows as the Lord had foretold."
+  aliases:
+    - peter's denial
+    - cock crowed
+    - i know not the man
+    - thrice deny me
+    - peter wept bitterly
+    - denial in the courtyard
+  verses:
+    - citation: "Luke 22:60"
+      role: signature
+    - citation: "Matt 26:74"
+      role: quote
+    - citation: "Luke 22:62"
+      role: climax
+- name: "Trial before Pilate"
+  kind: event
+  description: "Pilate examines Jesus, finds no fault, yet delivers him to be crucified after washing his hands."
+  aliases:
+    - trial before pilate
+    - pontius pilate
+    - art thou the king of the jews
+    - i find no fault in him
+    - washed his hands
+    - behold the man
+  verses:
+    - citation: "John 19:5"
+      role: signature
+    - citation: "Matt 27:24"
+      role: quote
+    - citation: "John 18:38"
+      role: context
+    - citation: "Luke 23:4"
+      role: context
+- name: "Crucifixion and Cry of Dereliction"
+  kind: event
+  description: "Jesus is crucified at Golgotha and cries out, My God, my God, why hast thou forsaken me."
+  aliases:
+    - crucifixion
+    - golgotha
+    - my god my god why hast thou forsaken me
+    - eli eli lama sabachthani
+    - place of a skull
+    - jesus on the cross
+  verses:
+    - citation: "Matt 27:46"
+      role: signature
+    - citation: "Mark 15:34"
+      role: quote
+    - citation: "Luke 23:33"
+      role: context
+- name: "Death of Jesus and Tearing of the Veil"
+  kind: event
+  description: "Jesus yields up his spirit and the veil of the temple is rent in twain from top to bottom."
+  aliases:
+    - death of jesus
+    - tearing of the veil
+    - veil of the temple rent
+    - it is finished
+    - father into thy hands i commend my spirit
+    - darkness over the land
+  verses:
+    - citation: "Matt 27:50"
+      role: signature
+    - citation: "Matt 27:51"
+      role: climax
+    - citation: "John 19:30"
+      role: quote
+    - citation: "Luke 23:46"
+      role: context
+- name: "The Empty Tomb"
+  kind: event
+  description: "On the first day of the week the women find the stone rolled away and the tomb empty."
+  aliases:
+    - empty tomb
+    - he is risen
+    - stone rolled away
+    - first day of the week
+    - why seek ye the living among the dead
+    - angel at the tomb
+  verses:
+    - citation: "Mark 16:6"
+      role: signature
+    - citation: "Luke 24:5"
+      role: quote
+    - citation: "Matt 28:6"
+      role: climax
+- name: "Mary Magdalene Meets the Risen Jesus"
+  kind: event
+  description: "Mary Magdalene mistakes the risen Jesus for the gardener until he calls her by name."
+  aliases:
+    - mary magdalene meets jesus
+    - noli me tangere
+    - touch me not
+    - rabboni
+    - woman why weepest thou
+    - risen jesus in the garden
+  verses:
+    - citation: "John 20:16"
+      role: signature
+    - citation: "John 20:17"
+      role: quote
+    - citation: "John 20:15"
+      role: context
+- name: "Road to Emmaus"
+  kind: event
+  description: "The risen Jesus walks with two disciples to Emmaus and is known to them in the breaking of bread."
+  aliases:
+    - road to emmaus
+    - emmaus road
+    - did not our hearts burn within us
+    - known in the breaking of bread
+    - cleopas
+    - two disciples on the road
+  verses:
+    - citation: "Luke 24:31"
+      role: signature
+    - citation: "Luke 24:32"
+      role: quote
+    - citation: "Luke 24:30"
+      role: climax
+- name: "Doubting Thomas"
+  kind: event
+  description: "Thomas believes only after seeing and touching the wounds of the risen Jesus."
+  aliases:
+    - doubting thomas
+    - reach hither thy finger
+    - my lord and my god
+    - thomas touches the wounds
+    - blessed are they that have not seen
+    - except i see the print of the nails
+  verses:
+    - citation: "John 20:28"
+      role: signature
+    - citation: "John 20:27"
+      role: quote
+    - citation: "John 20:29"
+      role: climax
+- name: "Restoration of Peter"
+  kind: event
+  description: "By the Sea of Galilee the risen Jesus thrice asks Peter, Lovest thou me, and charges him to feed his sheep."
+  aliases:
+    - restoration of peter
+    - feed my sheep
+    - lovest thou me
+    - breakfast on the shore
+    - peter reinstated
+    - tiberias appearance
+  verses:
+    - citation: "John 21:17"
+      role: signature
+    - citation: "John 21:15"
+      role: quote
+    - citation: "John 21:16"
+      role: context
+- name: "The Great Commission"
+  kind: event
+  description: "The risen Jesus commands his disciples to make disciples of all nations, baptizing and teaching them."
+  aliases:
+    - great commission
+    - go ye therefore
+    - teach all nations
+    - baptizing them in the name
+    - lo i am with you always
+    - all authority in heaven and earth
+  verses:
+    - citation: "Matt 28:19"
+      role: signature
+    - citation: "Matt 28:20"
+      role: quote
+    - citation: "Matt 28:18"
+      role: context
+    - citation: "Mark 16:15"
+      role: context
+- name: "The Ascension"
+  kind: event
+  description: "Jesus is taken up into heaven from the disciples' sight and a cloud receives him."
+  aliases:
+    - ascension of jesus
+    - received up into heaven
+    - cloud received him out of their sight
+    - carried up into heaven
+    - this same jesus shall so come
+    - ascension from bethany
+  verses:
+    - citation: "Luke 24:51"
+      role: signature
+    - citation: "Mark 16:19"
+      role: climax
+    - citation: "Luke 24:52"
+      role: context
