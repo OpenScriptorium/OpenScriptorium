@@ -1,0 +1,713 @@
+---
+- name: "The Word Made Flesh"
+  kind: title
+  description: "The eternal Logos taking on human nature, stated in the prologue of John."
+  aliases:
+    - word made flesh
+    - logos
+    - the word became flesh
+    - incarnation
+    - dwelt among us
+    - beheld his glory
+    - only begotten of the father
+  verses:
+    - citation: "John 1:14"
+      role: signature
+    - citation: "John 1:1"
+      role: context
+    - citation: "John 1:18"
+      role: climax
+    - citation: "1 John 1:1"
+      role: quote
+- name: "Light Shining in Darkness"
+  kind: topic
+  description: "The light of God's self-revelation shining in darkness that cannot overcome it."
+  aliases:
+    - light shines in darkness
+    - darkness comprehended it not
+    - light of men
+    - true light
+    - light of the world
+    - darkness did not overcome
+  verses:
+    - citation: "John 1:5"
+      role: signature
+    - citation: "John 1:4"
+      role: context
+    - citation: "John 1:9"
+      role: climax
+    - citation: "2 Cor 4:6"
+      role: quote
+- name: "Grace and Truth"
+  kind: attribute
+  description: "The twin qualities of the incarnate Word, fulfilling and surpassing the law given through Moses."
+  aliases:
+    - full of grace and truth
+    - grace upon grace
+    - grace for grace
+    - law came through moses
+    - grace and truth came through jesus christ
+  verses:
+    - citation: "John 1:14"
+      role: signature
+    - citation: "John 1:16"
+      role: context
+    - citation: "John 1:17"
+      role: climax
+- name: "Lamb of God"
+  kind: title
+  description: "John the Baptist's identification of Jesus as the sacrificial lamb who takes away sin."
+  aliases:
+    - lamb of god
+    - takes away the sin of the world
+    - behold the lamb
+    - worthy is the lamb
+    - lamb slain
+    - lamb that was slain
+  verses:
+    - citation: "John 1:29"
+      role: signature
+    - citation: "John 1:36"
+      role: context
+    - citation: "Rev 5:12"
+      role: climax
+    - citation: "Isa 53:7"
+      role: quote
+- name: "Only Begotten Son"
+  kind: title
+  description: "The unique divine sonship of Christ given by the Father out of love for the world."
+  aliases:
+    - only begotten son
+    - monogenes
+    - only son
+    - god so loved the world
+    - gave his only son
+    - whosoever believeth
+  verses:
+    - citation: "John 3:16"
+      role: signature
+    - citation: "John 3:17"
+      role: context
+    - citation: "1 John 4:9"
+      role: climax
+    - citation: "John 1:14"
+      role: quote
+- name: "Alpha and Omega"
+  kind: title
+  description: "The self-designation of the Lord as the beginning and end of all things."
+  aliases:
+    - alpha and omega
+    - the beginning and the end
+    - who is and who was and who is to come
+    - almighty
+    - a and o
+  verses:
+    - citation: "Rev 1:8"
+      role: signature
+    - citation: "Rev 21:6"
+      role: climax
+    - citation: "Rev 22:13"
+      role: context
+- name: "First and Last"
+  kind: title
+  description: "The eternal self-identification of the Lord, applied to both YHWH and the risen Christ."
+  aliases:
+    - first and last
+    - i am the first and the last
+    - the first and the last
+    - living one who died
+    - i am he
+  verses:
+    - citation: "Rev 1:17"
+      role: signature
+    - citation: "Isa 44:6"
+      role: context
+    - citation: "Isa 48:12"
+      role: quote
+    - citation: "Rev 22:13"
+      role: climax
+- name: "King of Kings and Lord of Lords"
+  kind: title
+  description: "The sovereign title borne by the returning Christ over all earthly rulers."
+  aliases:
+    - king of kings
+    - lord of lords
+    - king of kings and lord of lords
+    - word of god rides forth
+    - name written on his thigh
+    - ruler of the kings of the earth
+  verses:
+    - citation: "Rev 19:16"
+      role: signature
+    - citation: "1 Tim 6:15"
+      role: context
+    - citation: "Rev 17:14"
+      role: climax
+- name: "Bright and Morning Star"
+  kind: title
+  description: "The dawn-light title of the risen Christ, promised also to the faithful."
+  aliases:
+    - bright and morning star
+    - morning star
+    - day star
+    - root and offspring of david
+    - star out of jacob
+  verses:
+    - citation: "Rev 22:16"
+      role: signature
+    - citation: "2 Pet 1:19"
+      role: context
+    - citation: "Num 24:17"
+      role: quote
+    - citation: "Rev 2:28"
+      role: climax
+- name: "Prince of Peace"
+  kind: title
+  description: "The messianic child of Isaiah 9 whose government and peace have no end."
+  aliases:
+    - prince of peace
+    - wonderful counselor
+    - mighty god
+    - everlasting father
+    - unto us a child is born
+    - government upon his shoulder
+  verses:
+    - citation: "Isa 9:6"
+      role: signature
+    - citation: "Isa 9:7"
+      role: climax
+    - citation: "Eph 2:14"
+      role: context
+- name: "Son of David"
+  kind: title
+  description: "The Davidic messianic title given to Jesus as heir of the eternal covenant with David."
+  aliases:
+    - son of david
+    - root of david
+    - offspring of david
+    - throne of david
+    - seed of david
+    - hosanna to the son of david
+  verses:
+    - citation: "Matt 1:1"
+      role: signature
+    - citation: "2 Sam 7:12"
+      role: context
+    - citation: "Matt 21:9"
+      role: climax
+    - citation: "Rom 1:3"
+      role: quote
+- name: "Immanuel God With Us"
+  kind: title
+  description: "The Isaianic sign-name fulfilled in the virgin-born Christ, 'God with us.'"
+  aliases:
+    - immanuel
+    - emmanuel
+    - god with us
+    - virgin shall conceive
+    - behold a virgin
+    - they shall call his name immanuel
+  verses:
+    - citation: "Isa 7:14"
+      role: signature
+    - citation: "Matt 1:23"
+      role: climax
+    - citation: "Isa 8:8"
+      role: context
+- name: "The Rock"
+  kind: title
+  description: "The divine Rock metaphor applied to YHWH and to Christ as steadfast foundation."
+  aliases:
+    - the rock
+    - rock of salvation
+    - rock of ages
+    - that rock was christ
+    - my rock and my fortress
+    - rock of israel
+    - spiritual rock
+  verses:
+    - citation: "Deut 32:4"
+      role: signature
+    - citation: "1 Cor 10:4"
+      role: climax
+    - citation: "Ps 18:2"
+      role: context
+    - citation: "2 Sam 22:32"
+      role: quote
+- name: "Stone the Builders Rejected"
+  kind: topic
+  description: "The rejected cornerstone of Psalm 118 applied by Jesus and the apostles to himself."
+  aliases:
+    - stone the builders rejected
+    - chief cornerstone
+    - head of the corner
+    - cornerstone
+    - stone of stumbling
+    - rock of offense
+    - precious cornerstone
+  verses:
+    - citation: "Ps 118:22"
+      role: signature
+    - citation: "Matt 21:42"
+      role: climax
+    - citation: "1 Pet 2:7"
+      role: context
+    - citation: "Isa 28:16"
+      role: quote
+    - citation: "Acts 4:11"
+      role: quote
+- name: "Priest After the Order of Melchizedek"
+  kind: topic
+  description: "The eternal priesthood of Christ typified by Melchizedek, surpassing the Levitical order."
+  aliases:
+    - order of melchizedek
+    - melchizedek priesthood
+    - priest forever
+    - king of salem
+    - without father without mother
+    - thou art a priest for ever
+    - high priest forever
+  verses:
+    - citation: "Heb 7:17"
+      role: signature
+    - citation: "Ps 110:4"
+      role: quote
+    - citation: "Gen 14:18"
+      role: context
+    - citation: "Heb 5:6"
+      role: climax
+- name: "The Word Was God"
+  kind: topic
+  description: "The confession of the eternal deity of the Logos at the opening of John's Gospel."
+  aliases:
+    - the word was god
+    - in the beginning was the word
+    - word was with god
+    - all things were made through him
+    - pre existent christ
+    - eternal word
+  verses:
+    - citation: "John 1:1"
+      role: signature
+    - citation: "John 1:2"
+      role: context
+    - citation: "John 1:3"
+      role: climax
+    - citation: "John 20:28"
+      role: quote
+- name: "Image of God"
+  kind: topic
+  description: "Humanity created in the image and likeness of God, and Christ as the perfect image."
+  aliases:
+    - image of god
+    - imago dei
+    - likeness of god
+    - let us make man in our image
+    - male and female he created them
+    - image of the invisible god
+    - bear the image
+  verses:
+    - citation: "Gen 1:27"
+      role: signature
+    - citation: "Gen 1:26"
+      role: context
+    - citation: "Col 1:15"
+      role: climax
+    - citation: "Gen 9:6"
+      role: quote
+    - citation: "2 Cor 4:4"
+      role: quote
+- name: "In Adam All Die"
+  kind: topic
+  description: "The federal headship of Adam whose one trespass brought death upon all humanity."
+  aliases:
+    - in adam all die
+    - federal headship
+    - one mans trespass
+    - sin entered the world
+    - death through sin
+    - by one man
+    - adamic fall
+  verses:
+    - citation: "1 Cor 15:22"
+      role: signature
+    - citation: "Rom 5:12"
+      role: climax
+    - citation: "Rom 5:19"
+      role: context
+    - citation: "Gen 3:6"
+      role: quote
+- name: "Second Adam"
+  kind: title
+  description: "Christ as the last Adam, a life-giving spirit who undoes the ruin of the first."
+  aliases:
+    - second adam
+    - last adam
+    - life giving spirit
+    - man from heaven
+    - so in christ shall all be made alive
+    - one mans obedience
+  verses:
+    - citation: "1 Cor 15:45"
+      role: signature
+    - citation: "1 Cor 15:47"
+      role: context
+    - citation: "Rom 5:19"
+      role: climax
+- name: "Propitiation and the Mercy Seat"
+  kind: topic
+  description: "Christ as the atoning sacrifice corresponding to the blood-sprinkled kapporet."
+  aliases:
+    - propitiation
+    - mercy seat
+    - hilasterion
+    - kapporet
+    - atoning sacrifice
+    - blood of sprinkling
+    - expiation
+  verses:
+    - citation: "Rom 3:25"
+      role: signature
+    - citation: "1 John 2:2"
+      role: climax
+    - citation: "Lev 16:14"
+      role: context
+    - citation: "Heb 9:5"
+      role: quote
+- name: "Bought With a Price"
+  kind: topic
+  description: "Redemption as purchase from slavery to sin through the blood of Christ."
+  aliases:
+    - bought with a price
+    - redeemed
+    - redemption
+    - ransom for many
+    - purchased with his blood
+    - redeemed from the curse
+    - kinsman redeemer
+  verses:
+    - citation: "1 Cor 6:20"
+      role: signature
+    - citation: "Mark 10:45"
+      role: context
+    - citation: "1 Pet 1:18"
+      role: climax
+    - citation: "Eph 1:7"
+      role: quote
+    - citation: "Gal 3:13"
+      role: quote
+- name: "Adoption as Sons"
+  kind: topic
+  description: "Believers brought into God's family as adopted sons with full rights of inheritance."
+  aliases:
+    - adoption as sons
+    - spirit of adoption
+    - sons of god
+    - abba father
+    - huiothesia
+    - heirs of god
+    - children of god
+  verses:
+    - citation: "Rom 8:15"
+      role: signature
+    - citation: "Gal 4:5"
+      role: climax
+    - citation: "Eph 1:5"
+      role: context
+    - citation: "1 John 3:1"
+      role: quote
+- name: "Born Again"
+  kind: topic
+  description: "Regeneration by the Spirit, entry into the kingdom by a birth from above."
+  aliases:
+    - born again
+    - born from above
+    - born of water and spirit
+    - new birth
+    - regeneration
+    - new creation
+    - ye must be born again
+  verses:
+    - citation: "John 3:3"
+      role: signature
+    - citation: "John 3:5"
+      role: climax
+    - citation: "Titus 3:5"
+      role: context
+    - citation: "1 Pet 1:23"
+      role: quote
+- name: "Be Ye Holy For I Am Holy"
+  kind: topic
+  description: "The sanctification of God's people grounded in the holiness of God himself."
+  aliases:
+    - be ye holy
+    - be holy for i am holy
+    - sanctification
+    - holy as i am holy
+    - sanctify yourselves
+    - consecrate yourselves
+    - called to be saints
+  verses:
+    - citation: "Lev 19:2"
+      role: signature
+    - citation: "1 Pet 1:16"
+      role: climax
+    - citation: "Lev 11:44"
+      role: context
+    - citation: "1 Thess 4:3"
+      role: quote
+- name: "The Blood of Christ"
+  kind: topic
+  description: "The cleansing, covenant-ratifying blood of Jesus at the heart of atonement."
+  aliases:
+    - blood of christ
+    - blood of jesus
+    - precious blood
+    - blood of the lamb
+    - new covenant in my blood
+    - blood of the covenant
+    - cleanses from all sin
+  verses:
+    - citation: "Heb 9:14"
+      role: signature
+    - citation: "1 John 1:7"
+      role: climax
+    - citation: "Matt 26:28"
+      role: quote
+    - citation: "Eph 2:13"
+      role: context
+    - citation: "Rev 1:5"
+      role: quote
+- name: "Ministry of Reconciliation"
+  kind: topic
+  description: "God reconciling the world to himself in Christ and entrusting his ambassadors with the message."
+  aliases:
+    - ministry of reconciliation
+    - reconciled to god
+    - reconciliation
+    - ambassadors for christ
+    - not counting their trespasses
+    - word of reconciliation
+    - enemies reconciled
+  verses:
+    - citation: "2 Cor 5:18"
+      role: signature
+    - citation: "2 Cor 5:19"
+      role: context
+    - citation: "2 Cor 5:20"
+      role: climax
+    - citation: "Rom 5:10"
+      role: quote
+- name: "Imputed Righteousness"
+  kind: topic
+  description: "Righteousness credited to the believer apart from works, on the model of Abraham's faith."
+  aliases:
+    - imputed righteousness
+    - counted as righteousness
+    - reckoned righteous
+    - righteousness of god
+    - faith counted for righteousness
+    - become the righteousness of god
+  verses:
+    - citation: "Rom 4:3"
+      role: signature
+    - citation: "Gen 15:6"
+      role: quote
+    - citation: "2 Cor 5:21"
+      role: climax
+    - citation: "Rom 4:22"
+      role: context
+    - citation: "Phil 3:9"
+      role: quote
+- name: "Predestined According to Foreknowledge"
+  kind: topic
+  description: "God's foreknowing and predestining his people to be conformed to the image of his Son."
+  aliases:
+    - predestination
+    - foreknowledge
+    - predestined
+    - whom he foreknew
+    - chosen before the foundation
+    - called according to his purpose
+    - golden chain
+  verses:
+    - citation: "Rom 8:29"
+      role: signature
+    - citation: "Rom 8:30"
+      role: climax
+    - citation: "Eph 1:4"
+      role: context
+    - citation: "Eph 1:11"
+      role: quote
+    - citation: "1 Pet 1:2"
+      role: quote
+- name: "The Remnant of Israel"
+  kind: topic
+  description: "The faithful remnant preserved by God's gracious election within Israel."
+  aliases:
+    - remnant of israel
+    - remnant chosen by grace
+    - holy seed
+    - seven thousand who have not bowed
+    - remnant shall return
+    - election of israel
+    - shear jashub
+  verses:
+    - citation: "Rom 11:5"
+      role: signature
+    - citation: "Isa 10:22"
+      role: context
+    - citation: "1 Kgs 19:18"
+      role: quote
+    - citation: "Isa 6:13"
+      role: climax
+    - citation: "Rom 9:27"
+      role: quote
+- name: "Firstborn of All Creation"
+  kind: title
+  description: "Christ's supremacy as firstborn over creation and firstborn from the dead."
+  aliases:
+    - firstborn of all creation
+    - firstborn over all creation
+    - firstborn from the dead
+    - image of the invisible god
+    - in him all things hold together
+    - by him all things were created
+    - preeminent in everything
+  verses:
+    - citation: "Col 1:15"
+      role: signature
+    - citation: "Col 1:16"
+      role: context
+    - citation: "Col 1:17"
+      role: climax
+    - citation: "Col 1:18"
+      role: quote
+    - citation: "Heb 1:6"
+      role: quote
+- name: "Fullness of the Godhead Bodily"
+  kind: topic
+  description: "The whole fullness of deity dwelling bodily in Christ."
+  aliases:
+    - fullness of the godhead
+    - fullness of deity
+    - godhead bodily
+    - all the fullness dwells in him
+    - complete in him
+    - pleroma
+    - deity of christ
+  verses:
+    - citation: "Col 2:9"
+      role: signature
+    - citation: "Col 1:19"
+      role: context
+    - citation: "Col 2:10"
+      role: climax
+- name: "Wisdom Personified"
+  kind: topic
+  description: "Divine Wisdom calling in the streets and present with God at creation."
+  aliases:
+    - wisdom personified
+    - lady wisdom
+    - wisdom cries out
+    - the lord possessed me
+    - before his works of old
+    - wisdom built her house
+    - i was beside him
+  verses:
+    - citation: "Prov 8:22"
+      role: signature
+    - citation: "Prov 8:30"
+      role: climax
+    - citation: "Prov 8:1"
+      role: context
+    - citation: "Prov 9:1"
+      role: quote
+    - citation: "1 Cor 1:24"
+      role: quote
+- name: "I AM"
+  kind: title
+  description: "The divine name revealed at the bush and claimed by Jesus in John's Gospel."
+  aliases:
+    - i am that i am
+    - i am who i am
+    - ehyeh asher ehyeh
+    - tetragrammaton
+    - yhwh
+    - before abraham was i am
+    - the name
+  verses:
+    - citation: "Exod 3:14"
+      role: signature
+    - citation: "John 8:58"
+      role: climax
+    - citation: "Exod 6:3"
+      role: context
+    - citation: "Isa 43:10"
+      role: quote
+- name: "Glory of the Lord"
+  kind: attribute
+  description: "The manifest weighty presence of YHWH filling tabernacle, temple, and at last the earth."
+  aliases:
+    - glory of the lord
+    - shekinah
+    - kavod
+    - glory filled the tabernacle
+    - glory filled the temple
+    - earth shall be filled with the glory
+    - cloud of glory
+  verses:
+    - citation: "Exod 40:34"
+      role: signature
+    - citation: "1 Kgs 8:11"
+      role: climax
+    - citation: "Isa 6:3"
+      role: context
+    - citation: "Num 14:21"
+      role: quote
+    - citation: "Ezek 43:2"
+      role: quote
+- name: "Jealousy of God"
+  kind: attribute
+  description: "The jealous zeal of YHWH who will not share his glory or allow rival worship."
+  aliases:
+    - jealous god
+    - jealousy of god
+    - i the lord thy god am a jealous god
+    - my glory i will not give to another
+    - name is jealous
+    - zeal of the lord
+    - jealous for zion
+  verses:
+    - citation: "Exod 20:5"
+      role: signature
+    - citation: "Exod 34:14"
+      role: climax
+    - citation: "Deut 4:24"
+      role: context
+    - citation: "Isa 42:8"
+      role: quote
+    - citation: "Zech 1:14"
+      role: quote
+- name: "Wrath and Mercy"
+  kind: attribute
+  description: "The God who remembers mercy in the midst of wrath, abounding in steadfast love."
+  aliases:
+    - wrath and mercy
+    - in wrath remember mercy
+    - slow to anger
+    - abounding in steadfast love
+    - merciful and gracious
+    - vessels of wrath and mercy
+    - his anger is but for a moment
+  verses:
+    - citation: "Hab 3:2"
+      role: signature
+    - citation: "Exod 34:6"
+      role: climax
+    - citation: "Ps 103:8"
+      role: context
+    - citation: "Rom 9:22"
+      role: quote
+    - citation: "Ps 30:5"
+      role: quote

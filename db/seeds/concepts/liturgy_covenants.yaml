@@ -1,0 +1,698 @@
+---
+- name: "Noahic Covenant"
+  kind: topic
+  description: "God's covenant with Noah and all flesh after the flood, never again to destroy the earth by water, sealed by the rainbow in the clouds."
+  aliases:
+    - noahic covenant
+    - covenant with noah
+    - rainbow covenant
+    - bow in the cloud
+    - everlasting covenant with every living creature
+    - never again a flood
+    - token of the covenant
+  verses:
+    - citation: "Gen 9:13"
+      role: signature
+    - citation: "Gen 9:11"
+      role: context
+    - citation: "Gen 9:16"
+      role: climax
+- name: "Abrahamic Covenant"
+  kind: topic
+  description: "God's covenant with Abraham promising land, offspring, and blessing to the nations, sealed in the flesh by circumcision."
+  aliases:
+    - abrahamic covenant
+    - covenant with abraham
+    - covenant of circumcision
+    - promise to abraham
+    - in thee shall all families of the earth be blessed
+    - everlasting covenant with abraham
+    - seed of abraham
+  verses:
+    - citation: "Gen 17:10"
+      role: signature
+    - citation: "Gen 12:3"
+      role: context
+    - citation: "Gen 15:18"
+      role: climax
+    - citation: "Gen 17:7"
+      role: quote
+- name: "Mosaic Covenant at Sinai"
+  kind: event
+  description: "The covenant given through Moses at Mount Sinai, ratified by blood, establishing Israel as a kingdom of priests and a holy nation."
+  aliases:
+    - mosaic covenant
+    - sinai covenant
+    - covenant at horeb
+    - blood of the covenant
+    - kingdom of priests and holy nation
+    - all that the lord hath said we will do
+  verses:
+    - citation: "Exod 24:8"
+      role: signature
+    - citation: "Exod 19:5"
+      role: context
+    - citation: "Exod 19:6"
+      role: quote
+    - citation: "Deut 5:2"
+      role: climax
+- name: "Davidic Covenant"
+  kind: topic
+  description: "God's promise to David through Nathan that his house, throne, and kingdom shall be established forever."
+  aliases:
+    - davidic covenant
+    - covenant with david
+    - throne established forever
+    - house of david promise
+    - nathan oracle
+    - sure mercies of david
+    - thy throne shall be established for ever
+  verses:
+    - citation: "2 Sam 7:16"
+      role: signature
+    - citation: "2 Sam 7:12"
+      role: context
+    - citation: "Ps 89:3"
+      role: quote
+    - citation: "Isa 55:3"
+      role: climax
+- name: "New Covenant in Jeremiah"
+  kind: topic
+  description: "The promised covenant written on the heart, in which God forgives iniquity and remembers sin no more."
+  aliases:
+    - jeremiah new covenant
+    - law written on the heart
+    - i will remember their sin no more
+    - covenant not like the one with their fathers
+    - new covenant with the house of israel
+  verses:
+    - citation: "Jer 31:31"
+      role: signature
+    - citation: "Jer 31:33"
+      role: climax
+    - citation: "Jer 31:34"
+      role: quote
+    - citation: "Ezek 36:26"
+      role: context
+- name: "Sabbath"
+  kind: topic
+  description: "The seventh-day rest commanded to Israel, rooted in creation and ratified as a perpetual sign of the covenant."
+  aliases:
+    - sabbath
+    - seventh day rest
+    - remember the sabbath day
+    - shabbat
+    - sabbath of the lord
+    - sign between me and the children of israel
+    - holy convocation sabbath
+  verses:
+    - citation: "Exod 20:8"
+      role: signature
+    - citation: "Gen 2:3"
+      role: context
+    - citation: "Exod 31:17"
+      role: quote
+    - citation: "Deut 5:12"
+      role: climax
+- name: "Circumcision"
+  kind: topic
+  description: "The cutting of foreskin on the eighth day as the covenant sign in the flesh of every male descendant of Abraham."
+  aliases:
+    - circumcision
+    - brit milah
+    - eighth day circumcision
+    - sign of the covenant in the flesh
+    - circumcise the foreskin
+    - uncircumcised
+    - circumcision of the heart
+  verses:
+    - citation: "Gen 17:11"
+      role: signature
+    - citation: "Gen 17:12"
+      role: context
+    - citation: "Lev 12:3"
+      role: quote
+    - citation: "Deut 10:16"
+      role: climax
+- name: "The Tabernacle"
+  kind: place
+  description: "The portable sanctuary built according to the pattern shown on the mountain, where the glory of the Lord dwelt among Israel in the wilderness."
+  aliases:
+    - tabernacle
+    - tent of meeting
+    - mishkan
+    - sanctuary in the wilderness
+    - make me a sanctuary that i may dwell among them
+    - pattern shown on the mount
+    - ohel moed
+  verses:
+    - citation: "Exod 25:8"
+      role: signature
+    - citation: "Exod 25:9"
+      role: context
+    - citation: "Exod 40:34"
+      role: climax
+    - citation: "Exod 26:30"
+      role: quote
+- name: "Ark of the Covenant"
+  kind: topic
+  description: "The acacia-wood chest overlaid with gold containing the tablets of the testimony, where the Lord met with Moses."
+  aliases:
+    - ark of the covenant
+    - ark of the testimony
+    - aron habrit
+    - ark of the lord
+    - ark with staves
+    - golden ark
+    - ark containing the tablets
+  verses:
+    - citation: "Exod 25:10"
+      role: signature
+    - citation: "Exod 25:16"
+      role: context
+    - citation: "Deut 10:5"
+      role: quote
+    - citation: "Heb 9:4"
+      role: climax
+- name: "The Mercy Seat"
+  kind: topic
+  description: "The solid-gold covering of the ark, flanked by two cherubim, where the Lord appeared in a cloud and spoke from between the cherubim."
+  aliases:
+    - mercy seat
+    - kapporet
+    - atonement cover
+    - from between the two cherubim
+    - there i will meet with thee
+    - golden mercy seat
+    - propitiatory
+  verses:
+    - citation: "Exod 25:22"
+      role: signature
+    - citation: "Exod 25:17"
+      role: context
+    - citation: "Lev 16:2"
+      role: climax
+    - citation: "Num 7:89"
+      role: quote
+- name: "The Holy of Holies"
+  kind: place
+  description: "The innermost chamber of the tabernacle and temple, separated by the veil, entered only by the high priest once a year with blood."
+  aliases:
+    - holy of holies
+    - most holy place
+    - kodesh hakodashim
+    - inner sanctuary
+    - behind the veil
+    - oracle of the house
+    - debir
+  verses:
+    - citation: "Exod 26:33"
+      role: signature
+    - citation: "Lev 16:2"
+      role: context
+    - citation: "1 Kgs 6:16"
+      role: quote
+    - citation: "Heb 9:3"
+      role: climax
+- name: "Altar of Burnt Offering"
+  kind: topic
+  description: "The bronze-overlaid acacia altar at the entrance of the tabernacle court where burnt offerings were consumed by perpetual fire."
+  aliases:
+    - bronze altar
+    - brazen altar
+    - altar of burnt offering
+    - altar at the door of the tent
+    - fire shall ever be burning on the altar
+    - horns of the altar
+    - copper altar
+  verses:
+    - citation: "Exod 27:1"
+      role: signature
+    - citation: "Exod 27:2"
+      role: context
+    - citation: "Lev 6:13"
+      role: climax
+    - citation: "Exod 40:29"
+      role: quote
+- name: "Altar of Incense"
+  kind: topic
+  description: "The small gold-overlaid altar before the veil on which Aaron burned sweet incense morning and evening."
+  aliases:
+    - altar of incense
+    - golden altar
+    - altar before the veil
+    - sweet incense perpetual
+    - mizbeah haketoret
+    - altar of sweet incense
+    - inner altar
+  verses:
+    - citation: "Exod 30:1"
+      role: signature
+    - citation: "Exod 30:7"
+      role: context
+    - citation: "Exod 30:8"
+      role: climax
+    - citation: "Lev 16:12"
+      role: quote
+- name: "The Menorah"
+  kind: topic
+  description: "The seven-branched pure-gold lampstand of beaten work, tended morning and evening to give light before the Lord."
+  aliases:
+    - menorah
+    - golden lampstand
+    - seven branched lampstand
+    - candlestick of pure gold
+    - lamps to burn continually
+    - beaten work of gold
+    - lampstand in the holy place
+  verses:
+    - citation: "Exod 25:31"
+      role: signature
+    - citation: "Exod 25:37"
+      role: context
+    - citation: "Lev 24:2"
+      role: quote
+    - citation: "Num 8:2"
+      role: climax
+- name: "Table of Showbread"
+  kind: topic
+  description: "The gold-overlaid table in the holy place bearing twelve loaves of the bread of the Presence arranged before the Lord continually."
+  aliases:
+    - table of showbread
+    - bread of the presence
+    - shewbread
+    - twelve loaves before the lord
+    - lechem hapanim
+    - continual bread
+    - table of the presence
+  verses:
+    - citation: "Exod 25:30"
+      role: signature
+    - citation: "Lev 24:5"
+      role: context
+    - citation: "Lev 24:8"
+      role: climax
+    - citation: "Exod 25:23"
+      role: quote
+- name: "Aaronic Priesthood"
+  kind: topic
+  description: "The priesthood conferred on Aaron and his sons by perpetual statute to minister before the Lord."
+  aliases:
+    - aaronic priesthood
+    - sons of aaron
+    - levitical priesthood
+    - everlasting priesthood
+    - priests the sons of aaron
+    - aaron and his sons minister in the priests office
+    - priestly line of aaron
+  verses:
+    - citation: "Exod 28:1"
+      role: signature
+    - citation: "Exod 29:9"
+      role: context
+    - citation: "Num 18:7"
+      role: climax
+    - citation: "Num 6:23"
+      role: quote
+- name: "High Priest's Garments"
+  kind: topic
+  description: "The holy garments for Aaron for glory and for beauty: ephod, breastpiece with twelve stones, robe, miter, and the Urim and Thummim."
+  aliases:
+    - high priests garments
+    - ephod
+    - breastplate of judgment
+    - urim and thummim
+    - holy crown of pure gold
+    - holiness to the lord
+    - robe of the ephod
+    - twelve stones of the tribes
+  verses:
+    - citation: "Exod 28:2"
+      role: signature
+    - citation: "Exod 28:30"
+      role: climax
+    - citation: "Exod 28:6"
+      role: context
+    - citation: "Exod 28:36"
+      role: quote
+- name: "Burnt Offering"
+  kind: topic
+  description: "The wholly consumed sacrifice of a male without blemish, an offering made by fire of a sweet savor to the Lord."
+  aliases:
+    - burnt offering
+    - olah
+    - whole burnt offering
+    - offering made by fire
+    - sweet savour unto the lord
+    - male without blemish
+    - sacrifice wholly consumed
+  verses:
+    - citation: "Lev 1:3"
+      role: signature
+    - citation: "Lev 1:9"
+      role: climax
+    - citation: "Lev 6:9"
+      role: context
+    - citation: "Lev 1:4"
+      role: quote
+- name: "Sin Offering"
+  kind: topic
+  description: "The purification sacrifice for unintentional sin, whose blood was applied to the horns of the altar to make atonement."
+  aliases:
+    - sin offering
+    - chatat
+    - purification offering
+    - offering for sin through ignorance
+    - blood upon the horns of the altar
+    - and it shall be forgiven him
+    - atonement for the congregation
+  verses:
+    - citation: "Lev 4:3"
+      role: signature
+    - citation: "Lev 4:20"
+      role: climax
+    - citation: "Lev 4:2"
+      role: context
+    - citation: "Lev 6:25"
+      role: quote
+- name: "Peace Offering"
+  kind: topic
+  description: "The shared sacrifice of well-being whose fat was burned to the Lord while worshipers and priests ate the flesh together in fellowship."
+  aliases:
+    - peace offering
+    - shelamim
+    - sacrifice of wellbeing
+    - thank offering
+    - offering of fellowship
+    - wave breast and heave shoulder
+    - eat before the lord
+  verses:
+    - citation: "Lev 3:1"
+      role: signature
+    - citation: "Lev 3:5"
+      role: context
+    - citation: "Lev 7:15"
+      role: climax
+    - citation: "Lev 7:11"
+      role: quote
+- name: "Day of Atonement"
+  kind: event
+  description: "The tenth day of the seventh month when the high priest entered the most holy place with blood and the scapegoat bore Israel's iniquities into the wilderness."
+  aliases:
+    - day of atonement
+    - yom kippur
+    - scapegoat
+    - azazel
+    - afflict your souls
+    - once a year with blood
+    - tenth day of the seventh month
+    - two goats for a sin offering
+  verses:
+    - citation: "Lev 16:30"
+      role: signature
+    - citation: "Lev 16:21"
+      role: climax
+    - citation: "Lev 16:2"
+      role: context
+    - citation: "Lev 23:27"
+      role: quote
+- name: "Passover Feast"
+  kind: event
+  description: "The annual memorial on the fourteenth of the first month of Israel's deliverance from Egypt, kept with the lamb, unleavened bread, and bitter herbs."
+  aliases:
+    - passover
+    - pesach
+    - feast of the passover
+    - lords passover
+    - fourteenth day of the first month
+    - paschal lamb memorial
+    - blood on the doorposts memorial
+  verses:
+    - citation: "Exod 12:14"
+      role: signature
+    - citation: "Lev 23:5"
+      role: context
+    - citation: "Deut 16:1"
+      role: climax
+    - citation: "Num 28:16"
+      role: quote
+- name: "Feast of Unleavened Bread"
+  kind: event
+  description: "The seven-day feast following Passover in which Israel eats unleavened bread and removes all leaven from its dwellings."
+  aliases:
+    - feast of unleavened bread
+    - chag hamatzot
+    - seven days without leaven
+    - no leaven found in your houses
+    - matzot festival
+    - bread of affliction feast
+    - unleavened bread seven days
+  verses:
+    - citation: "Exod 12:17"
+      role: signature
+    - citation: "Lev 23:6"
+      role: context
+    - citation: "Exod 13:7"
+      role: quote
+    - citation: "Deut 16:3"
+      role: climax
+- name: "Feast of Firstfruits"
+  kind: event
+  description: "The bringing of the sheaf of the firstfruits of the harvest to be waved before the Lord the day after the Sabbath of the Passover week."
+  aliases:
+    - feast of firstfruits
+    - wave sheaf offering
+    - sheaf of the firstfruits
+    - bikkurim
+    - omer offering
+    - firstfruits of your harvest
+    - morrow after the sabbath sheaf
+  verses:
+    - citation: "Lev 23:10"
+      role: signature
+    - citation: "Lev 23:11"
+      role: climax
+    - citation: "Exod 23:19"
+      role: context
+    - citation: "Deut 26:2"
+      role: quote
+- name: "Feast of Weeks"
+  kind: event
+  description: "The harvest feast fifty days after the wave sheaf, when Israel brought a new grain offering and two wave loaves baked with leaven to the Lord."
+  aliases:
+    - feast of weeks
+    - shavuot
+    - pentecost old testament
+    - feast of harvest
+    - fifty days after the sheaf
+    - two wave loaves with leaven
+    - new meal offering unto the lord
+  verses:
+    - citation: "Lev 23:16"
+      role: signature
+    - citation: "Exod 34:22"
+      role: context
+    - citation: "Deut 16:10"
+      role: climax
+    - citation: "Num 28:26"
+      role: quote
+- name: "Feast of Trumpets"
+  kind: event
+  description: "The holy convocation on the first day of the seventh month, a memorial of blowing of trumpets unto the Lord."
+  aliases:
+    - feast of trumpets
+    - rosh hashanah
+    - yom teruah
+    - memorial of blowing of trumpets
+    - first day of the seventh month
+    - day of the shofar blast
+    - holy convocation trumpets
+  verses:
+    - citation: "Lev 23:24"
+      role: signature
+    - citation: "Num 29:1"
+      role: climax
+    - citation: "Lev 23:25"
+      role: context
+    - citation: "Num 10:10"
+      role: quote
+- name: "Feast of Tabernacles"
+  kind: event
+  description: "The seven-day harvest feast of the seventh month when Israel dwells in booths in remembrance of the wilderness sojourn."
+  aliases:
+    - feast of tabernacles
+    - sukkot
+    - feast of booths
+    - feast of ingathering
+    - dwell in booths seven days
+    - fifteenth day of the seventh month feast
+    - rejoice before the lord seven days
+  verses:
+    - citation: "Lev 23:34"
+      role: signature
+    - citation: "Lev 23:42"
+      role: climax
+    - citation: "Deut 16:13"
+      role: context
+    - citation: "Neh 8:15"
+      role: quote
+- name: "Year of Jubilee"
+  kind: topic
+  description: "Every fiftieth year liberty is proclaimed throughout the land; debts are forgiven, slaves freed, and ancestral lands returned."
+  aliases:
+    - year of jubilee
+    - jubilee year
+    - proclaim liberty throughout the land
+    - fiftieth year release
+    - return every man unto his possession
+    - yovel
+    - trumpet of the jubile
+  verses:
+    - citation: "Lev 25:10"
+      role: signature
+    - citation: "Lev 25:11"
+      role: context
+    - citation: "Lev 25:13"
+      role: climax
+    - citation: "Lev 25:9"
+      role: quote
+- name: "Sabbatical Year"
+  kind: topic
+  description: "Every seventh year the land is to keep a sabbath of solemn rest, fields unsown, vineyards unpruned, and debts among brethren released."
+  aliases:
+    - sabbatical year
+    - shemitah
+    - year of release
+    - sabbath for the land
+    - seventh year rest of the land
+    - shmita
+    - neither sow nor reap
+  verses:
+    - citation: "Lev 25:4"
+      role: signature
+    - citation: "Exod 23:10"
+      role: context
+    - citation: "Deut 15:1"
+      role: climax
+    - citation: "Lev 25:2"
+      role: quote
+- name: "Tithing"
+  kind: topic
+  description: "The tenth of seed, fruit, herd, and flock given to the Lord as holy, assigned to the Levites and brought to the place the Lord chose."
+  aliases:
+    - tithe
+    - tithing
+    - tenth is holy unto the lord
+    - tithe of the land
+    - levitical tithe
+    - bring ye all the tithes into the storehouse
+    - maaser
+  verses:
+    - citation: "Lev 27:30"
+      role: signature
+    - citation: "Num 18:21"
+      role: context
+    - citation: "Deut 14:22"
+      role: climax
+    - citation: "Mal 3:10"
+      role: quote
+- name: "Laying on of Hands"
+  kind: topic
+  description: "The ritual placing of hands upon a sacrifice, a Levite, or a successor to transfer identification, consecration, or the spirit of wisdom."
+  aliases:
+    - laying on of hands
+    - semikhah
+    - lay his hand upon the head of the offering
+    - moses laid his hands upon joshua
+    - ordination by hands
+    - imposition of hands
+    - hands on the levites
+  verses:
+    - citation: "Lev 1:4"
+      role: signature
+    - citation: "Num 8:10"
+      role: context
+    - citation: "Num 27:23"
+      role: climax
+    - citation: "Deut 34:9"
+      role: quote
+- name: "Anointing with Oil"
+  kind: topic
+  description: "The pouring of the holy anointing oil upon priests, kings, and sacred objects to consecrate them as holy unto the Lord."
+  aliases:
+    - anointing with oil
+    - holy anointing oil
+    - mashach
+    - anointed priest
+    - samuel anointed david
+    - consecration oil
+    - oil upon aarons head
+  verses:
+    - citation: "Exod 30:25"
+      role: signature
+    - citation: "Exod 30:30"
+      role: context
+    - citation: "Lev 8:12"
+      role: climax
+    - citation: "1 Sam 16:13"
+      role: quote
+- name: "Nazarite Vow"
+  kind: topic
+  description: "The voluntary vow of separation unto the Lord abstaining from the fruit of the vine, avoiding corpses, and letting the hair grow."
+  aliases:
+    - nazarite vow
+    - nazirite vow
+    - vow of separation unto the lord
+    - no razor shall come upon his head
+    - separate himself from wine and strong drink
+    - samson nazarite
+    - locks of the head of his separation
+  verses:
+    - citation: "Num 6:2"
+      role: signature
+    - citation: "Num 6:5"
+      role: climax
+    - citation: "Num 6:3"
+      role: context
+    - citation: "Judg 13:5"
+      role: quote
+- name: "Cities of Refuge"
+  kind: place
+  description: "Six Levitical cities appointed on both sides of the Jordan where the manslayer who killed unwittingly might flee from the avenger of blood."
+  aliases:
+    - cities of refuge
+    - city of refuge
+    - manslayer flee thither
+    - avenger of blood
+    - six cities of refuge
+    - refuge for the slayer
+    - until the death of the high priest
+  verses:
+    - citation: "Num 35:11"
+      role: signature
+    - citation: "Num 35:6"
+      role: context
+    - citation: "Deut 19:3"
+      role: climax
+    - citation: "Josh 20:2"
+      role: quote
+- name: "Clean and Unclean Laws"
+  kind: topic
+  description: "The dietary and purity code distinguishing clean from unclean beasts, birds, and creeping things, by which Israel is made holy unto the Lord."
+  aliases:
+    - clean and unclean
+    - dietary laws
+    - kashrut
+    - beasts that ye shall eat
+    - putting difference between holy and unholy
+    - unclean unto you
+    - ye shall be holy for i am holy
+  verses:
+    - citation: "Lev 11:47"
+      role: signature
+    - citation: "Lev 11:2"
+      role: context
+    - citation: "Lev 11:44"
+      role: climax
+    - citation: "Deut 14:3"
+      role: quote

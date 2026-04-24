@@ -1,0 +1,671 @@
+---
+- name: "Garden of Eden"
+  kind: place
+  description: "Primeval garden planted by God in the east; first home of humanity before the fall."
+  aliases:
+    - garden of eden
+    - eden
+    - tree of life
+    - tree of knowledge of good and evil
+    - paradise of god
+    - four rivers of eden
+  verses:
+    - citation: "Gen 2:8"
+      role: signature
+    - citation: "Gen 2:9"
+      role: context
+    - citation: "Gen 3:23"
+      role: climax
+- name: "Mount Ararat"
+  kind: place
+  description: "Mountain range where Noah's ark came to rest after the flood waters receded."
+  aliases:
+    - mount ararat
+    - ararat
+    - mountains of ararat
+    - ark resting place
+    - where the ark landed
+  verses:
+    - citation: "Gen 8:4"
+      role: signature
+    - citation: "Gen 8:5"
+      role: context
+- name: "Ur of the Chaldeans"
+  kind: place
+  description: "Mesopotamian city of Abraham's origin, from which God called him to Canaan."
+  aliases:
+    - ur of the chaldeans
+    - ur
+    - abrahams birthplace
+    - land of abrahams kindred
+    - chaldean ur
+  verses:
+    - citation: "Gen 11:31"
+      role: signature
+    - citation: "Gen 15:7"
+      role: context
+    - citation: "Neh 9:7"
+      role: quote
+- name: "Haran"
+  kind: place
+  description: "City in upper Mesopotamia where Terah settled and from which Abram departed for Canaan."
+  aliases:
+    - haran
+    - terah in haran
+    - abram left haran
+    - jacob fled to haran
+    - house of laban
+  verses:
+    - citation: "Gen 12:4"
+      role: signature
+    - citation: "Gen 11:32"
+      role: context
+    - citation: "Gen 28:10"
+      role: climax
+- name: "Hebron and Machpelah"
+  kind: place
+  description: "Southern Judean city with the cave of Machpelah, burial place of Abraham, Sarah, Isaac, Rebekah, Jacob, and Leah."
+  aliases:
+    - hebron
+    - machpelah
+    - cave of machpelah
+    - abrahams burial
+    - tomb of the patriarchs
+    - field of ephron
+  verses:
+    - citation: "Gen 23:19"
+      role: signature
+    - citation: "Gen 23:9"
+      role: context
+    - citation: "Gen 49:31"
+      role: climax
+- name: "Bethel"
+  kind: place
+  description: "Town originally called Luz where Jacob dreamed of the ladder reaching to heaven."
+  aliases:
+    - bethel
+    - luz
+    - jacobs ladder
+    - house of god
+    - gate of heaven
+    - stone pillar at bethel
+  verses:
+    - citation: "Gen 28:19"
+      role: signature
+    - citation: "Gen 28:12"
+      role: climax
+    - citation: "Gen 35:7"
+      role: context
+- name: "Sodom and Gomorrah"
+  kind: place
+  description: "Cities of the plain destroyed by fire and brimstone for their wickedness during Lot's residence."
+  aliases:
+    - sodom and gomorrah
+    - sodom
+    - gomorrah
+    - cities of the plain
+    - fire and brimstone
+    - lots escape
+    - pillar of salt
+  verses:
+    - citation: "Gen 19:24"
+      role: signature
+    - citation: "Gen 18:20"
+      role: context
+    - citation: "Gen 19:26"
+      role: climax
+- name: "Mount Sinai"
+  kind: place
+  description: "Mountain in the wilderness, also called Horeb, where Moses received the Law from God."
+  aliases:
+    - mount sinai
+    - sinai
+    - horeb
+    - mountain of god
+    - giving of the law
+    - ten commandments mountain
+    - thunder and lightning on the mount
+  verses:
+    - citation: "Exod 19:20"
+      role: signature
+    - citation: "Exod 3:1"
+      role: context
+    - citation: "Exod 20:1"
+      role: climax
+- name: "Kadesh-Barnea"
+  kind: place
+  description: "Wilderness oasis from which the twelve spies were sent into Canaan and where Israel rebelled."
+  aliases:
+    - kadesh barnea
+    - kadesh
+    - twelve spies
+    - waters of meribah
+    - rebellion at kadesh
+    - forty years wandering
+  verses:
+    - citation: "Num 13:26"
+      role: signature
+    - citation: "Num 20:1"
+      role: context
+    - citation: "Deut 1:19"
+      role: quote
+- name: "Mount Nebo"
+  kind: place
+  description: "Peak in Moab from which Moses viewed the promised land before his death."
+  aliases:
+    - mount nebo
+    - nebo
+    - pisgah
+    - death of moses
+    - moses viewed the land
+    - top of pisgah
+  verses:
+    - citation: "Deut 34:1"
+      role: signature
+    - citation: "Deut 34:5"
+      role: climax
+    - citation: "Deut 32:49"
+      role: context
+- name: "Mount Gerizim and Mount Ebal"
+  kind: place
+  description: "Twin mountains flanking Shechem where Israel pronounced the blessings and curses of the covenant."
+  aliases:
+    - mount gerizim
+    - mount ebal
+    - gerizim and ebal
+    - blessings and curses
+    - altar on mount ebal
+    - covenant at shechem
+  verses:
+    - citation: "Deut 11:29"
+      role: signature
+    - citation: "Deut 27:4"
+      role: context
+    - citation: "Josh 8:33"
+      role: climax
+- name: "Mount Carmel"
+  kind: place
+  description: "Coastal mountain in northern Israel, site of Elijah's contest with the prophets of Baal."
+  aliases:
+    - mount carmel
+    - carmel
+    - elijah on carmel
+    - prophets of baal contest
+    - fire fell from heaven
+    - carmel altar
+  verses:
+    - citation: "1 Kgs 18:19"
+      role: context
+    - citation: "1 Kgs 18:38"
+      role: signature
+    - citation: "1 Kgs 18:39"
+      role: climax
+- name: "Mount Tabor"
+  kind: place
+  description: "Prominent round mountain in Galilee where Deborah and Barak mustered Israel against Sisera."
+  aliases:
+    - mount tabor
+    - tabor
+    - barak on tabor
+    - deborah and barak
+    - defeat of sisera
+  verses:
+    - citation: "Judg 4:14"
+      role: signature
+    - citation: "Judg 4:6"
+      role: context
+- name: "Mount Hermon"
+  kind: place
+  description: "Snow-capped northern mountain marking Israel's boundary, celebrated as a symbol of dew and majesty."
+  aliases:
+    - mount hermon
+    - hermon
+    - dew of hermon
+    - sirion
+    - northern frontier mountain
+  verses:
+    - citation: "Ps 133:3"
+      role: signature
+    - citation: "Deut 3:8"
+      role: context
+    - citation: "Ps 89:12"
+      role: quote
+- name: "Mount Zion"
+  kind: place
+  description: "Hill of Jerusalem identified as the city of David and the dwelling place of the Lord."
+  aliases:
+    - mount zion
+    - zion
+    - city of david
+    - holy hill
+    - daughter of zion
+    - stronghold of zion
+  verses:
+    - citation: "2 Sam 5:7"
+      role: signature
+    - citation: "Ps 2:6"
+      role: quote
+    - citation: "Heb 12:22"
+      role: climax
+- name: "Jerusalem"
+  kind: place
+  description: "Holy city and capital of Judah, site of the temple and center of redemptive history."
+  aliases:
+    - jerusalem
+    - salem
+    - jebus
+    - holy city
+    - city of the great king
+    - zion city
+  verses:
+    - citation: "2 Sam 5:6"
+      role: signature
+    - citation: "1 Kgs 8:1"
+      role: context
+    - citation: "Luke 19:41"
+      role: climax
+- name: "Samaria"
+  kind: place
+  description: "Capital of the northern kingdom of Israel founded by Omri, later a region traversed by Jesus."
+  aliases:
+    - samaria
+    - city of samaria
+    - omri built samaria
+    - kingdom of israel capital
+    - samaritan region
+  verses:
+    - citation: "1 Kgs 16:24"
+      role: signature
+    - citation: "2 Kgs 17:6"
+      role: context
+    - citation: "Acts 8:5"
+      role: climax
+- name: "Shiloh"
+  kind: place
+  description: "Early Israelite sanctuary town housing the tabernacle and the ark in the days of Samuel."
+  aliases:
+    - shiloh
+    - tabernacle at shiloh
+    - eli at shiloh
+    - samuel at shiloh
+    - house of the lord in shiloh
+  verses:
+    - citation: "Josh 18:1"
+      role: signature
+    - citation: "1 Sam 1:3"
+      role: context
+    - citation: "Jer 7:12"
+      role: quote
+- name: "Gilgal"
+  kind: place
+  description: "Encampment near Jericho where Israel set up twelve stones after crossing the Jordan."
+  aliases:
+    - gilgal
+    - twelve stones
+    - saul crowned at gilgal
+    - israel encamped at gilgal
+    - reproach of egypt rolled away
+  verses:
+    - citation: "Josh 4:19"
+      role: signature
+    - citation: "Josh 5:9"
+      role: climax
+    - citation: "1 Sam 11:15"
+      role: context
+- name: "Bethlehem"
+  kind: place
+  description: "Judean town of David's family and the birthplace of Jesus the Messiah."
+  aliases:
+    - bethlehem
+    - bethlehem of judea
+    - ephrathah
+    - birthplace of jesus
+    - little town of bethlehem
+  verses:
+    - citation: "Mic 5:2"
+      role: context
+    - citation: "Luke 2:4"
+      role: signature
+    - citation: "Matt 2:1"
+      role: climax
+- name: "Nazareth"
+  kind: place
+  description: "Galilean village where Jesus was raised and from which he took his common epithet."
+  aliases:
+    - nazareth
+    - jesus of nazareth
+    - nazarene
+    - hometown of jesus
+    - synagogue at nazareth
+  verses:
+    - citation: "Luke 2:39"
+      role: signature
+    - citation: "Matt 2:23"
+      role: context
+    - citation: "Luke 4:16"
+      role: climax
+- name: "Capernaum"
+  kind: place
+  description: "Fishing town on the Sea of Galilee that served as Jesus' ministry headquarters."
+  aliases:
+    - capernaum
+    - his own city
+    - capernaum synagogue
+    - jesus base in galilee
+    - peters house
+  verses:
+    - citation: "Matt 4:13"
+      role: signature
+    - citation: "Mark 2:1"
+      role: context
+    - citation: "Matt 11:23"
+      role: quote
+- name: "Bethsaida"
+  kind: place
+  description: "Galilean town, home of Philip, Andrew, and Peter, and scene of the feeding of the five thousand."
+  aliases:
+    - bethsaida
+    - bethsaida of galilee
+    - philip of bethsaida
+    - feeding near bethsaida
+    - blind man of bethsaida
+  verses:
+    - citation: "John 1:44"
+      role: signature
+    - citation: "Luke 9:10"
+      role: context
+    - citation: "Mark 8:22"
+      role: climax
+- name: "Sea of Galilee"
+  kind: place
+  description: "Freshwater lake in northern Israel, setting for many of Jesus' miracles and teachings."
+  aliases:
+    - sea of galilee
+    - lake of gennesaret
+    - sea of tiberias
+    - galilean lake
+    - stilling of the storm
+    - walking on water
+  verses:
+    - citation: "Matt 4:18"
+      role: signature
+    - citation: "Luke 5:1"
+      role: context
+    - citation: "Mark 4:39"
+      role: climax
+- name: "Bethany"
+  kind: place
+  description: "Village near Jerusalem, home of Mary, Martha, and Lazarus, where Jesus raised Lazarus from the dead."
+  aliases:
+    - bethany
+    - home of lazarus
+    - mary and marthas house
+    - raising of lazarus
+    - anointing at bethany
+  verses:
+    - citation: "John 11:1"
+      role: signature
+    - citation: "John 11:43"
+      role: climax
+    - citation: "John 12:1"
+      role: context
+- name: "Gethsemane"
+  kind: place
+  description: "Garden on the Mount of Olives where Jesus prayed in agony and was arrested the night before his crucifixion."
+  aliases:
+    - gethsemane
+    - garden of gethsemane
+    - agony in the garden
+    - olive press
+    - jesus arrest
+    - cup pass from me
+  verses:
+    - citation: "Matt 26:36"
+      role: signature
+    - citation: "Luke 22:44"
+      role: climax
+    - citation: "John 18:1"
+      role: context
+- name: "Mount of Olives"
+  kind: place
+  description: "Ridge east of Jerusalem overlooking the temple, setting for Jesus' Olivet Discourse and ascension."
+  aliases:
+    - mount of olives
+    - olivet
+    - olivet discourse
+    - jesus wept over jerusalem
+    - ascension of jesus
+    - triumphal entry
+  verses:
+    - citation: "Matt 24:3"
+      role: signature
+    - citation: "Luke 19:37"
+      role: context
+    - citation: "Acts 1:12"
+      role: climax
+- name: "Golgotha"
+  kind: place
+  description: "The place of the skull outside Jerusalem where Jesus was crucified."
+  aliases:
+    - golgotha
+    - calvary
+    - place of the skull
+    - crucifixion site
+    - where they crucified him
+  verses:
+    - citation: "John 19:17"
+      role: signature
+    - citation: "Mark 15:22"
+      role: context
+    - citation: "Luke 23:33"
+      role: climax
+- name: "Jordan River"
+  kind: place
+  description: "River marking the eastern boundary of Canaan, site of Israel's crossing and Jesus' baptism."
+  aliases:
+    - jordan river
+    - jordan
+    - baptism in the jordan
+    - crossing the jordan
+    - naaman in the jordan
+    - john baptizing at the jordan
+  verses:
+    - citation: "Matt 3:13"
+      role: signature
+    - citation: "Josh 3:17"
+      role: context
+    - citation: "2 Kgs 5:14"
+      role: quote
+- name: "Jabbok"
+  kind: place
+  description: "Tributary of the Jordan where Jacob wrestled with the angel and was renamed Israel."
+  aliases:
+    - jabbok
+    - ford of the jabbok
+    - jacob wrestling
+    - peniel
+    - face of god
+    - renamed israel
+  verses:
+    - citation: "Gen 32:22"
+      role: context
+    - citation: "Gen 32:24"
+      role: signature
+    - citation: "Gen 32:30"
+      role: climax
+- name: "Damascus"
+  kind: place
+  description: "Ancient Syrian capital, site of Saul of Tarsus's conversion on its approach road."
+  aliases:
+    - damascus
+    - road to damascus
+    - sauls conversion
+    - straight street
+    - ananias of damascus
+  verses:
+    - citation: "Acts 9:3"
+      role: signature
+    - citation: "Acts 9:11"
+      role: context
+    - citation: "Acts 22:6"
+      role: quote
+- name: "Antioch"
+  kind: place
+  description: "Syrian city where the gospel first flourished among Gentiles and disciples were first called Christians."
+  aliases:
+    - antioch
+    - antioch in syria
+    - disciples called christians
+    - church at antioch
+    - barnabas and saul at antioch
+  verses:
+    - citation: "Acts 11:26"
+      role: signature
+    - citation: "Acts 13:1"
+      role: context
+    - citation: "Gal 2:11"
+      role: climax
+- name: "Corinth"
+  kind: place
+  description: "Greek port city where Paul founded a church and to which he wrote two canonical epistles."
+  aliases:
+    - corinth
+    - corinthian church
+    - paul in corinth
+    - aquila and priscilla
+    - gallio at corinth
+  verses:
+    - citation: "Acts 18:1"
+      role: signature
+    - citation: "1 Cor 1:2"
+      role: context
+    - citation: "Acts 18:11"
+      role: climax
+- name: "Ephesus"
+  kind: place
+  description: "Major Asian city with the temple of Artemis where Paul ministered for over two years."
+  aliases:
+    - ephesus
+    - temple of artemis
+    - diana of the ephesians
+    - hall of tyrannus
+    - ephesian elders
+    - riot in ephesus
+  verses:
+    - citation: "Acts 19:10"
+      role: signature
+    - citation: "Acts 19:28"
+      role: climax
+    - citation: "Eph 1:1"
+      role: context
+- name: "Philippi"
+  kind: place
+  description: "Macedonian colony, first European city to receive the gospel through Paul and Silas."
+  aliases:
+    - philippi
+    - lydia of philippi
+    - philippian jailer
+    - paul and silas in prison
+    - first convert in europe
+  verses:
+    - citation: "Acts 16:12"
+      role: signature
+    - citation: "Acts 16:14"
+      role: context
+    - citation: "Acts 16:31"
+      role: climax
+- name: "Thessalonica"
+  kind: place
+  description: "Macedonian capital where Paul preached briefly and founded a persecuted but faithful church."
+  aliases:
+    - thessalonica
+    - jason of thessalonica
+    - turned the world upside down
+    - thessalonian church
+    - paul in thessalonica
+  verses:
+    - citation: "Acts 17:1"
+      role: signature
+    - citation: "Acts 17:6"
+      role: climax
+    - citation: "1 Thess 1:1"
+      role: context
+- name: "Colossae"
+  kind: place
+  description: "Phrygian town whose church received Paul's letter warning against false philosophy."
+  aliases:
+    - colossae
+    - colossian church
+    - epaphras of colossae
+    - letter to the colossians
+    - church in colossae
+  verses:
+    - citation: "Col 1:2"
+      role: signature
+    - citation: "Col 4:12"
+      role: context
+- name: "Rome"
+  kind: place
+  description: "Imperial capital where Paul was imprisoned and to which he wrote his great doctrinal epistle."
+  aliases:
+    - rome
+    - roman church
+    - paul in rome
+    - caesars household
+    - pauls imprisonment in rome
+    - epistle to the romans
+  verses:
+    - citation: "Acts 28:16"
+      role: signature
+    - citation: "Rom 1:7"
+      role: context
+    - citation: "Acts 23:11"
+      role: quote
+- name: "Patmos"
+  kind: place
+  description: "Aegean island of John's exile where he received the visions recorded in Revelation."
+  aliases:
+    - patmos
+    - isle of patmos
+    - johns exile
+    - revelation on patmos
+    - lords day vision
+  verses:
+    - citation: "Rev 1:9"
+      role: signature
+    - citation: "Rev 1:10"
+      role: context
+- name: "Babylon"
+  kind: place
+  description: "Mesopotamian imperial city of the Judahite exile and apocalyptic symbol of worldly pride."
+  aliases:
+    - babylon
+    - babylonian exile
+    - by the rivers of babylon
+    - whore of babylon
+    - fallen fallen is babylon
+    - captives in babylon
+  verses:
+    - citation: "2 Kgs 25:11"
+      role: signature
+    - citation: "Ps 137:1"
+      role: context
+    - citation: "Rev 18:2"
+      role: climax
+- name: "New Jerusalem"
+  kind: place
+  description: "Holy city descending from heaven in John's vision, the eternal dwelling of God with his people."
+  aliases:
+    - new jerusalem
+    - holy city
+    - bride of the lamb
+    - city coming down from heaven
+    - no more tears
+    - city of pure gold
+  verses:
+    - citation: "Rev 21:2"
+      role: signature
+    - citation: "Rev 21:10"
+      role: context
+    - citation: "Rev 21:22"
+      role: climax

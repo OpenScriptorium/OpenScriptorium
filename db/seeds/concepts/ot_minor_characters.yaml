@@ -1,0 +1,686 @@
+---
+- name: "Melchizedek Blesses Abram"
+  kind: event
+  description: "The priest-king of Salem brings out bread and wine and blesses Abram after his victory over the kings."
+  aliases:
+    - melchizedek and abram
+    - priest of salem
+    - king of righteousness
+    - bread and wine of melchizedek
+    - tithe to melchizedek
+    - most high god blessing
+  verses:
+    - citation: "Gen 14:18"
+      role: signature
+    - citation: "Gen 14:19"
+      role: quote
+    - citation: "Gen 14:20"
+      role: climax
+- name: "Enoch Walked with God"
+  kind: character
+  description: "Enoch, seventh from Adam, walked with God and was taken without seeing death."
+  aliases:
+    - enoch translated
+    - enoch taken up
+    - seventh from adam
+    - walked with god and was not
+    - enoch son of jared
+    - god took him
+  verses:
+    - citation: "Gen 5:24"
+      role: signature
+    - citation: "Gen 5:22"
+      role: context
+    - citation: "Gen 5:23"
+      role: context
+- name: "Noah's Curse on Canaan"
+  kind: event
+  description: "After Noah's drunkenness, Ham sees his father's nakedness and Canaan is cursed while Shem and Japheth are blessed."
+  aliases:
+    - curse of ham
+    - curse of canaan
+    - shem ham and japheth
+    - noahs drunkenness
+    - nakedness of noah
+    - blessed be shem
+  verses:
+    - citation: "Gen 9:25"
+      role: signature
+    - citation: "Gen 9:22"
+      role: context
+    - citation: "Gen 9:26"
+      role: quote
+    - citation: "Gen 9:27"
+      role: climax
+- name: "Hagar in the Wilderness"
+  kind: event
+  description: "Sarah's handmaid flees into the wilderness where the angel of the Lord finds her by a spring and names her son Ishmael."
+  aliases:
+    - hagar at the spring
+    - the god who sees me
+    - el roi
+    - hagar and the angel
+    - ishmael naming
+    - hagar flees sarai
+  verses:
+    - citation: "Gen 16:13"
+      role: signature
+    - citation: "Gen 16:7"
+      role: context
+    - citation: "Gen 16:11"
+      role: quote
+    - citation: "Gen 21:17"
+      role: climax
+- name: "Keturah and Abraham's Later Sons"
+  kind: character
+  description: "Abraham takes Keturah as wife after Sarah's death and fathers Midian and other Arabian peoples through her."
+  aliases:
+    - keturah wife of abraham
+    - sons of keturah
+    - midian and his brothers
+    - abrahams later offspring
+    - zimran jokshan medan
+    - abraham and keturah
+  verses:
+    - citation: "Gen 25:1"
+      role: signature
+    - citation: "Gen 25:2"
+      role: context
+    - citation: "Gen 25:6"
+      role: climax
+- name: "Rebekah at the Well"
+  kind: event
+  description: "Abraham's servant finds Rebekah drawing water at the well of Nahor, the sign that she is Isaac's appointed bride."
+  aliases:
+    - rebekah drawing water
+    - servant of abraham at the well
+    - isaacs bride chosen
+    - eliezer and rebekah
+    - let down thy pitcher
+    - camels of rebekah
+  verses:
+    - citation: "Gen 24:15"
+      role: signature
+    - citation: "Gen 24:14"
+      role: quote
+    - citation: "Gen 24:19"
+      role: context
+    - citation: "Gen 24:58"
+      role: climax
+- name: "Jacob Wrestles the Angel"
+  kind: event
+  description: "At the ford of Jabbok Jacob wrestles a mysterious man until dawn and is renamed Israel."
+  aliases:
+    - jacob at peniel
+    - wrestling at jabbok
+    - i will not let thee go except thou bless me
+    - jacob renamed israel
+    - man wrestled with him
+    - hollow of jacobs thigh
+  verses:
+    - citation: "Gen 32:24"
+      role: signature
+    - citation: "Gen 32:26"
+      role: quote
+    - citation: "Gen 32:28"
+      role: climax
+    - citation: "Gen 32:30"
+      role: context
+- name: "Dinah and Shechem"
+  kind: event
+  description: "Dinah is violated by Shechem and her brothers Simeon and Levi take bloody revenge on the city."
+  aliases:
+    - rape of dinah
+    - simeon and levi at shechem
+    - daughter of leah defiled
+    - slaughter at shechem
+    - hamor and shechem
+    - circumcision deception
+  verses:
+    - citation: "Gen 34:2"
+      role: signature
+    - citation: "Gen 34:25"
+      role: climax
+    - citation: "Gen 34:31"
+      role: quote
+- name: "Judah and Tamar"
+  kind: event
+  description: "Tamar, denied levirate marriage, disguises herself and conceives twins by her father-in-law Judah."
+  aliases:
+    - tamar at enaim
+    - judahs signet and staff
+    - she hath been more righteous than i
+    - perez and zerah
+    - tamar the daughter in law
+    - harlot by the road
+  verses:
+    - citation: "Gen 38:15"
+      role: signature
+    - citation: "Gen 38:18"
+      role: context
+    - citation: "Gen 38:26"
+      role: quote
+    - citation: "Gen 38:29"
+      role: climax
+- name: "Miriam's Song at the Sea"
+  kind: event
+  description: "Miriam the prophetess leads the women with timbrels in a song celebrating the Lord's triumph at the Red Sea."
+  aliases:
+    - song of miriam
+    - miriam with the timbrel
+    - sing ye to the lord
+    - miriam the prophetess
+    - women dancing after miriam
+    - horse and rider thrown into the sea
+  verses:
+    - citation: "Exod 15:20"
+      role: signature
+    - citation: "Exod 15:21"
+      role: quote
+- name: "Miriam's Leprosy"
+  kind: event
+  description: "Miriam and Aaron speak against Moses and Miriam is struck with leprosy for seven days outside the camp."
+  aliases:
+    - miriam struck leprous
+    - miriam and aaron rebuke moses
+    - cushite wife controversy
+    - heal her now o god i beseech thee
+    - seven days shut out
+    - rebellion of miriam
+  verses:
+    - citation: "Num 12:10"
+      role: signature
+    - citation: "Num 12:1"
+      role: context
+    - citation: "Num 12:13"
+      role: quote
+    - citation: "Num 12:14"
+      role: climax
+- name: "Korah's Rebellion"
+  kind: event
+  description: "Korah, Dathan, and Abiram challenge Moses and Aaron and are swallowed by the earth when the ground splits beneath them."
+  aliases:
+    - korah dathan and abiram
+    - earth opened her mouth
+    - censers of korah
+    - rebellion against moses
+    - ye take too much upon you
+    - fire from the lord devoured
+  verses:
+    - citation: "Num 16:32"
+      role: signature
+    - citation: "Num 16:3"
+      role: quote
+    - citation: "Num 16:31"
+      role: context
+    - citation: "Num 16:35"
+      role: climax
+- name: "Caleb the Faithful Spy"
+  kind: character
+  description: "Caleb son of Jephunneh silences the fearful spies and later claims Hebron as his inheritance at eighty-five."
+  aliases:
+    - caleb son of jephunneh
+    - give me this mountain
+    - let us go up at once and possess it
+    - caleb at kadesh barnea
+    - wholly followed the lord
+    - caleb at hebron
+  verses:
+    - citation: "Num 13:30"
+      role: signature
+    - citation: "Num 14:24"
+      role: quote
+    - citation: "Josh 14:10"
+      role: context
+    - citation: "Josh 14:12"
+      role: climax
+- name: "Ehud and Eglon"
+  kind: event
+  description: "The left-handed judge Ehud delivers a concealed dagger into the belly of the fat Moabite king Eglon."
+  aliases:
+    - ehud the left handed
+    - eglon king of moab
+    - dagger of ehud
+    - i have a message from god unto thee
+    - ehud son of gera
+    - fat closed upon the blade
+  verses:
+    - citation: "Judg 3:21"
+      role: signature
+    - citation: "Judg 3:15"
+      role: context
+    - citation: "Judg 3:20"
+      role: quote
+    - citation: "Judg 3:22"
+      role: climax
+- name: "Shamgar and the Oxgoad"
+  kind: character
+  description: "Shamgar son of Anath delivers Israel by slaying six hundred Philistines with an oxgoad."
+  aliases:
+    - shamgar son of anath
+    - six hundred philistines
+    - slain with an oxgoad
+    - minor judge shamgar
+    - shamgar delivered israel
+    - oxgoad of shamgar
+  verses:
+    - citation: "Judg 3:31"
+      role: signature
+    - citation: "Judg 5:6"
+      role: context
+- name: "Deborah and Barak"
+  kind: event
+  description: "The prophetess Deborah summons Barak and together they rout Sisera's chariots at Mount Tabor."
+  aliases:
+    - song of deborah
+    - deborah under the palm
+    - barak son of abinoam
+    - mount tabor battle
+    - awake awake deborah
+    - mother in israel
+  verses:
+    - citation: "Judg 4:4"
+      role: signature
+    - citation: "Judg 4:9"
+      role: quote
+    - citation: "Judg 5:12"
+      role: context
+    - citation: "Judg 5:7"
+      role: climax
+- name: "Jael and Sisera"
+  kind: event
+  description: "Jael the wife of Heber drives a tent peg through the temple of the fleeing Canaanite commander Sisera."
+  aliases:
+    - tent peg and hammer
+    - jael wife of heber
+    - sisera slain by a woman
+    - blessed above women in the tent
+    - sisera at jaels tent
+    - nail through the temples
+  verses:
+    - citation: "Judg 4:21"
+      role: signature
+    - citation: "Judg 4:18"
+      role: context
+    - citation: "Judg 5:24"
+      role: quote
+    - citation: "Judg 5:27"
+      role: climax
+- name: "Jephthah's Vow"
+  kind: event
+  description: "Jephthah vows to sacrifice whatever first greets him and is met by his only daughter returning with timbrels."
+  aliases:
+    - jephthah and his daughter
+    - rash vow of jephthah
+    - two months on the mountains
+    - daughter of jephthah bewailing
+    - gileadite judge
+    - whatsoever cometh forth of the doors
+  verses:
+    - citation: "Judg 11:30"
+      role: signature
+    - citation: "Judg 11:31"
+      role: quote
+    - citation: "Judg 11:34"
+      role: context
+    - citation: "Judg 11:39"
+      role: climax
+- name: "Annunciation to Manoah"
+  kind: event
+  description: "The angel of the Lord announces Samson's birth to Manoah's barren wife and ascends in the altar flame."
+  aliases:
+    - manoah and his wife
+    - birth announcement of samson
+    - angel ascending in the flame
+    - samsons parents
+    - why askest thou after my name seeing it is secret
+    - nazirite from the womb
+  verses:
+    - citation: "Judg 13:3"
+      role: signature
+    - citation: "Judg 13:18"
+      role: quote
+    - citation: "Judg 13:20"
+      role: climax
+    - citation: "Judg 13:5"
+      role: context
+- name: "Hannah's Prayer at Shiloh"
+  kind: event
+  description: "Hannah pours out her soul at the tabernacle and vows her son to the Lord; Eli blesses her and she bears Samuel."
+  aliases:
+    - hannah weeping at shiloh
+    - hannah and eli
+    - barren woman at shiloh
+    - i have poured out my soul
+    - vow of hannah
+    - my heart rejoiceth in the lord
+  verses:
+    - citation: "1 Sam 1:10"
+      role: signature
+    - citation: "1 Sam 1:11"
+      role: quote
+    - citation: "1 Sam 1:27"
+      role: context
+    - citation: "1 Sam 2:1"
+      role: climax
+- name: "Hophni and Phinehas"
+  kind: character
+  description: "Eli's worthless sons abuse the sacrifices and perish in one day when the ark is captured by the Philistines."
+  aliases:
+    - sons of eli
+    - wicked priests at shiloh
+    - sons of belial
+    - ark captured by philistines
+    - ichabod the glory departed
+    - hophni and phinehas slain
+  verses:
+    - citation: "1 Sam 2:12"
+      role: signature
+    - citation: "1 Sam 2:17"
+      role: context
+    - citation: "1 Sam 4:11"
+      role: climax
+    - citation: "1 Sam 4:21"
+      role: quote
+- name: "Saul's Rejection at Gilgal"
+  kind: event
+  description: "For sparing Agag and the best of the Amalekite spoil, Samuel announces that the Lord has rejected Saul as king."
+  aliases:
+    - saul spares agag
+    - to obey is better than sacrifice
+    - amalekite spoil
+    - samuel hews agag in pieces
+    - rejected from being king
+    - kingdom rent from saul
+  verses:
+    - citation: "1 Sam 15:23"
+      role: signature
+    - citation: "1 Sam 15:22"
+      role: quote
+    - citation: "1 Sam 15:28"
+      role: climax
+    - citation: "1 Sam 15:33"
+      role: context
+- name: "Jonathan's Covenant with David"
+  kind: event
+  description: "Jonathan strips off his robe and armor and makes a covenant with David, loving him as his own soul."
+  aliases:
+    - jonathan and david covenant
+    - robe and armor of jonathan
+    - loved him as his own soul
+    - arrows in the field
+    - jonathan strips his garments
+    - friendship of david and jonathan
+  verses:
+    - citation: "1 Sam 18:3"
+      role: signature
+    - citation: "1 Sam 18:4"
+      role: context
+    - citation: "1 Sam 20:17"
+      role: quote
+    - citation: "1 Sam 20:42"
+      role: climax
+- name: "Abigail and Nabal"
+  kind: event
+  description: "The wise Abigail intercepts David with provisions, averting bloodshed against her churlish husband Nabal who soon dies."
+  aliases:
+    - abigail the wise
+    - nabal the fool
+    - david and abigail at carmel
+    - two hundred loaves and skins of wine
+    - nabals heart died within him
+    - abigail bows to david
+  verses:
+    - citation: "1 Sam 25:3"
+      role: signature
+    - citation: "1 Sam 25:18"
+      role: context
+    - citation: "1 Sam 25:32"
+      role: quote
+    - citation: "1 Sam 25:38"
+      role: climax
+- name: "Nathan's Parable of the Ewe Lamb"
+  kind: event
+  description: "Nathan confronts David with the parable of the rich man who seized a poor man's single ewe lamb."
+  aliases:
+    - thou art the man
+    - poor mans ewe lamb
+    - nathan rebukes david
+    - parable of the ewe lamb
+    - david confronted over bathsheba
+    - i have sinned against the lord
+  verses:
+    - citation: "2 Sam 12:7"
+      role: signature
+    - citation: "2 Sam 12:3"
+      role: context
+    - citation: "2 Sam 12:4"
+      role: quote
+    - citation: "2 Sam 12:13"
+      role: climax
+- name: "Absalom's Rebellion"
+  kind: event
+  description: "Absalom steals the hearts of Israel, drives David from Jerusalem, and dies caught by his hair in an oak."
+  aliases:
+    - absalom steals the hearts
+    - absalom in the oak
+    - hanging by his hair
+    - o my son absalom
+    - ahithophel counsel
+    - revolt of absalom
+  verses:
+    - citation: "2 Sam 15:6"
+      role: signature
+    - citation: "2 Sam 18:9"
+      role: climax
+    - citation: "2 Sam 18:33"
+      role: quote
+    - citation: "2 Sam 15:14"
+      role: context
+- name: "Rizpah's Vigil"
+  kind: event
+  description: "Rizpah daughter of Aiah spreads sackcloth on the rock and guards the bodies of her sons from birds and beasts until rain falls."
+  aliases:
+    - rizpah daughter of aiah
+    - sackcloth upon the rock
+    - gibeonite execution
+    - rizpah protects the bodies
+    - seven sons of saul
+    - until water dropped upon them
+  verses:
+    - citation: "2 Sam 21:10"
+      role: signature
+    - citation: "2 Sam 21:9"
+      role: context
+    - citation: "2 Sam 21:11"
+      role: climax
+- name: "Joab's Violence"
+  kind: character
+  description: "David's ruthless general who murders Abner, Amasa, and Absalom and is finally struck down at the horns of the altar."
+  aliases:
+    - joab son of zeruiah
+    - joab slays abner
+    - joab kills amasa
+    - joab at the altar horns
+    - benaiah slays joab
+    - joabs bloody deeds
+  verses:
+    - citation: "2 Sam 3:27"
+      role: signature
+    - citation: "2 Sam 20:10"
+      role: context
+    - citation: "2 Sam 18:14"
+      role: climax
+    - citation: "1 Kgs 2:28"
+      role: quote
+- name: "Rehoboam and the Divided Kingdom"
+  kind: event
+  description: "Rehoboam rejects the elders' counsel and threatens scorpions, causing the ten northern tribes to secede under Jeroboam."
+  aliases:
+    - my little finger thicker than my fathers loins
+    - scorpions instead of whips
+    - rehoboam at shechem
+    - ten tribes secede
+    - to your tents o israel
+    - kingdom divided
+  verses:
+    - citation: "1 Kgs 12:14"
+      role: signature
+    - citation: "1 Kgs 12:10"
+      role: context
+    - citation: "1 Kgs 12:16"
+      role: quote
+    - citation: "1 Kgs 12:19"
+      role: climax
+- name: "Jeroboam's Golden Calves"
+  kind: event
+  description: "Jeroboam sets up golden calves at Bethel and Dan, institutionalizing the sin of the northern kingdom."
+  aliases:
+    - calves at bethel and dan
+    - behold thy gods o israel
+    - jeroboam son of nebat
+    - sin of jeroboam
+    - priests from lowest of the people
+    - feast of the eighth month
+  verses:
+    - citation: "1 Kgs 12:28"
+      role: signature
+    - citation: "1 Kgs 12:29"
+      role: context
+    - citation: "1 Kgs 12:30"
+      role: climax
+    - citation: "1 Kgs 12:31"
+      role: quote
+- name: "Naboth's Vineyard"
+  kind: event
+  description: "Ahab covets Naboth's vineyard; Jezebel arranges his murder by false witnesses, and Elijah pronounces the Lord's vengeance."
+  aliases:
+    - naboth the jezreelite
+    - ahab coveted the vineyard
+    - jezebel writes letters
+    - dogs shall lick thy blood
+    - sons of belial witness
+    - hast thou killed and also taken possession
+  verses:
+    - citation: "1 Kgs 21:7"
+      role: signature
+    - citation: "1 Kgs 21:3"
+      role: quote
+    - citation: "1 Kgs 21:13"
+      role: context
+    - citation: "1 Kgs 21:19"
+      role: climax
+- name: "Jehu's Bloody Purge"
+  kind: event
+  description: "Jehu drives furiously to Jezreel, slays Joram and Ahaziah, has Jezebel thrown from a window, and destroys the house of Ahab."
+  aliases:
+    - jehu drives furiously
+    - jezebel thrown from the window
+    - throw her down
+    - temple of baal slaughter
+    - house of ahab destroyed
+    - what peace so long as the whoredoms of jezebel
+  verses:
+    - citation: "2 Kgs 9:20"
+      role: signature
+    - citation: "2 Kgs 9:33"
+      role: climax
+    - citation: "2 Kgs 10:18"
+      role: context
+    - citation: "2 Kgs 9:22"
+      role: quote
+- name: "Hezekiah's Sickness and Extension"
+  kind: event
+  description: "Hezekiah is told to set his house in order but weeps and prays; the Lord adds fifteen years and the shadow retreats on Ahaz's dial."
+  aliases:
+    - fifteen years added
+    - shadow on the sundial of ahaz
+    - hezekiah turns his face to the wall
+    - set thine house in order
+    - lump of figs on the boil
+    - hezekiahs prayer for healing
+  verses:
+    - citation: "2 Kgs 20:1"
+      role: signature
+    - citation: "2 Kgs 20:5"
+      role: quote
+    - citation: "2 Kgs 20:6"
+      role: context
+    - citation: "2 Kgs 20:11"
+      role: climax
+- name: "Josiah Finds the Book of the Law"
+  kind: event
+  description: "During temple repairs Hilkiah discovers the book of the law; Josiah rends his clothes and leads a covenant renewal."
+  aliases:
+    - hilkiah finds the book
+    - josiah rends his clothes
+    - huldah the prophetess
+    - covenant renewal of josiah
+    - book of the law discovered
+    - passover of josiah
+  verses:
+    - citation: "2 Kgs 22:8"
+      role: signature
+    - citation: "2 Kgs 22:11"
+      role: context
+    - citation: "2 Kgs 22:14"
+      role: quote
+    - citation: "2 Kgs 23:3"
+      role: climax
+- name: "Manasseh's Repentance"
+  kind: event
+  description: "The wicked Manasseh is taken in hooks to Babylon, humbles himself greatly before the God of his fathers, and is restored to Jerusalem."
+  aliases:
+    - manasseh in babylon
+    - hooks and fetters of brass
+    - manasseh humbled himself
+    - most wicked king repents
+    - prayer of manasseh in chronicles
+    - god was intreated of him
+  verses:
+    - citation: "2 Chr 33:12"
+      role: signature
+    - citation: "2 Chr 33:11"
+      role: context
+    - citation: "2 Chr 33:13"
+      role: climax
+    - citation: "2 Chr 33:6"
+      role: quote
+- name: "Zerubbabel's Return"
+  kind: event
+  description: "Zerubbabel son of Shealtiel leads the first return from exile under Cyrus's decree and lays the foundation of the second temple."
+  aliases:
+    - zerubbabel son of shealtiel
+    - first return from babylon
+    - cyrus decree fulfilled
+    - foundation of the second temple
+    - jeshua the high priest
+    - shouting and weeping at the foundation
+  verses:
+    - citation: "Ezra 2:2"
+      role: signature
+    - citation: "Ezra 3:2"
+      role: context
+    - citation: "Ezra 3:10"
+      role: climax
+    - citation: "Ezra 3:12"
+      role: quote
+- name: "Ezra Reads the Law"
+  kind: event
+  description: "Ezra stands on a wooden pulpit in the square before the Water Gate and reads the law to the people, who weep as they understand."
+  aliases:
+    - ezra on the wooden pulpit
+    - water gate reading
+    - joy of the lord is your strength
+    - reading the law distinctly
+    - people wept when they heard
+    - feast of tabernacles under ezra
+  verses:
+    - citation: "Neh 8:3"
+      role: signature
+    - citation: "Neh 8:4"
+      role: context
+    - citation: "Neh 8:8"
+      role: quote
+    - citation: "Neh 8:10"
+      role: climax

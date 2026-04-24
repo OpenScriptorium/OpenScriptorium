@@ -1,0 +1,565 @@
+---
+- name: "Elizabeth and Zechariah"
+  kind: event
+  description: "An aged priest and his barren wife conceive John the Baptist after Gabriel's annunciation."
+  aliases:
+    - elizabeth and zechariah
+    - birth of john the baptist
+    - zechariah struck dumb
+    - his name is john
+    - barren elizabeth
+    - benedictus
+    - blessed be the lord god of israel
+  verses:
+    - citation: "Luke 1:13"
+      role: context
+    - citation: "Luke 1:63"
+      role: signature
+    - citation: "Luke 1:68"
+      role: climax
+- name: "Anna the Prophetess"
+  kind: character
+  description: "An elderly widow who served in the temple and recognized the infant Jesus as the redemption of Jerusalem."
+  aliases:
+    - anna the prophetess
+    - anna daughter of phanuel
+    - prophetess in the temple
+    - widow of fourscore and four years
+    - redemption in jerusalem
+    - tribe of aser
+  verses:
+    - citation: "Luke 2:36"
+      role: context
+    - citation: "Luke 2:38"
+      role: signature
+- name: "Simeon's Nunc Dimittis"
+  kind: event
+  description: "The righteous Simeon holds the infant Jesus and blesses God, ready to depart in peace."
+  aliases:
+    - nunc dimittis
+    - song of simeon
+    - lord now lettest thou thy servant depart in peace
+    - mine eyes have seen thy salvation
+    - light to lighten the gentiles
+    - a sword shall pierce through thy own soul
+  verses:
+    - citation: "Luke 2:25"
+      role: context
+    - citation: "Luke 2:29"
+      role: signature
+    - citation: "Luke 2:35"
+      role: climax
+- name: "John the Baptist's Ministry"
+  kind: event
+  description: "John preaches repentance in the wilderness, baptizing and pointing to the coming Messiah."
+  aliases:
+    - john the baptist
+    - voice crying in the wilderness
+    - prepare ye the way of the lord
+    - repent ye for the kingdom of heaven is at hand
+    - locusts and wild honey
+    - behold the lamb of god
+    - he must increase but i must decrease
+  verses:
+    - citation: "Matt 3:2"
+      role: context
+    - citation: "Matt 3:3"
+      role: signature
+    - citation: "John 1:29"
+      role: climax
+- name: "Beheading of John the Baptist"
+  kind: event
+  description: "Herod Antipas beheads John at the request of Herodias's daughter after her dance."
+  aliases:
+    - beheading of john the baptist
+    - death of john the baptist
+    - herods birthday
+    - daughter of herodias danced
+    - head of john on a charger
+    - salomes dance
+  verses:
+    - citation: "Mark 6:18"
+      role: context
+    - citation: "Mark 6:25"
+      role: signature
+    - citation: "Mark 6:27"
+      role: climax
+- name: "Nicodemus by Night"
+  kind: event
+  description: "A Pharisee comes to Jesus at night and hears that one must be born again to see the kingdom."
+  aliases:
+    - nicodemus by night
+    - ye must be born again
+    - born of water and of the spirit
+    - ruler of the jews
+    - the wind bloweth where it listeth
+    - how can a man be born when he is old
+  verses:
+    - citation: "John 3:2"
+      role: context
+    - citation: "John 3:3"
+      role: signature
+    - citation: "John 3:16"
+      role: climax
+- name: "The Woman at the Well"
+  kind: event
+  description: "Jesus asks a Samaritan woman for a drink and offers her living water."
+  aliases:
+    - woman at the well
+    - samaritan woman
+    - jacobs well
+    - living water
+    - whosoever drinketh of this water shall thirst again
+    - i that speak unto thee am he
+    - worship in spirit and in truth
+  verses:
+    - citation: "John 4:7"
+      role: context
+    - citation: "John 4:14"
+      role: signature
+    - citation: "John 4:26"
+      role: climax
+- name: "Mary and Martha of Bethany"
+  kind: event
+  description: "Martha bustles with hospitality while Mary sits at Jesus' feet; Jesus commends the better part."
+  aliases:
+    - mary and martha
+    - martha martha
+    - mary sat at jesus feet
+    - cumbered about much serving
+    - one thing is needful
+    - the good part
+    - bethany sisters
+  verses:
+    - citation: "Luke 10:39"
+      role: context
+    - citation: "Luke 10:41"
+      role: signature
+    - citation: "Luke 10:42"
+      role: climax
+- name: "Anointing at Bethany"
+  kind: event
+  description: "Mary of Bethany anoints Jesus with costly spikenard and wipes his feet with her hair."
+  aliases:
+    - anointing at bethany
+    - mary anoints jesus
+    - alabaster box of ointment
+    - spikenard very precious
+    - wiped his feet with her hair
+    - she hath done what she could
+    - to what purpose is this waste
+  verses:
+    - citation: "John 12:3"
+      role: signature
+    - citation: "Mark 14:6"
+      role: quote
+    - citation: "Matt 26:13"
+      role: climax
+- name: "Woman Caught in Adultery"
+  kind: event
+  description: "Scribes bring an adulteress to Jesus, who invites the sinless to cast the first stone."
+  aliases:
+    - woman caught in adultery
+    - he that is without sin
+    - cast the first stone
+    - pericope adulterae
+    - neither do i condemn thee
+    - go and sin no more
+    - wrote on the ground
+  verses:
+    - citation: "John 8:4"
+      role: context
+    - citation: "John 8:7"
+      role: signature
+    - citation: "John 8:11"
+      role: climax
+- name: "Zacchaeus the Tax Collector"
+  kind: character
+  description: "A wealthy chief publican climbs a sycamore tree to see Jesus and receives salvation at his house."
+  aliases:
+    - zacchaeus
+    - chief among the publicans
+    - sycamore tree
+    - little man of jericho
+    - salvation come to this house
+    - son of abraham
+    - to seek and to save that which was lost
+  verses:
+    - citation: "Luke 19:4"
+      role: context
+    - citation: "Luke 19:8"
+      role: signature
+    - citation: "Luke 19:10"
+      role: climax
+- name: "Rich Young Ruler"
+  kind: event
+  description: "A wealthy young man asks how to inherit eternal life and departs sorrowful when told to sell all."
+  aliases:
+    - rich young ruler
+    - good master what shall i do
+    - sell all that thou hast
+    - camel through the eye of a needle
+    - went away sorrowful
+    - great possessions
+    - who then can be saved
+  verses:
+    - citation: "Matt 19:16"
+      role: context
+    - citation: "Matt 19:21"
+      role: signature
+    - citation: "Matt 19:24"
+      role: climax
+- name: "The Centurion's Faith"
+  kind: event
+  description: "A Roman centurion asks Jesus to heal his servant from afar, astonishing him with his faith."
+  aliases:
+    - centurions faith
+    - speak the word only
+    - not worthy that thou shouldest come under my roof
+    - so great faith
+    - not found so great faith in israel
+    - i am a man under authority
+    - capernaum centurion
+  verses:
+    - citation: "Matt 8:8"
+      role: signature
+    - citation: "Matt 8:10"
+      role: climax
+    - citation: "Luke 7:9"
+      role: quote
+- name: "Jairus' Daughter Raised"
+  kind: event
+  description: "Jesus raises the twelve-year-old daughter of a synagogue ruler, telling her to arise."
+  aliases:
+    - jairus daughter
+    - talitha cumi
+    - damsel i say unto thee arise
+    - daughter of jairus
+    - ruler of the synagogue
+    - the maid is not dead but sleepeth
+    - peter james and john only
+  verses:
+    - citation: "Mark 5:23"
+      role: context
+    - citation: "Mark 5:41"
+      role: signature
+    - citation: "Mark 5:42"
+      role: climax
+- name: "Widow of Nain's Son"
+  kind: event
+  description: "Jesus meets a funeral procession at Nain and raises a widow's only son from the bier."
+  aliases:
+    - widow of nain
+    - son of the widow of nain
+    - young man i say unto thee arise
+    - weep not
+    - touched the bier
+    - only son of his mother
+    - city called nain
+  verses:
+    - citation: "Luke 7:13"
+      role: context
+    - citation: "Luke 7:14"
+      role: signature
+    - citation: "Luke 7:15"
+      role: climax
+- name: "Syrophoenician Woman's Faith"
+  kind: event
+  description: "A Gentile mother pleads for her daughter and wins Jesus' praise for her answer about the crumbs."
+  aliases:
+    - syrophoenician woman
+    - canaanite womans faith
+    - crumbs from the masters table
+    - dogs eat of the crumbs
+    - daughter vexed with a devil
+    - great is thy faith
+    - coasts of tyre and sidon
+  verses:
+    - citation: "Matt 15:22"
+      role: context
+    - citation: "Matt 15:27"
+      role: signature
+    - citation: "Matt 15:28"
+      role: climax
+- name: "Ten Lepers Cleansed"
+  kind: event
+  description: "Jesus heals ten lepers; only a Samaritan returns to give thanks."
+  aliases:
+    - ten lepers
+    - samaritan leper
+    - were there not ten cleansed
+    - where are the nine
+    - this stranger
+    - thy faith hath made thee whole
+    - go shew yourselves unto the priests
+  verses:
+    - citation: "Luke 17:14"
+      role: context
+    - citation: "Luke 17:17"
+      role: signature
+    - citation: "Luke 17:19"
+      role: climax
+- name: "Martha's Confession"
+  kind: event
+  description: "At Lazarus's tomb Martha confesses Jesus as the Christ and receives the I-am-the-resurrection saying."
+  aliases:
+    - marthas confession
+    - he that believeth in me though he were dead
+    - thou art the christ the son of god
+    - believest thou this
+    - yea lord
+    - thy brother shall rise again
+  verses:
+    - citation: "John 11:27"
+      role: signature
+    - citation: "John 11:23"
+      role: context
+- name: "Washing of the Disciples' Feet"
+  kind: event
+  description: "At the Last Supper Jesus girds himself with a towel and washes the disciples' feet as an example."
+  aliases:
+    - washing the disciples feet
+    - feet washing
+    - girded himself with a towel
+    - if i wash thee not thou hast no part with me
+    - ye also ought to wash one anothers feet
+    - lord dost thou wash my feet
+    - an example that ye should do
+  verses:
+    - citation: "John 13:5"
+      role: context
+    - citation: "John 13:14"
+      role: signature
+    - citation: "John 13:15"
+      role: climax
+- name: "Joseph of Arimathea"
+  kind: character
+  description: "A secret disciple and council member who asks Pilate for Jesus' body and lays it in his own tomb."
+  aliases:
+    - joseph of arimathea
+    - honourable counsellor
+    - begged the body of jesus
+    - his own new tomb
+    - hewn out in the rock
+    - secret disciple for fear of the jews
+    - wrapped it in a clean linen cloth
+  verses:
+    - citation: "Mark 15:43"
+      role: context
+    - citation: "Matt 27:59"
+      role: signature
+    - citation: "John 19:38"
+      role: climax
+- name: "Nicodemus at the Burial"
+  kind: event
+  description: "Nicodemus brings a hundred pounds of myrrh and aloes to help bury Jesus."
+  aliases:
+    - nicodemus at the burial
+    - mixture of myrrh and aloes
+    - an hundred pound weight
+    - came by night at the first
+    - burial spices
+    - linen clothes with the spices
+  verses:
+    - citation: "John 19:39"
+      role: signature
+    - citation: "John 19:40"
+      role: climax
+- name: "Matthias Chosen"
+  kind: event
+  description: "The eleven cast lots and choose Matthias to replace Judas among the apostles."
+  aliases:
+    - matthias chosen
+    - replacement for judas
+    - cast lots
+    - numbered with the eleven apostles
+    - joseph called barsabas
+    - let another take his office
+    - showed whether of these two thou hast chosen
+  verses:
+    - citation: "Acts 1:23"
+      role: context
+    - citation: "Acts 1:26"
+      role: signature
+    - citation: "Acts 1:20"
+      role: quote
+- name: "Dorcas Raised"
+  kind: event
+  description: "Peter prays in Joppa and raises the charitable disciple Tabitha from death."
+  aliases:
+    - dorcas raised
+    - tabitha arise
+    - tabitha cumi
+    - full of good works and almsdeeds
+    - widows weeping
+    - coats and garments
+    - joppa disciple
+  verses:
+    - citation: "Acts 9:36"
+      role: context
+    - citation: "Acts 9:40"
+      role: signature
+    - citation: "Acts 9:41"
+      role: climax
+- name: "Simon Magus"
+  kind: character
+  description: "A Samaritan sorcerer who tries to buy the Holy Spirit from the apostles and is rebuked by Peter."
+  aliases:
+    - simon magus
+    - simon the sorcerer
+    - thy money perish with thee
+    - gall of bitterness
+    - bewitched the people of samaria
+    - this man is the great power of god
+    - buy the gift of god with money
+  verses:
+    - citation: "Acts 8:9"
+      role: context
+    - citation: "Acts 8:20"
+      role: signature
+    - citation: "Acts 8:23"
+      role: climax
+- name: "Jerusalem Council and James"
+  kind: event
+  description: "James, the Lord's brother, presides over the council that settles Gentile inclusion without circumcision."
+  aliases:
+    - jerusalem council
+    - james the lords brother
+    - council of jerusalem
+    - gentile circumcision debate
+    - my sentence is
+    - abstain from things offered to idols
+    - it seemed good to the holy ghost and to us
+  verses:
+    - citation: "Acts 15:13"
+      role: context
+    - citation: "Acts 15:19"
+      role: signature
+    - citation: "Acts 15:28"
+      role: climax
+- name: "Barnabas the Encourager"
+  kind: character
+  description: "A Levite of Cyprus nicknamed Son of Consolation who sells a field for the church and vouches for Saul."
+  aliases:
+    - barnabas
+    - son of consolation
+    - son of encouragement
+    - joses the levite of cyprus
+    - sold the land and brought the money
+    - good man full of the holy ghost
+    - vouched for saul
+  verses:
+    - citation: "Acts 4:36"
+      role: signature
+    - citation: "Acts 9:27"
+      role: climax
+    - citation: "Acts 11:24"
+      role: quote
+- name: "Mark's Restoration"
+  kind: event
+  description: "John Mark, once rejected by Paul, is later called profitable for ministry."
+  aliases:
+    - john mark
+    - marks restoration
+    - take mark and bring him with thee
+    - profitable to me for the ministry
+    - departed from them from pamphylia
+    - contention between paul and barnabas
+    - sharp contention
+  verses:
+    - citation: "Acts 15:38"
+      role: context
+    - citation: "2 Tim 4:11"
+      role: signature
+    - citation: "Acts 13:13"
+      role: quote
+- name: "Timothy's Upbringing"
+  kind: character
+  description: "Son of a Jewish mother Eunice and grandmother Lois, raised in the scriptures and Paul's beloved son in the faith."
+  aliases:
+    - timothys upbringing
+    - lois and eunice
+    - unfeigned faith
+    - from a child thou hast known the holy scriptures
+    - sincere faith
+    - let no man despise thy youth
+    - my dearly beloved son
+  verses:
+    - citation: "2 Tim 1:5"
+      role: signature
+    - citation: "2 Tim 3:15"
+      role: climax
+    - citation: "1 Tim 4:12"
+      role: quote
+- name: "Priscilla and Aquila"
+  kind: character
+  description: "A tentmaking couple who host Paul, risk their necks for him, and expound the way of God more perfectly to Apollos."
+  aliases:
+    - priscilla and aquila
+    - aquila and priscilla
+    - tentmakers
+    - expounded unto him the way of god more perfectly
+    - laid down their own necks
+    - church that is in their house
+    - helpers in christ jesus
+  verses:
+    - citation: "Acts 18:2"
+      role: context
+    - citation: "Acts 18:26"
+      role: signature
+    - citation: "Rom 16:3"
+      role: climax
+- name: "Lydia of Thyatira"
+  kind: character
+  description: "A seller of purple in Philippi whose heart the Lord opens; she is baptized with her household and hosts Paul."
+  aliases:
+    - lydia
+    - seller of purple
+    - lydia of thyatira
+    - whose heart the lord opened
+    - come into my house and abide
+    - first convert in europe
+    - by a river side where prayer was wont to be made
+  verses:
+    - citation: "Acts 16:14"
+      role: signature
+    - citation: "Acts 16:15"
+      role: climax
+    - citation: "Acts 16:13"
+      role: context
+- name: "Philemon and Onesimus"
+  kind: event
+  description: "Paul pleads for the runaway slave Onesimus to be received as a beloved brother by his master Philemon."
+  aliases:
+    - philemon and onesimus
+    - runaway slave
+    - receive him as myself
+    - no longer as a servant but a brother beloved
+    - put that on mine account
+    - which in time past was to thee unprofitable
+    - i paul have written it with mine own hand
+  verses:
+    - citation: "Phlm 1:10"
+      role: context
+    - citation: "Phlm 1:16"
+      role: signature
+    - citation: "Phlm 1:18"
+      role: climax
+- name: "Eutychus Falls from the Window"
+  kind: event
+  description: "During Paul's long sermon at Troas a young man falls from a third loft and is restored alive."
+  aliases:
+    - eutychus
+    - fallen from the third loft
+    - fell down from the third loft
+    - paul preached until midnight
+    - troas upper chamber
+    - trouble not yourselves for his life is in him
+    - taken up dead
+  verses:
+    - citation: "Acts 20:9"
+      role: signature
+    - citation: "Acts 20:10"
+      role: climax
+    - citation: "Acts 20:12"
+      role: quote
