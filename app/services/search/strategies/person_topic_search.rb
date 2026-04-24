@@ -86,6 +86,18 @@ module Search
         primary_books = PERSON_BOOKS[@person] || []
         book_cw_ids = CanonicalWork.where(book_key: primary_books).pluck(:id) if primary_books.any?
 
+        # Pericope context: find canonical_ref_ids in pericopes matching
+        # the topic. Two levels:
+        # 1. topic_pericope: pericope name matches topic (3x boost)
+        # 2. dual_pericope: pericope name matches BOTH person AND topic
+        #    (6x boost) — "David Slays Goliath" for query about David+Goliath
+        # Must be computed before any tier scoring runs — score_result reads
+        # these sets to apply the boost.
+        topic_pericope_cref_ids = find_topic_pericope_cref_ids(conn, book_cw_ids)
+        @topic_pericope_set = topic_pericope_cref_ids.to_set
+        dual_pericope_cref_ids = find_dual_pericope_cref_ids(conn)
+        @dual_pericope_set = dual_pericope_cref_ids.to_set
+
         # Step 4: Search for topic in four tiers, merge results
         results = []
 
@@ -103,16 +115,6 @@ module Search
             score_result(wu, tier)
           })
         end
-
-        # Pericope context: find canonical_ref_ids in pericopes matching
-        # the topic. Two levels:
-        # 1. topic_pericope: pericope name matches topic (3x boost)
-        # 2. dual_pericope: pericope name matches BOTH person AND topic
-        #    (6x boost) — "David Slays Goliath" for query about David+Goliath
-        topic_pericope_cref_ids = find_topic_pericope_cref_ids(conn, book_cw_ids)
-        @topic_pericope_set = topic_pericope_cref_ids.to_set
-        dual_pericope_cref_ids = find_dual_pericope_cref_ids(conn)
-        @dual_pericope_set = dual_pericope_cref_ids.to_set
 
         # Tier C: Topic matches in primary books (fallback)
         if book_cw_ids&.any?
