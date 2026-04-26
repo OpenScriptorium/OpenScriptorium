@@ -65,9 +65,15 @@ module Search
         has_alias = fts_results.any? { |r| r[:alias_match] }
         max_fts = fts_results.map { |r| r[:relevance].to_f }.max || 0
         min_fts = fts_results.map { |r| r[:relevance].to_f }.min || 0
-        # If the max is 5x+ above the min, a phrase bonus fired
+        # If the max is 5x+ above the min, a phrase bonus fired.
+        # SKIP this heuristic for person-topic queries: PersonTopicSearch's
+        # pericope/tier boosts produce a similar 5x+ score spread that
+        # doesn't mean "exact phrase found." We *want* semantic merge to
+        # fill in paraphrase-only verses for these queries (Matt 10:34
+        # "not peace but a sword" answers "what did Jesus say about war?").
+        is_person_topic = @fts_result.query_type == :person_topic
         phrase_bonus_detected = fts_results.size > 1 && max_fts > min_fts * 5
-        if has_alias || (phrase_bonus_detected && max_fts > 0.05)
+        if has_alias || (!is_person_topic && phrase_bonus_detected && max_fts > 0.05)
           return @fts_result
         end
 

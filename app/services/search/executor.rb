@@ -60,7 +60,15 @@ module Search
 
       # Semantic enrichment: if embeddings are available and mode is hybrid,
       # merge embedding results into the FTS results.
-      if is_text && semantic_mode? && embeddings_available?
+      # Runs for text AND person-topic queries — paraphrase-friendly verses
+      # like Matt 10:34 ("I came not to send peace, but a sword") are key
+      # answers to "what did Jesus say about war?" but contain none of the
+      # topic words, so PersonTopicSearch's pure-FTS path misses them.
+      # SemanticMerge has dedicated person-topic handling (focused encoding,
+      # person-context expansion) that fires when query_type == :person_topic.
+      semantic_eligible = (is_text || result.query_type == :person_topic) &&
+                          semantic_mode? && embeddings_available?
+      if semantic_eligible
         result = Strategies::SemanticMerge.new(
           @raw_query, result,
           scope: @scope, page: @page, per_page: @per_page
