@@ -20,6 +20,13 @@ Rails.application.routes.draw do
   get "appeal-to-scholars",   to: "about#appeal_to_scholars",   as: :appeal_to_scholars
   get "appeal-to-publishers", to: "about#appeal_to_publishers", as: :appeal_to_publishers
 
+  # Admin (URL-only — not linked from any nav). Gated by Current.user&.admin?
+  # in Admin::BaseController; non-admins get 404. Defined before the
+  # /:work_slug reader scope so "admin" isn't swallowed as a work slug.
+  namespace :admin do
+    get "db_stats", to: "db_stats#show", as: :db_stats
+  end
+
   # Reader. Designed so the URL itself is the OSIS-style human-readable
   # citation: /:work_slug/:book_slug/:chapter[/:verse]
   #
