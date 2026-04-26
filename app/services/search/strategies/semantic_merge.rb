@@ -11,8 +11,18 @@ module Search
       # α and β are tuned so FTS exact matches always rank above pure
       # semantic matches, but semantic matches fill gaps where keywords fail.
 
-      FTS_WEIGHT = 0.7    # α (reverted to 70.1% baseline)
+      # Fusion strategy: "rrf" (Reciprocal Rank Fusion, default) or
+      # "weighted" (legacy α·fts + β·sem blend). RRF won by +7.83 pp MRR
+      # in the 2026-04-26 thematic audit (355 concepts × 2585 variants);
+      # see SEARCH_STATUS.md. Set SEARCH_FUSION=weighted to roll back
+      # without a redeploy.
+      FUSION_STRATEGY = ENV.fetch("SEARCH_FUSION", "rrf")
+      RRF_K = (ENV["SEARCH_RRF_K"] || "60").to_i
+
+      # Weighted-blend tunables (only used when SEARCH_FUSION=weighted).
+      FTS_WEIGHT = 0.7    # α
       SEM_WEIGHT = 0.3    # β
+
       SEM_LIMIT  = 80     # max embedding candidates to fetch
       MIN_SIMILARITY = 0.3 # below this, semantic results are noise
       LANG_BOOST = 1.4    # multiply score for results matching query language
@@ -201,28 +211,22 @@ module Search
       def merge_results(semantic_results)
         fts_results = @fts_result.results
 
-        # Adaptive weights: when FTS returns few results, lean harder on semantic
-        fts_alpha, sem_beta = adaptive_weights(fts_results)
+        # Build the candidate pool: union of FTS and semantic results,
+        # deduplicated by work_unit id. Carry rank-in-source-list for
+        # both signals so RRF can use them.
+        fts_rank = {}
+        fts_results.each_with_index { |r, i| fts_rank[r[:id]] ||= i + 1 }
+        sem_rank = {}
+        semantic_results.each_with_index { |r, i| sem_rank[r[:id]] ||= i + 1 }
 
-        # Normalize FTS scores to 0..1 using a fixed ceiling rather than
-        # max-in-result-set. ts_rank rarely exceeds 0.5 for multi-word queries;
-        # phrase-bonus pushes the best hits to ~5. Using a fixed ceiling means
-        # weak FTS hits (0.05) stay weak (0.01) instead of being inflated to 1.0.
-        fts_ceiling = [fts_results.map { |r| r[:relevance].to_f }.max || 1.0, 1.0].max
-        # For very strong FTS results (phrase matches with bonus), cap at their actual max
-        # For weak FTS results, the ceiling of 1.0 keeps them proportionally low
-
-        # Score all results (FTS + semantic, deduplicated by work_unit id)
         scored = {}
-
         fts_results.each do |r|
           scored[r[:id]] = {
             result: r,
-            fts_score: r[:relevance].to_f / fts_ceiling,
-            sem_score: 0.0
+            fts_score: r[:relevance].to_f,  # original ts_rank * boosts (preserved for pin logic)
+            sem_score: 0.0,
           }
         end
-
         semantic_results.each do |r|
           if scored[r[:id]]
             scored[r[:id]][:sem_score] = r[:relevance]
@@ -230,13 +234,37 @@ module Search
             scored[r[:id]] = {
               result: r,
               fts_score: 0.0,
-              sem_score: r[:relevance]
+              sem_score: r[:relevance],
             }
           end
         end
 
-        # Compute hybrid score and sort, boosting results that match
-        # the query language, testament/person context, and pericope topics
+        # Compute base fusion score (RRF or legacy weighted blend).
+        if FUSION_STRATEGY == "rrf"
+          # Reciprocal rank fusion: sum 1/(k + rank) over both ranked
+          # lists. Items present in both rise to the top — empirically
+          # +7.83 pp MRR vs bi-encoder alone in the 2026-04-26 audit.
+          scored.each do |id, s|
+            base = 0.0
+            base += 1.0 / (RRF_K + fts_rank[id]) if fts_rank[id]
+            base += 1.0 / (RRF_K + sem_rank[id]) if sem_rank[id]
+            s[:base_score] = base
+          end
+        else
+          # Legacy weighted blend with adaptive α/β (rollback path,
+          # SEARCH_FUSION=weighted). Normalize FTS by a fixed ceiling so
+          # weak hits stay weak instead of being inflated to 1.0.
+          fts_alpha, sem_beta = adaptive_weights(fts_results)
+          fts_ceiling = [fts_results.map { |r| r[:relevance].to_f }.max || 1.0, 1.0].max
+          scored.each_value do |s|
+            s[:base_score] = fts_alpha * (s[:fts_score] / fts_ceiling) + sem_beta * s[:sem_score]
+          end
+        end
+
+        # Apply contextual boosts on top of the base fusion score:
+        # query language, testament/person context, pericope topics.
+        # Multiplicative — these are belt-and-suspenders signals on top
+        # of the rank-fusion base.
         query_langs = detect_query_languages
         boosted_books = detect_testament_books
         person_name = detect_person_name
@@ -245,7 +273,7 @@ module Search
         person_context_ids = person_name ? find_person_context_ids(scored, person_name) : Set.new
 
         merged = scored.values.map { |s|
-          hybrid = fts_alpha * s[:fts_score] + sem_beta * s[:sem_score]
+          hybrid = s[:base_score]
           lang = s[:result][:language]
           hybrid *= LANG_BOOST if query_langs.include?(lang)
           book = s[:result][:book_slug]
@@ -266,13 +294,15 @@ module Search
 
           # Pericope topic boosting: if the verse falls within a pericope
           # whose name matches the query topic, boost it
-          ord = s[:result][:hierarchy]
           cref_id = s[:result][:canonical_ref_id]
           if pericope_ords[:ref_ids]&.include?(cref_id)
             hybrid *= PERICOPE_TOPIC_BOOST
           end
 
-          s[:result].merge(relevance: hybrid)
+          # Carry the original FTS relevance so the high-confidence pin
+          # below can detect phrase-bonus / alias matches regardless of
+          # which fusion strategy is active.
+          s[:result].merge(relevance: hybrid, _orig_fts_relevance: s[:fts_score])
         }.sort_by { |r| -r[:relevance] }
 
         # Deduplicate by passage identity — keep the best work_unit per
@@ -307,11 +337,18 @@ module Search
         # Pin alias matches and strong phrase matches at the top.
         # These are high-confidence results (user typed the exact text
         # or a known passage name) that should never be outranked by
-        # semantic similarity.
+        # any fusion-derived score. Use the *original* FTS relevance
+        # (pre-fusion) so the threshold is comparable across both RRF
+        # and weighted-blend modes — RRF's combined score is bounded
+        # in 0..~0.1 so the > 5.0 trip-wire would never fire otherwise.
         pinned, rest = deduped.partition { |r|
-          r[:alias_match] || r[:relevance].to_f > 5.0
+          r[:alias_match] || r[:_orig_fts_relevance].to_f > 5.0
         }
         deduped = pinned + rest
+
+        # Strip the temporary _orig_fts_relevance field before returning
+        # — internal-only, not part of the result-set contract.
+        deduped = deduped.map { |r| r.except(:_orig_fts_relevance) }
 
         # Paginate
         page_results = deduped.first(@per_page)

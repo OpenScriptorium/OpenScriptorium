@@ -34,6 +34,44 @@ namespace :eval do
     query_prompt = ENV["QUERY_PROMPT"] # e.g. "query" for Qwen3
     query_dim    = (ENV["QUERY_DIM"] || "0").to_i
 
+    # Reranking: if RERANK=1, after bi-encoder retrieval take the top-K
+    # candidates and re-order them with Search::Reranker (cross-encoder).
+    # The eval reports BOTH numbers — bi-encoder alone and post-rerank — so
+    # the lift is directly visible.
+    rerank = ENV["RERANK"] == "1"
+    rerank_top_k = (ENV["RERANK_TOP_K"] || "50").to_i
+    rerank_instruct = ENV["RERANK_INSTRUCT"] # nil → reranker default
+
+    # Two-pass rerank for offloading to a GPU box that doesn't have rails/DB:
+    #   Pass 1 (this box):  RERANK_INPUT_OUT=tmp/eval/rerank_input.jsonl
+    #     → after bi-encoder retrieval, dump (qid, query, top-K candidates)
+    #     to JSONL and exit before reranking.
+    #   Pass 2 (GPU box):   scripts/eval/rerank_audit_cuda.py reads the input
+    #     JSONL, scores each (query, doc) pair on CUDA, writes scored JSONL.
+    #   Pass 3 (this box):  RERANK_SCORES_IN=tmp/eval/rerank_output.jsonl
+    #     → load pre-computed scores instead of running the local reranker,
+    #     then compute metrics as if RERANK=1 had been used inline.
+    rerank_input_out = ENV["RERANK_INPUT_OUT"]
+    rerank_scores_in = ENV["RERANK_SCORES_IN"]
+
+    # RRF (Reciprocal Rank Fusion) hybrid retrieval.
+    # When RRF=1, also run the production FTS strategy (Search::Strategies::TextSearch)
+    # for each query and fuse its top-N with the bi-encoder top-N via RRF
+    # score = sum(1 / (k + rank_in_list)). The eval reports bi-encoder, FTS,
+    # and RRF metrics side-by-side so the lift from fusion is visible.
+    rrf = ENV["RRF"] == "1"
+    rrf_k = (ENV["RRF_K"] || "60").to_i
+    rrf_top_n_per_list = (ENV["RRF_TOP_N"] || "100").to_i
+    if rerank_scores_in
+      rerank = true # implicit
+    end
+    if rerank_input_out
+      # Dump-only mode: we still go through bi-encoder retrieval but emit the
+      # candidate list at the end and skip metric computation. RERANK doesn't
+      # need to be set; we'll force ourselves out before the rerank stage.
+      rerank = false
+    end
+
     # Allow MODEL_PATH=HuggingFace/id (no local file required)
     if File.exist?(model_path) || model_path.include?("/")
       # ok — local path or HF identifier
@@ -127,7 +165,10 @@ namespace :eval do
     raw = conn.raw_connection
     # Default hnsw.ef_search = 40 silently caps result count below LIMIT.
     # Raise it so retrieve_n requests can actually be filled.
-    raw.exec("SET hnsw.ef_search = #{[retrieve_n * 2, 1000].max}")
+    # ef_search needs to be ≥ retrieve_n to fill the LIMIT, but going much
+    # higher just costs latency. Floor at 100 to ensure recall for tiny K,
+    # otherwise scale linearly with retrieve_n.
+    raw.exec("SET hnsw.ef_search = #{[retrieve_n * 2, 100].max}")
 
     # Build the retrieval SQL once. Two cases:
     #  1) emb_table == 'work_units': vector lives on work_units directly,
@@ -136,7 +177,7 @@ namespace :eval do
     #     work_units on work_unit_id to fetch canonical_ref_id.
     if emb_table == "work_units"
       retrieval_sql = <<~SQL
-        SELECT canonical_ref_id
+        SELECT canonical_ref_id, body
         FROM work_units
         WHERE #{emb_column} IS NOT NULL
           AND canonical_ref_id IS NOT NULL
@@ -145,13 +186,51 @@ namespace :eval do
       SQL
     else
       retrieval_sql = <<~SQL
-        SELECT wu.canonical_ref_id
+        SELECT wu.canonical_ref_id, wu.body
         FROM #{emb_table} e
         JOIN work_units wu ON wu.id = e.work_unit_id
         WHERE wu.canonical_ref_id IS NOT NULL
         ORDER BY e.#{emb_column} <=> $1::vector
         LIMIT $2
       SQL
+    end
+
+    if rerank && rerank_scores_in.nil?
+      require Rails.root.join("app/services/search/reranker").to_s
+      unless Search::Reranker.instance.model_available?
+        abort "RERANK=1 but reranker model not found at #{Search::Reranker::MODEL_DIR}"
+      end
+      puts "  rerank: top-#{rerank_top_k} via Search::Reranker"
+      puts "  rerank instruct: #{rerank_instruct || '(default)'}"
+    end
+
+    # Pre-load CUDA-computed scores (Pass 3 of two-pass mode).
+    # File format: one JSON object per line: {"qid": "...", "scores": {"<rid>": <float>, ...}}
+    cuda_scores = nil
+    if rerank_scores_in
+      puts "  rerank: loading pre-computed scores from #{rerank_scores_in}"
+      cuda_scores = {}
+      File.foreach(rerank_scores_in) do |ln|
+        ln.strip!
+        next if ln.empty?
+        obj = JSON.parse(ln)
+        cuda_scores[obj["qid"]] = obj["scores"]
+      end
+      puts "  loaded scores for #{cuda_scores.size} queries"
+    end
+
+    # Pass-1 dump file (Pass 1 of two-pass mode).
+    rerank_dump_io = nil
+    if rerank_input_out
+      FileUtils.mkdir_p(File.dirname(rerank_input_out))
+      rerank_dump_io = File.open(rerank_input_out, "w")
+      puts "  rerank: dumping top-#{rerank_top_k} candidates per query → #{rerank_input_out}"
+    end
+
+    if rrf
+      require Rails.root.join("app/services/search/strategies/text_search").to_s
+      require Rails.root.join("app/services/search/result_set").to_s
+      puts "  rrf: hybrid retrieval (bi-encoder + FTS), top-#{rrf_top_n_per_list} per list, k=#{rrf_k}"
     end
 
     per_query_results = []
@@ -167,31 +246,104 @@ namespace :eval do
       result = raw.exec_params(retrieval_sql, [vec_text, retrieve_n])
 
       seen = {}
-      ranked_refs = []
+      ranked = [] # array of {rid:, body:}
       result.each do |row|
         rid = row["canonical_ref_id"].to_i
         next if seen[rid]
         seen[rid] = true
-        ranked_refs << rid
+        ranked << { rid: rid, body: row["body"] }
       end
 
-      ranked_refs = ranked_refs.first(100)
-      relevant   = concept[:relevant]
+      ranked = ranked.first(100)
+      bi_refs = ranked.map { |r| r[:rid] }
+      relevant = concept[:relevant]
 
-      hits_at_k = 0
-      first_hit_rank = nil
-      dcg = 0.0
-      ranked_refs.first(k).each_with_index do |rid, idx|
-        if (role = relevant[rid])
-          hits_at_k += 1
-          first_hit_rank ||= idx + 1
-          gain = ROLE_WEIGHTS[role] || 0.5
-          dcg += gain / Math.log2(idx + 2.0)
+      score_at_k = ->(refs) {
+        hits_at_k = 0
+        first_hit_rank = nil
+        dcg = 0.0
+        refs.first(k).each_with_index do |rid, idx|
+          if (role = relevant[rid])
+            hits_at_k += 1
+            first_hit_rank ||= idx + 1
+            gain = ROLE_WEIGHTS[role] || 0.5
+            dcg += gain / Math.log2(idx + 2.0)
+          end
         end
+        ideal_gains = relevant.values.map { |r| ROLE_WEIGHTS[r] || 0.5 }.sort.reverse.first(k)
+        idcg = ideal_gains.each_with_index.sum { |g, i| g / Math.log2(i + 2.0) }
+        {
+          hits_at_k: hits_at_k,
+          first_hit_rank: first_hit_rank,
+          recall_at_k: relevant.empty? ? 0.0 : (hits_at_k.to_f / relevant.size),
+          rr: first_hit_rank ? (1.0 / first_hit_rank) : 0.0,
+          ndcg_at_k: idcg.zero? ? 0.0 : (dcg / idcg),
+        }
+      }
+
+      bi_metrics = score_at_k.call(bi_refs)
+
+      # FTS + RRF (optional). Calls the production text-search strategy and
+      # fuses with the bi-encoder list using reciprocal rank fusion.
+      fts_metrics = nil
+      rrf_metrics = nil
+      fts_refs = nil
+      rrf_refs = nil
+      if rrf
+        ts = Search::Strategies::TextSearch.new(q[:text], per_page: rrf_top_n_per_list).call
+        fts_refs = ts.results.map { |r| r[:canonical_ref_id] }.compact.uniq
+        fts_metrics = score_at_k.call(fts_refs)
+
+        # RRF score = sum(1 / (k + rank_in_list)) over both lists.
+        # Items present in both rise to the top — that's the whole point.
+        rrf_scores = Hash.new(0.0)
+        bi_refs.first(rrf_top_n_per_list).each_with_index { |rid, i| rrf_scores[rid] += 1.0 / (rrf_k + i + 1) }
+        fts_refs.first(rrf_top_n_per_list).each_with_index { |rid, i| rrf_scores[rid] += 1.0 / (rrf_k + i + 1) }
+        rrf_refs = rrf_scores.sort_by { |_, s| -s }.map(&:first)
+        rrf_metrics = score_at_k.call(rrf_refs)
       end
 
-      ideal_gains = relevant.values.map { |r| ROLE_WEIGHTS[r] || 0.5 }.sort.reverse.first(k)
-      idcg = ideal_gains.each_with_index.sum { |g, i| g / Math.log2(i + 2.0) }
+      # Pass-1 dump: write candidates and skip rerank/metrics for this query.
+      if rerank_dump_io
+        head = ranked.first(rerank_top_k)
+        rerank_dump_io.puts({
+          qid: qid,
+          query: q[:text],
+          candidates: head.map { |r| { rid: r[:rid], body: r[:body].to_s } },
+        }.to_json)
+        n_done += 1
+        if n_done % 100 == 0
+          $stdout.print "\r  dumped #{n_done}/#{queries.size}"
+          $stdout.flush
+        end
+        next
+      end
+
+      rr_metrics = nil
+      rr_refs = nil
+      if rerank
+        head = ranked.first(rerank_top_k)
+        tail = ranked.drop(rerank_top_k)
+        scores = nil
+        if cuda_scores
+          # Pass-3 mode: look up scores in the loaded JSONL by rid.
+          q_scores = cuda_scores[qid] || {}
+          scores = head.map { |r| q_scores[r[:rid].to_s] }
+        else
+          bodies = head.map { |r| r[:body].to_s }
+          kwargs = rerank_instruct ? { instruct: rerank_instruct } : {}
+          scores = Search::Reranker.instance.score(q[:text], bodies, **kwargs)
+        end
+        # If reranker errored (returns nils), fall back to bi-encoder order.
+        if scores.compact.size == scores.size
+          reranked_head = head.zip(scores).sort_by { |_, s| -s }.map(&:first)
+        else
+          reranked_head = head
+        end
+        rr_ranked = reranked_head + tail
+        rr_refs = rr_ranked.map { |r| r[:rid] }
+        rr_metrics = score_at_k.call(rr_refs)
+      end
 
       per_query_results << {
         qid: qid,
@@ -201,12 +353,32 @@ namespace :eval do
         variant: q[:variant],
         text: q[:text],
         n_relevant: relevant.size,
-        hits_at_k: hits_at_k,
-        first_hit_rank: first_hit_rank,
-        recall_at_k: relevant.empty? ? 0.0 : (hits_at_k.to_f / relevant.size),
-        rr: first_hit_rank ? (1.0 / first_hit_rank) : 0.0,
-        ndcg_at_k: idcg.zero? ? 0.0 : (dcg / idcg),
-        top_k_refs: ranked_refs.first(k),
+        # Bi-encoder metrics (what the existing eval reported)
+        hits_at_k: bi_metrics[:hits_at_k],
+        first_hit_rank: bi_metrics[:first_hit_rank],
+        recall_at_k: bi_metrics[:recall_at_k],
+        rr: bi_metrics[:rr],
+        ndcg_at_k: bi_metrics[:ndcg_at_k],
+        top_k_refs: bi_refs.first(k),
+        # Post-rerank metrics (only present if RERANK=1)
+        rr_hits_at_k: rr_metrics&.dig(:hits_at_k),
+        rr_first_hit_rank: rr_metrics&.dig(:first_hit_rank),
+        rr_recall_at_k: rr_metrics&.dig(:recall_at_k),
+        rr_rr: rr_metrics&.dig(:rr),
+        rr_ndcg_at_k: rr_metrics&.dig(:ndcg_at_k),
+        rr_top_k_refs: rr_refs&.first(k),
+        # FTS-only metrics (only present if RRF=1)
+        fts_hits_at_k: fts_metrics&.dig(:hits_at_k),
+        fts_first_hit_rank: fts_metrics&.dig(:first_hit_rank),
+        fts_recall_at_k: fts_metrics&.dig(:recall_at_k),
+        fts_rr: fts_metrics&.dig(:rr),
+        fts_ndcg_at_k: fts_metrics&.dig(:ndcg_at_k),
+        # RRF (bi+FTS fusion) metrics (only present if RRF=1)
+        rrf_hits_at_k: rrf_metrics&.dig(:hits_at_k),
+        rrf_first_hit_rank: rrf_metrics&.dig(:first_hit_rank),
+        rrf_recall_at_k: rrf_metrics&.dig(:recall_at_k),
+        rrf_rr: rrf_metrics&.dig(:rr),
+        rrf_ndcg_at_k: rrf_metrics&.dig(:ndcg_at_k),
       }
 
       n_done += 1
@@ -220,12 +392,19 @@ namespace :eval do
     wait.join
     puts "\n  scored #{n_done} queries"
 
+    if rerank_dump_io
+      rerank_dump_io.close
+      puts "Dumped #{n_done} queries × top-#{rerank_top_k} candidates → #{rerank_input_out}"
+      puts "Next: scp the file + the reranker model to the GPU box, run scripts/eval/rerank_audit_cuda.py, scp scores back, then re-run with RERANK_SCORES_IN=<scored.jsonl>"
+      exit 0
+    end
+
     # Per-concept aggregation: best-of-variants (closest to "user phrasing wins")
     by_concept = per_query_results.group_by { |r| r[:concept_id] }
     concept_metrics = by_concept.map do |cid, results|
       best = results.max_by { |r| r[:rr] }
       name_q = results.find { |r| r[:variant] == "name" }
-      {
+      m = {
         concept_id: cid,
         concept_name: concepts[cid][:name],
         kind: concepts[cid][:kind],
@@ -238,6 +417,34 @@ namespace :eval do
         name_recall: name_q ? name_q[:recall_at_k] : 0.0,
         name_ndcg: name_q ? name_q[:ndcg_at_k] : 0.0,
       }
+      if rerank
+        rr_best = results.max_by { |r| r[:rr_rr] || 0.0 }
+        m[:rr_best_rr]     = rr_best[:rr_rr] || 0.0
+        m[:rr_best_recall] = rr_best[:rr_recall_at_k] || 0.0
+        m[:rr_best_ndcg]   = rr_best[:rr_ndcg_at_k] || 0.0
+        m[:rr_name_rr]     = name_q ? (name_q[:rr_rr] || 0.0) : 0.0
+        m[:rr_name_recall] = name_q ? (name_q[:rr_recall_at_k] || 0.0) : 0.0
+        m[:rr_name_ndcg]   = name_q ? (name_q[:rr_ndcg_at_k] || 0.0) : 0.0
+      end
+      if rrf
+        # FTS-only
+        fts_best = results.max_by { |r| r[:fts_rr] || 0.0 }
+        m[:fts_best_rr]     = fts_best[:fts_rr] || 0.0
+        m[:fts_best_recall] = fts_best[:fts_recall_at_k] || 0.0
+        m[:fts_best_ndcg]   = fts_best[:fts_ndcg_at_k] || 0.0
+        m[:fts_name_rr]     = name_q ? (name_q[:fts_rr] || 0.0) : 0.0
+        m[:fts_name_recall] = name_q ? (name_q[:fts_recall_at_k] || 0.0) : 0.0
+        m[:fts_name_ndcg]   = name_q ? (name_q[:fts_ndcg_at_k] || 0.0) : 0.0
+        # RRF (bi+FTS fusion)
+        rrf_best = results.max_by { |r| r[:rrf_rr] || 0.0 }
+        m[:rrf_best_rr]     = rrf_best[:rrf_rr] || 0.0
+        m[:rrf_best_recall] = rrf_best[:rrf_recall_at_k] || 0.0
+        m[:rrf_best_ndcg]   = rrf_best[:rrf_ndcg_at_k] || 0.0
+        m[:rrf_name_rr]     = name_q ? (name_q[:rrf_rr] || 0.0) : 0.0
+        m[:rrf_name_recall] = name_q ? (name_q[:rrf_recall_at_k] || 0.0) : 0.0
+        m[:rrf_name_ndcg]   = name_q ? (name_q[:rrf_ndcg_at_k] || 0.0) : 0.0
+      end
+      m
     end
 
     by_kind = concept_metrics.group_by { |c| c[:kind] }
@@ -249,6 +456,7 @@ namespace :eval do
     puts "  Concepts:   #{concept_metrics.size}"
     puts "  Variants:   #{queries.size}"
     puts "  Retrieved:  top-#{retrieve_n} work_units, dedupe → top-100 canonical_refs"
+    puts "  Rerank:     #{rerank ? "top-#{rerank_top_k} via Search::Reranker" : 'off'}"
     puts "=" * 78
     puts
 
@@ -256,14 +464,17 @@ namespace :eval do
     puts fmt % %w[kind n MRR(name) MRR(best) R@10(name) R@10(best) NDCG(name) NDCG(best)]
     puts "-" * 78
 
-    print_row = ->(label, group) {
+    # Print one metric row. `prefix` is "" (bi-encoder), "rr_" (rerank),
+    # "fts_" (FTS only), or "rrf_" (RRF fusion). Handles missing keys
+    # (when a sub-metric wasn't computed) by using 0.0 fallback.
+    print_row = ->(label, group, prefix: "") {
       n = group.size
-      mrr_name = group.sum { |c| c[:name_rr] } / n
-      mrr_best = group.sum { |c| c[:best_rr] } / n
-      rec_name = group.sum { |c| c[:name_recall] } / n
-      rec_best = group.sum { |c| c[:best_recall] } / n
-      ndcg_name = group.sum { |c| c[:name_ndcg] } / n
-      ndcg_best = group.sum { |c| c[:best_ndcg] } / n
+      mrr_name  = group.sum { |c| (c[:"#{prefix}name_rr"]     || 0.0) } / n
+      mrr_best  = group.sum { |c| (c[:"#{prefix}best_rr"]     || 0.0) } / n
+      rec_name  = group.sum { |c| (c[:"#{prefix}name_recall"] || 0.0) } / n
+      rec_best  = group.sum { |c| (c[:"#{prefix}best_recall"] || 0.0) } / n
+      ndcg_name = group.sum { |c| (c[:"#{prefix}name_ndcg"]   || 0.0) } / n
+      ndcg_best = group.sum { |c| (c[:"#{prefix}best_ndcg"]   || 0.0) } / n
       puts fmt % [label, n,
                   format("%.4f", mrr_name), format("%.4f", mrr_best),
                   format("%.4f", rec_name), format("%.4f", rec_best),
@@ -277,6 +488,62 @@ namespace :eval do
     print_row.call("ALL", concept_metrics)
     puts
 
+    if rerank
+      puts "=" * 78
+      puts "POST-RERANK (top-#{rerank_top_k} reranked, then top-100)"
+      puts "=" * 78
+      puts fmt % %w[kind n MRR(name) MRR(best) R@10(name) R@10(best) NDCG(name) NDCG(best)]
+      puts "-" * 78
+      by_kind.sort_by { |kind, _| kind.to_s }.each do |kind, group|
+        print_row.call(kind, group, prefix: "rr_")
+      end
+      puts "-" * 78
+      print_row.call("ALL", concept_metrics, prefix: "rr_")
+      puts
+
+      # Lift summary
+      n_all = concept_metrics.size
+      bi_mrr = concept_metrics.sum { |c| c[:best_rr] } / n_all
+      rr_mrr = concept_metrics.sum { |c| c[:rr_best_rr] } / n_all
+      bi_ndcg = concept_metrics.sum { |c| c[:best_ndcg] } / n_all
+      rr_ndcg = concept_metrics.sum { |c| c[:rr_best_ndcg] } / n_all
+      pp_mrr  = (rr_mrr - bi_mrr) * 100
+      pp_ndcg = (rr_ndcg - bi_ndcg) * 100
+      puts "LIFT (best-of-variants):  MRR  %+.2f pp   NDCG %+.2f pp" % [pp_mrr, pp_ndcg]
+      puts
+    end
+
+    if rrf
+      [["FTS-ONLY (production text-search strategy)", "fts_"],
+       ["RRF FUSION (bi-encoder ⊕ FTS, k=#{rrf_k}, top-#{rrf_top_n_per_list} per list)", "rrf_"]].each do |title, prefix|
+        puts "=" * 78
+        puts title
+        puts "=" * 78
+        puts fmt % %w[kind n MRR(name) MRR(best) R@10(name) R@10(best) NDCG(name) NDCG(best)]
+        puts "-" * 78
+        by_kind.sort_by { |kind, _| kind.to_s }.each do |kind, group|
+          print_row.call(kind, group, prefix: prefix)
+        end
+        puts "-" * 78
+        print_row.call("ALL", concept_metrics, prefix: prefix)
+        puts
+      end
+
+      # Lift summary
+      n_all = concept_metrics.size
+      bi_mrr  = concept_metrics.sum { |c| c[:best_rr] } / n_all
+      fts_mrr = concept_metrics.sum { |c| c[:fts_best_rr] } / n_all
+      rrf_mrr = concept_metrics.sum { |c| c[:rrf_best_rr] } / n_all
+      bi_ndcg  = concept_metrics.sum { |c| c[:best_ndcg] } / n_all
+      fts_ndcg = concept_metrics.sum { |c| c[:fts_best_ndcg] } / n_all
+      rrf_ndcg = concept_metrics.sum { |c| c[:rrf_best_ndcg] } / n_all
+      puts "LIFT (best-of-variants):"
+      puts "  bi-encoder → FTS    MRR  %+.2f pp   NDCG %+.2f pp" % [(fts_mrr - bi_mrr) * 100, (fts_ndcg - bi_ndcg) * 100]
+      puts "  bi-encoder → RRF    MRR  %+.2f pp   NDCG %+.2f pp" % [(rrf_mrr - bi_mrr) * 100, (rrf_ndcg - bi_ndcg) * 100]
+      puts "  FTS        → RRF    MRR  %+.2f pp   NDCG %+.2f pp" % [(rrf_mrr - fts_mrr) * 100, (rrf_ndcg - fts_ndcg) * 100]
+      puts
+    end
+
     # Persist
     File.open(out_path, "w") do |f|
       f.puts({
@@ -284,6 +551,10 @@ namespace :eval do
           model_path: model_path, device: device, k: k,
           retrieve_n: retrieve_n, ts: Time.now.iso8601,
           n_concepts: concept_metrics.size, n_queries: queries.size,
+          emb_table: emb_table, emb_column: emb_column,
+          query_prompt: query_prompt, query_dim: query_dim,
+          rerank: rerank, rerank_top_k: rerank ? rerank_top_k : nil,
+          rerank_instruct: rerank ? (rerank_instruct || Search::Reranker::DEFAULT_INSTRUCT) : nil,
         }
       }.to_json)
       per_query_results.each { |r| f.puts(r.to_json) }

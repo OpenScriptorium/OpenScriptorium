@@ -258,11 +258,27 @@ The reranker is structurally simpler for ONNX export (single classification head
 
 **Phase 1 — cheap, immediate (~1 week):**
 
-1. Swap bi-encoder to Qwen3-Embedding-0.6B in production. **+26 pp MRR** demonstrated.
-2. RRF hybrid (BM25 / `pg_search` FTS + Qwen3 dense). Expect **+3 to +8 pp** on title/topic literal-overlap categories.
-3. Wire Qwen3-Reranker-0.6B with Hotwire progressive UX. Expect **+10 to +20 pp** on hardest categories (`event`, `place`, `parable`). The single biggest quality lever after the bi-encoder swap.
+1. ✅ **DONE 2026-04-25:** Bi-encoder → Qwen3-Embedding-0.6B in production. **+26 pp MRR** demonstrated.
+2. ✅ **DONE 2026-04-26:** RRF hybrid retrieval (Qwen3 dense ⊕ `pg_search` FTS). **+7.83 pp MRR / +3.18 pp NDCG** measured on 355 concepts × 2585 query variants. See [Audit results](#audit-rrf-2026-04-26) below.
+3. ❌ **Wire Qwen3-Reranker-0.6B with Hotwire progressive UX** — **shelved 2026-04-26**. Reranker is decoder-style (full LLM forward pass at inference) and runs at 1-3 sec per (query, doc) pair on the prod 2 vCPU x86 VPS — top-50 rerank = 50-150 sec per search even with progressive UX. Not shippable. If pursuing reranking later, switch to encoder-style cross-encoder (`bge-reranker-base`, 110M params, ~50 ms/pair on CPU) on top of RRF.
 
 Expected after Phase 1: MRR(name) ~0.55–0.65, MRR(best) ~0.85+. From the current 0.12 / 0.27.
+
+#### Audit: RRF 2026-04-26
+
+Held-out eval against `search_concepts` curated theme→verse pairs (355 concepts, 2585 query variants including aliases). Fusion: `score(d) = Σ 1/(k + rank_L(d))` over both ranked lists, k=60.
+
+| Strategy | MRR(name) | MRR(best) | NDCG(best) |
+|---|---|---|---|
+| Bi-encoder alone (Qwen3) | 0.3528 | 0.7519 | 0.4236 |
+| FTS alone | 0.2556 | 0.7107 | 0.3843 |
+| **RRF (bi ⊕ FTS, k=60)** | **0.3971** | **0.8301** | **0.4554** |
+
+**Lift over bi-encoder:** +7.83 pp MRR(best), +3.18 pp NDCG(best). Per-category MRR(best): `attribute` 86.7→**100.0**, `event` 66.8→**78.3**, `place` 72.5→**81.5**, `title` 85.6→**93.9**.
+
+Reproducible via `RRF=1 EMB_TABLE=work_unit_embeddings_qwen3_06b EMB_COLUMN=embedding QUERY_PROMPT=query MODEL_PATH=Qwen/Qwen3-Embedding-0.6B bin/rails eval:thematic`.
+
+Implementation: `Search::Strategies::SemanticMerge` runs the prod FTS + dense retrievals as before, then fuses ranks via RRF instead of the legacy α·fts + β·sem weighted blend. Existing boosts (LANG, TESTAMENT, person, pericope) and pins (alias_match, phrase-bonus FTS) layer on top of the RRF score. Rollback knob: `SEARCH_FUSION=weighted` (no redeploy needed).
 
 **Phase 2 — more work, more headroom (~2 weeks):**
 
@@ -288,6 +304,24 @@ Expected after Phase 3: MRR(name) ~0.75–0.80, comparable to commercial RAG.
 `Qwen3-Reranker-0.6B`, top-50, batched, int8: ~1–2 s on 2 vCPU. With progressive UX (initial bi-encoder paint in ~200 ms, reranked list streams in via Turbo Stream when SolidQueue job finishes), perceived latency is fine.
 
 If query volume grows past CPU saturation, fall back to `bge-reranker-base` (110M, ~200–500 ms) or move reranker to a sibling box. Phase 1 explicitly does NOT need the bigger Qwen3-Reranker-4B/8B.
+
+### Known data bugs (TODO)
+
+- **Greek lemma duplicates from polytonic Unicode codepoints.** Some lemmas
+  exist as two rows: one using deprecated precomposed polytonic codepoints
+  (e.g. U+1F79 `OMICRON WITH OXIA`) and one using the modern monotonic
+  codepoint (U+03CC `OMICRON WITH TONOS`). They look identical on screen
+  but have different byte sequences. Example found 2026-04-26: `θρόνος`
+  exists at lemma id 527 (freq 304) and id 15161 (freq 62). Both decompose
+  to the same NFD sequence, so NFC normalization would collapse them.
+
+  Fix path: NFC-normalize `lemmas.lemma` and `words.surface` at import time
+  (`text.unicode_normalize(:nfc)`). One-time migration to merge existing
+  duplicates: walk every NFC-equivalent group, move all `words.lemma_id`
+  references to one canonical id, sum frequencies, delete the others. Add
+  a unique index on `lemmas (lemma, language)` after merge so this can't
+  recur. Probably affects every polytonic Greek lemma with the deprecated
+  precomposed form, not just `θρόνος`.
 
 ### Side tables (model race infra)
 
