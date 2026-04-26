@@ -53,7 +53,7 @@ append :linked_dirs,
 # -----------------------------------------------------------------------------
 # Use the same Ruby that's installed on the server via rbenv.
 set :rbenv_type,        :user
-set :rbenv_ruby,        "3.4.8"
+set :rbenv_ruby,        "3.4.9"
 set :rbenv_prefix,      "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
 set :rbenv_map_bins,    %w[rake gem bundle ruby rails puma pumactl]
 set :rbenv_roles,       :all
