@@ -172,11 +172,11 @@ module Search
         rows = conn.select_all(<<~SQL)
           SELECT p.id, p.name, p.canonical_work_id, p.canonical_range,
                  cw.book_key, cw.title as book_title,
-                 1 - (p.name_embedding <=> '#{vector_literal}'::vector) AS similarity
+                 1 - (p.name_embedding_qwen3 <=> '#{vector_literal}'::vector) AS similarity
           FROM pericopes p
           JOIN canonical_works cw ON cw.id = p.canonical_work_id
-          WHERE p.name_embedding IS NOT NULL
-          ORDER BY p.name_embedding <=> '#{vector_literal}'::vector
+          WHERE p.name_embedding_qwen3 IS NOT NULL
+          ORDER BY p.name_embedding_qwen3 <=> '#{vector_literal}'::vector
           LIMIT #{MAX_PERICOPES}
         SQL
 

@@ -151,6 +151,9 @@ module Search
         # drop language filter — embeddings are cross-lingual by design
         scope_sql = build_scope_sql(conn, skip_language: true)
 
+        # Vectors live in the per-model side table `work_unit_embeddings_qwen3_06b`
+        # (vector(1024)). Join to work_units on work_unit_id; HNSW index on
+        # the side table's embedding column powers the ORDER BY.
         rows = conn.select_all(<<~SQL)
           SELECT wu.id,
                  wu.body,
@@ -163,15 +166,16 @@ module Search
                  cr.ord,
                  l.name AS license,
                  cw.book_key,
-                 1 - (wu.body_embedding <=> '#{vector_literal}'::vector) AS similarity
-          FROM work_units wu
+                 1 - (e.embedding <=> '#{vector_literal}'::vector) AS similarity
+          FROM work_unit_embeddings_qwen3_06b e
+          JOIN work_units wu ON wu.id = e.work_unit_id
           JOIN works w ON w.id = wu.work_id
           JOIN canonical_refs cr ON cr.id = wu.canonical_ref_id
           JOIN canonical_works cw ON cw.id = cr.canonical_work_id
           JOIN licenses l ON l.id = w.license_id
-          WHERE wu.body_embedding IS NOT NULL
+          WHERE 1=1
             #{scope_sql}
-          ORDER BY wu.body_embedding <=> '#{vector_literal}'::vector
+          ORDER BY e.embedding <=> '#{vector_literal}'::vector
           LIMIT #{SEM_LIMIT}
         SQL
 

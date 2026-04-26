@@ -46,6 +46,7 @@ append :linked_dirs,
   "storage",
   ".bundle",
   "vendor/bundle",
+  "vendor/models",  # ONNX models for embedding inference (~1.1 GB Qwen3-Embedding fp16)
   "node_modules"
 
 # -----------------------------------------------------------------------------

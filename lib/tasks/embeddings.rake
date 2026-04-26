@@ -3,60 +3,93 @@ namespace :embeddings do
   task encode_corpus: :environment do
     model_path = ENV.fetch("MODEL_PATH", Rails.root.join("tmp/embedding_model").to_s)
     batch_size = ENV.fetch("BATCH_SIZE", "256").to_i
+    device     = ENV.fetch("DEVICE", "mps")
+    flush_size = ENV.fetch("FLUSH_SIZE", "5000").to_i
 
     abort "Model not found at #{model_path}" unless File.exist?(model_path)
 
-    puts "Loading model from #{model_path}..."
+    puts "Loading model from #{model_path} on #{device}..."
 
-    # Use Python to batch-encode, writing vectors back via a pipe
     require "open3"
-    require "json"
 
+    # Python writes vectors as the literal pgvector text format `[v1,v2,...]`
+    # so they can be COPY'd straight into the staging table — no JSON parse.
     script = <<~PYTHON
-      import sys, json
+      import sys
       from sentence_transformers import SentenceTransformer
-      import numpy as np
 
-      model = SentenceTransformer(sys.argv[1])
+      model = SentenceTransformer(sys.argv[1], device=sys.argv[3])
       batch_size = int(sys.argv[2])
-      sys.stderr.write("ready\\n")
+      sys.stderr.write(f"ready (device={model.device})\\n")
       sys.stderr.flush()
 
-      batch_ids = []
-      batch_texts = []
+      ids, texts = [], []
+
+      def flush_encode():
+          if not ids:
+              return
+          vecs = model.encode(
+              texts, batch_size=batch_size, show_progress_bar=False
+          ).tolist()
+          out = sys.stdout
+          for uid, vec in zip(ids, vecs):
+              out.write(uid)
+              out.write("\\t[")
+              out.write(",".join(f"{v:.6f}" for v in vec))
+              out.write("]\\n")
+          out.flush()
+          ids.clear(); texts.clear()
 
       for line in sys.stdin:
-          line = line.strip()
-          if not line:
+          line = line.rstrip("\\n")
+          sep = line.find("\\t")
+          if sep < 0:
               continue
-          parts = line.split("\\t", 1)
-          if len(parts) != 2:
-              continue
-          batch_ids.append(parts[0])
-          batch_texts.append(parts[1])
-
-          if len(batch_ids) >= batch_size:
-              vecs = model.encode(batch_texts).tolist()
-              for uid, vec in zip(batch_ids, vecs):
-                  print(f"{uid}\\t{json.dumps(vec)}", flush=True)
-              batch_ids = []
-              batch_texts = []
-
-      # Flush remaining
-      if batch_ids:
-          vecs = model.encode(batch_texts).tolist()
-          for uid, vec in zip(batch_ids, vecs):
-              print(f"{uid}\\t{json.dumps(vec)}", flush=True)
+          ids.append(line[:sep])
+          texts.append(line[sep + 1:])
+          if len(ids) >= batch_size:
+              flush_encode()
+      flush_encode()
 
       sys.stderr.write("done\\n")
       sys.stderr.flush()
     PYTHON
 
+    conn = ActiveRecord::Base.connection
+    raw  = conn.raw_connection
+
+    # Drop the HNSW index for the duration — per-row index maintenance is the
+    # dominant cost on bulk UPDATE. Captured DDL is replayed at the end.
+    index_row = conn.select_one(<<~SQL)
+      SELECT indexname, indexdef
+      FROM pg_indexes
+      WHERE tablename = 'work_units'
+        AND indexname = 'idx_work_units_body_embedding_hnsw'
+    SQL
+
+    if index_row
+      puts "Dropping HNSW index #{index_row['indexname']} (rebuilt at end)..."
+      conn.execute("DROP INDEX IF EXISTS #{conn.quote_column_name(index_row['indexname'])}")
+    end
+
+    conn.execute("DROP TABLE IF EXISTS tmp_embedding_staging")
+    conn.execute(<<~SQL)
+      CREATE UNLOGGED TABLE tmp_embedding_staging (
+        id BIGINT PRIMARY KEY,
+        embedding vector(768)
+      )
+    SQL
+
+    total = conn.select_value(<<~SQL).to_i
+      SELECT COUNT(*) FROM work_units
+      WHERE body IS NOT NULL AND body != '' AND body != '⸂ ⸃'
+    SQL
+    puts "Encoding #{total} work_units (flush every #{flush_size})..."
+
     stdin, stdout, stderr, wait_thread = Open3.popen3(
-      "python3", "-c", script, model_path, batch_size.to_s
+      "python3", "-c", script, model_path, batch_size.to_s, device
     )
 
-    # Wait for model to load
     loop do
       line = stderr.gets
       break if line&.include?("ready")
@@ -64,59 +97,223 @@ namespace :embeddings do
     end
     puts "Model loaded. Encoding corpus..."
 
-    conn = ActiveRecord::Base.connection
-    total = conn.select_value("SELECT COUNT(*) FROM work_units WHERE body IS NOT NULL AND body != '' AND body != '⸂ ⸃'").to_i
     encoded = 0
-    db_batch = []
-    db_batch_size = 500
+    start   = Time.now
 
-    flush_embeddings = ->(c, b) {
-      values = b.map { |id, vec| "(#{id}, '#{vec}'::vector)" }.join(", ")
-      c.execute(<<~SQL)
+    flush_to_db = lambda do |rows|
+      return if rows.empty?
+      raw.exec("TRUNCATE tmp_embedding_staging")
+      raw.copy_data("COPY tmp_embedding_staging (id, embedding) FROM STDIN") do
+        rows.each { |line| raw.put_copy_data(line) }
+      end
+      raw.exec(<<~SQL)
         UPDATE work_units AS wu
-        SET body_embedding = v.embedding
-        FROM (VALUES #{values}) AS v(id, embedding)
-        WHERE wu.id = v.id
+        SET body_embedding = s.embedding
+        FROM tmp_embedding_staging s
+        WHERE wu.id = s.id
       SQL
-    }
+    end
 
-    # Stream work_units to the Python process
+    # Reader thread uses its own AR connection so it doesn't share libpq state
+    # with the main thread doing COPY/UPDATE.
     writer = Thread.new do
-      conn.select_all(
-        "SELECT id, body FROM work_units WHERE body IS NOT NULL AND body != '' AND body != '⸂ ⸃' ORDER BY id"
-      ).each do |row|
-        text = row["body"].to_s.gsub(/[\n\r\t]/, " ").strip
-        next if text.empty?
-        stdin.puts "#{row['id']}\t#{text}"
+      ActiveRecord::Base.connection_pool.with_connection do |c|
+        c.select_all(<<~SQL).each do |row|
+          SELECT id, body FROM work_units
+          WHERE body IS NOT NULL AND body != '' AND body != '⸂ ⸃'
+          ORDER BY id
+        SQL
+          text = row["body"].to_s.gsub(/[\n\r\t]/, " ").strip
+          next if text.empty?
+          stdin.puts "#{row['id']}\t#{text}"
+        end
       end
       stdin.close
     end
 
-    # Read vectors back and batch-update the database
-    while (line = stdout.gets)
-      parts = line.strip.split("\t", 2)
-      next unless parts.size == 2
+    begin
+      buffer = []
+      while (line = stdout.gets)
+        next unless line.include?("\t")
+        buffer << line
+        if buffer.size >= flush_size
+          flush_to_db.call(buffer)
+          encoded += buffer.size
+          buffer = []
+          elapsed = Time.now - start
+          rate    = elapsed.positive? ? (encoded / elapsed) : 0
+          eta_min = rate.positive? ? ((total - encoded) / rate / 60.0) : 0
+          $stdout.print "\r  Encoded #{encoded}/#{total} " \
+                        "(#{(encoded * 100.0 / total).round(1)}%)  " \
+                        "#{rate.round(0)} rows/s  eta #{eta_min.round(1)} min"
+          $stdout.flush
+        end
+      end
+      flush_to_db.call(buffer) if buffer.any?
+      encoded += buffer.size
 
-      db_batch << [parts[0].to_i, parts[1]]
+      writer.join
+      wait_thread.join
+      puts "\n  Done: #{encoded} encoded in #{(Time.now - start).round(0)}s"
+    ensure
+      conn.execute("DROP TABLE IF EXISTS tmp_embedding_staging")
+      if index_row
+        puts "Rebuilding HNSW index..."
+        rebuild_t0 = Time.now
+        conn.execute(index_row['indexdef'])
+        puts "  Rebuilt in #{(Time.now - rebuild_t0).round(0)}s"
+      end
+    end
+  end
 
-      if db_batch.size >= db_batch_size
-        flush_embeddings.(conn, db_batch)
-        encoded += db_batch.size
-        db_batch = []
-        $stdout.print "\r  Encoded #{encoded}/#{total} (#{(encoded * 100.0 / total).round(1)}%)"
+  desc "Encode all pericope names with Qwen3-Embedding (in-process Ruby ONNX); fills pericopes.name_embedding_qwen3"
+  task encode_pericopes_qwen3: :environment do
+    require_relative "../../app/services/search/embedding_encoder"
+
+    encoder = Search::EmbeddingEncoder.instance
+    abort "model not found at #{Search::EmbeddingEncoder::MODEL_DIR}" unless encoder.model_available?
+
+    total = Pericope.count
+    todo  = Pericope.where(name_embedding_qwen3: nil).count
+    puts "Pericopes: #{total} total, #{todo} to encode."
+
+    if todo.zero?
+      puts "All pericopes already encoded; nothing to do."
+      next
+    end
+
+    encoded = 0
+    failed = 0
+    t0 = Time.now
+
+    # Encode as DOCUMENTS (no Instruct prefix) so the indexed form matches
+    # what queries (with prefix) will retrieve at search time.
+    Pericope.where(name_embedding_qwen3: nil).find_each do |p|
+      vec = encoder.encode(p.name, prompt: :document)
+      if vec.nil?
+        failed += 1
+        next
+      end
+      vec_literal = "[#{vec.join(',')}]"
+      Pericope.connection.exec_update(
+        "UPDATE pericopes SET name_embedding_qwen3 = $1::vector WHERE id = $2",
+        "encode_pericopes_qwen3",
+        [vec_literal, p.id]
+      )
+      encoded += 1
+      if encoded % 200 == 0
+        rate = encoded / (Time.now - t0)
+        $stdout.print "\r  encoded #{encoded}/#{todo}  #{rate.round(1)} rows/s"
         $stdout.flush
       end
     end
+    puts "\nDone in #{(Time.now - t0).round(1)}s. encoded=#{encoded}, failed=#{failed}."
+  end
 
-    # Flush remaining
-    if db_batch.any?
-      flush_embeddings.(conn, db_batch)
-      encoded += db_batch.size
+  desc "Bulk-import (id, vector) TSV into a per-model side table (work_unit_embeddings_<slug>); build HNSW after"
+  task :import_side, [:slug, :dim, :path] => :environment do |_, args|
+    slug = args[:slug] || ENV["SLUG"] or abort("usage: rake 'embeddings:import_side[<slug>,<dim>,<path>]'")
+    dim  = (args[:dim] || ENV["DIM"]).to_i
+    abort "dim required (e.g. 1024)" if dim.zero?
+    path = args[:path] || ENV["EMBEDDINGS_PATH"] || Rails.root.join("tmp/embeddings_#{slug}.tsv").to_s
+    abort "File not found: #{path}" unless File.exist?(path)
+
+    table      = "work_unit_embeddings_#{slug}"
+    index_name = "idx_wue_#{slug}_hnsw"
+
+    conn = ActiveRecord::Base.connection
+    raw  = conn.raw_connection
+
+    puts "Recreating #{table} (vector(#{dim}))..."
+    conn.execute("DROP TABLE IF EXISTS #{table}")
+    conn.execute(<<~SQL)
+      CREATE TABLE #{table} (
+        work_unit_id BIGINT PRIMARY KEY,
+        embedding vector(#{dim}) NOT NULL
+      )
+    SQL
+
+    bytes = File.size(path)
+    puts "COPYing #{path} (#{(bytes / 1.0e6).round(0)} MB) into #{table}..."
+    t0 = Time.now
+    File.open(path, "r") do |f|
+      raw.copy_data("COPY #{table} (work_unit_id, embedding) FROM STDIN") do
+        while (chunk = f.read(64 * 1024))
+          raw.put_copy_data(chunk)
+        end
+      end
+    end
+    n = conn.select_value("SELECT count(*) FROM #{table}").to_i
+    puts "  COPY done in #{(Time.now - t0).round(1)}s, #{n} rows"
+
+    puts "Building HNSW index #{index_name}..."
+    t0 = Time.now
+    raw.exec("SET maintenance_work_mem = '4GB'")
+    raw.exec("CREATE INDEX #{index_name} ON #{table} USING hnsw (embedding vector_cosine_ops)")
+    puts "  Built in #{(Time.now - t0).round(0)}s"
+  end
+
+  desc "Bulk-import (id, vector) TSV file into work_units.body_embedding"
+  task :import_embeddings, [:path] => :environment do |_, args|
+    path = args[:path] || ENV["EMBEDDINGS_PATH"] || Rails.root.join("tmp/embeddings.tsv").to_s
+    abort "File not found: #{path}" unless File.exist?(path)
+
+    conn = ActiveRecord::Base.connection
+    raw  = conn.raw_connection
+
+    index_row = conn.select_one(<<~SQL)
+      SELECT indexname, indexdef FROM pg_indexes
+      WHERE tablename = 'work_units'
+        AND indexname = 'idx_work_units_body_embedding_hnsw'
+    SQL
+
+    if index_row
+      puts "Dropping HNSW index #{index_row['indexname']} (rebuilt at end)..."
+      conn.execute("DROP INDEX IF EXISTS #{conn.quote_column_name(index_row['indexname'])}")
     end
 
-    writer.join
-    wait_thread.join
-    puts "\n  Done: #{encoded} encoded, #{total - encoded} skipped"
+    conn.execute("DROP TABLE IF EXISTS tmp_embedding_staging")
+    conn.execute(<<~SQL)
+      CREATE UNLOGGED TABLE tmp_embedding_staging (
+        id BIGINT PRIMARY KEY,
+        embedding vector(768)
+      )
+    SQL
+
+    bytes = File.size(path)
+    puts "COPYing #{path} (#{(bytes / 1.0e6).round(0)} MB) into staging..."
+    t0 = Time.now
+    File.open(path, "r") do |f|
+      raw.copy_data("COPY tmp_embedding_staging (id, embedding) FROM STDIN") do
+        while (chunk = f.read(64 * 1024))
+          raw.put_copy_data(chunk)
+        end
+      end
+    end
+    puts "  COPY done in #{(Time.now - t0).round(1)}s"
+
+    n = conn.select_value("SELECT COUNT(*) FROM tmp_embedding_staging").to_i
+    puts "  staged rows: #{n}"
+
+    begin
+      puts "Updating work_units from staging..."
+      t0 = Time.now
+      raw.exec(<<~SQL)
+        UPDATE work_units AS wu
+        SET body_embedding = s.embedding
+        FROM tmp_embedding_staging s
+        WHERE wu.id = s.id
+      SQL
+      puts "  UPDATE done in #{(Time.now - t0).round(1)}s"
+    ensure
+      conn.execute("DROP TABLE IF EXISTS tmp_embedding_staging")
+      if index_row
+        puts "Rebuilding HNSW index (this can take 5-15 min)..."
+        rebuild_t0 = Time.now
+        conn.execute(index_row['indexdef'])
+        puts "  Rebuilt in #{(Time.now - rebuild_t0).round(0)}s"
+      end
+    end
   end
 
   desc "Compare embedding models on test pairs"

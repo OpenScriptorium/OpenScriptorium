@@ -3,25 +3,53 @@ require "onnxruntime"
 require "tokenizers"
 
 module Search
+  # Singleton query-side encoder.
+  #
+  # Loads the fused fp16 Qwen3-Embedding-0.6B ONNX export. The exported graph
+  # already does mean-pooling + L2 normalization on its `sentence_embedding`
+  # output, so we just feed in tokenized text and read the vector.
+  #
+  # Qwen3-Embedding is asymmetric: queries get an instruction prefix, documents
+  # don't. Our corpus was encoded WITHOUT a prefix (documents), so queries here
+  # get the standard "query" prompt from the model's
+  # config_sentence_transformers.json.
   class EmbeddingEncoder
     include Singleton
 
-    MODEL_DIR = Rails.root.join("tmp/embedding_model/labse_scripture_onnx").to_s
+    MODEL_DIR = Rails.root.join("vendor/models/qwen3_embed_fused_fp16").to_s
+
+    # Standard Qwen3-Embedding query prompt (sentence-transformers
+    # `prompt_name="query"`). Empty for documents — match the corpus encoding.
+    QUERY_PROMPT_PREFIX = "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ".freeze
+
+    # Truncate inputs after this many tokens. The corpus was encoded with
+    # max_seq_length=256 on Modal; queries are much shorter in practice.
+    MAX_LEN = 256
+
+    EMBEDDING_DIM = 1024
 
     def initialize
       @mutex = Mutex.new
       @session = nil
       @tokenizer = nil
-      @dense_weight = nil
-      @dense_bias = nil
     end
 
-    def encode(text)
+    # Encode a string into a 1024-dim L2-normalized vector.
+    #
+    # Qwen3-Embedding is asymmetric: queries get an instruction prefix,
+    # documents don't. The corpus was encoded as documents (no prefix), so
+    # query-time text gets the prompt prepended for matching to work.
+    #
+    # @param prompt [Symbol] :query (default — Instruct prefix applied) or
+    #   :document (raw text, no prefix). Use :document for one-time corpus
+    #   encoding (e.g. pericope names) so the indexed and query-time forms
+    #   share the same encoding.
+    def encode(text, prompt: :query)
       return nil unless model_available?
 
       @mutex.synchronize do
         load_model! unless @session
-        run_inference(text)
+        run_inference(text, prompt: prompt)
       end
     rescue => e
       Rails.logger.warn("[EmbeddingEncoder] encode failed: #{e.message}")
@@ -37,53 +65,30 @@ module Search
     def load_model!
       @tokenizer = Tokenizers::Tokenizer.from_file(File.join(MODEL_DIR, "tokenizer.json"))
       @session = OnnxRuntime::InferenceSession.new(File.join(MODEL_DIR, "model.onnx"))
-
-      # Load dense layer weights (768x768 float32, row-major)
-      w_bytes = File.binread(File.join(MODEL_DIR, "dense_weight.bin"))
-      @dense_weight = w_bytes.unpack("e*").each_slice(768).to_a  # 768 rows of 768
-
-      b_bytes = File.binread(File.join(MODEL_DIR, "dense_bias.bin"))
-      @dense_bias = b_bytes.unpack("e*")  # 768 floats
     end
 
-    def run_inference(text)
-      # Tokenize
-      encoding = @tokenizer.encode(text)
+    def run_inference(text, prompt: :query)
+      input = prompt == :query ? "#{QUERY_PROMPT_PREFIX}#{text}" : text
+      encoding = @tokenizer.encode(input)
       ids = encoding.ids
       mask = encoding.attention_mask
-      type_ids = encoding.type_ids
 
-      # Run ONNX model — needs 2D arrays [batch, seq]
-      output = @session.run(nil, {
+      if ids.length > MAX_LEN
+        ids = ids.first(MAX_LEN)
+        mask = mask.first(MAX_LEN)
+      end
+
+      result = @session.run(nil, {
         "input_ids" => [ids],
         "attention_mask" => [mask],
-        "token_type_ids" => [type_ids]
       })
 
-      hidden = output[0][0]  # [seq_len, 768]
-      seq_len = ids.length
+      out_names = @session.outputs.map { |o| o[:name] }
+      out_map = out_names.zip(result).to_h
 
-      # Mean pooling (masked)
-      pooled = Array.new(768, 0.0)
-      mask_sum = mask.sum.to_f
-      seq_len.times do |i|
-        next if mask[i] == 0
-        768.times { |j| pooled[j] += hidden[i][j] }
-      end
-      pooled.map! { |v| v / mask_sum }
-
-      # Dense layer: tanh(pooled @ W^T + bias)
-      dense_out = Array.new(768) do |i|
-        sum = @dense_bias[i]
-        768.times { |j| sum += pooled[j] * @dense_weight[i][j] }
-        Math.tanh(sum)
-      end
-
-      # L2 normalize
-      norm = Math.sqrt(dense_out.sum { |v| v * v })
-      dense_out.map! { |v| v / norm }
-
-      dense_out
+      # `sentence_embedding` is already mean-pooled + L2-normalized in the
+      # exported graph (Optimum sentence-transformers feature-extraction task).
+      out_map.fetch("sentence_embedding").first
     end
   end
 end

@@ -592,11 +592,16 @@ module Search
       @scope[:mode] != "keyword"
     end
 
-    # Check if any work_units have embeddings loaded.
+    # Check if Qwen3 corpus embeddings are loaded. The vectors live in the
+    # `work_unit_embeddings_qwen3_06b` side table (vector(1024)).
     # Cached for the lifetime of this Executor instance.
     def embeddings_available?
       return @embeddings_available if defined?(@embeddings_available)
-      @embeddings_available = WorkUnit.where.not(body_embedding: nil).exists?
+      @embeddings_available = ActiveRecord::Base.connection
+        .select_value("SELECT 1 FROM work_unit_embeddings_qwen3_06b LIMIT 1")
+        .present?
+    rescue ActiveRecord::StatementInvalid
+      @embeddings_available = false
     end
   end
 end

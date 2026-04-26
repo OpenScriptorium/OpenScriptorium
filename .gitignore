@@ -40,9 +40,16 @@
 # Bundler installs all gems here (set via `bundle config set --local path`).
 # See CLAUDE.md → "Bundler quirk".
 /vendor/bundle
+# ML model files — too large for git. Deployed via Capistrano linked_dirs;
+# seeded onto the VPS once and persisted across releases.
+/vendor/models/
 
 # Python bytecode cache
 __pycache__/
 *.pyc
+
+# Python venvs and logs from /scripts (eval, training, etc.)
+/scripts/**/venv/
+/scripts/**/*.log
 
 public/downloads/
