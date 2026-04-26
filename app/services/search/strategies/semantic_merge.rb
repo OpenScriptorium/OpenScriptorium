@@ -100,12 +100,16 @@ module Search
 
       private
 
-      # Encode the query string into a 768-dim vector.
-      # Uses a Python subprocess with the trained model.
-      # Returns nil if the model isn't available.
+      # Encode the query string into a 1024-dim vector via the in-process
+      # ONNX runtime. Returns nil if the model isn't available — caller
+      # then bails out and returns FTS results unchanged.
+      #
+      # The previous check looked for tmp/embedding_model (LaBSE era);
+      # current path is vendor/models/qwen3_embed_fused_fp16/, owned by
+      # EmbeddingEncoder. Without this fix, prod silently skipped semantic
+      # merge entirely because the legacy directory didn't exist there.
       def encode_query
-        model_path = Rails.root.join("tmp/embedding_model")
-        return nil unless model_path.exist?
+        return nil unless EmbeddingEncoder.instance.model_available?
 
         # For question-style queries, encode the full query — LaBSE handles
         # natural language well and short keyword fragments lose context.
