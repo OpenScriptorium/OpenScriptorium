@@ -1,7 +1,10 @@
 # openscriptorium.org
-# All content is freely licensed. Crawl away.
+# All content is freely licensed. Crawl away — except search.
+# Search results aren't unique content; crawlers iterating combinatorial
+# filter URLs were pegging the database.
 
 User-agent: *
+Disallow: /search
 Allow: /
 
 Sitemap: https://openscriptorium.org/sitemap.xml
