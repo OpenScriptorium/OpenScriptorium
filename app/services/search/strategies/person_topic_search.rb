@@ -304,8 +304,10 @@ module Search
         @topic_words.each { |w| all_terms.concat(root_forms(w)) }
         all_terms.uniq!
 
+        # Word-boundary regex (\y…\y) — plain ILIKE substring matching
+        # incorrectly matched "war" in "Beware" / "Reward" etc.
         pericope_conditions = all_terms.map { |t|
-          "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(t)}%")}"
+          "p.name ~* #{conn.quote("\\y#{regex_escape(t)}\\y")}"
         }
         return [] if pericope_conditions.empty?
 
@@ -379,9 +381,9 @@ module Search
         all_terms.uniq!
 
         topic_conds = all_terms.map { |t|
-          "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(t)}%")}"
+          "p.name ~* #{conn.quote("\\y#{regex_escape(t)}\\y")}"
         }
-        person_cond = "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(@person)}%")}"
+        person_cond = "p.name ~* #{conn.quote("\\y#{regex_escape(@person)}\\y")}"
 
         conn.select_values(<<~SQL).map(&:to_i)
           SELECT DISTINCT cr.id
@@ -430,6 +432,12 @@ module Search
         roots << "#{w}er"                   if w.length >= 3 && w.length <= 8        # pray→prayer
         roots << "#{w}ing"                  if w.length >= 3 && w.length <= 8        # pray→praying
         roots.reject { |r| r.length < 3 || r == w }.uniq
+      end
+
+      # Escape Postgres regex metacharacters so user input flows through
+      # ~* operators safely. Used for word-boundary pericope-name matching.
+      def regex_escape(str)
+        str.to_s.gsub(/[\\.\[\]^$()|*+?{}]/) { |c| "\\#{c}" }
       end
 
       def empty_result

@@ -554,15 +554,20 @@ module Search
         conn = ApplicationRecord.connection
 
         # Build a query that matches pericope names containing any topic word.
-        # Use ILIKE for case-insensitive substring matching.
+        # Use case-insensitive regex with word boundaries (\y…\y) — plain
+        # ILIKE substring matching incorrectly hits substrings: "war" was
+        # matching "Beware of the Scribes" and "The Reward of Service",
+        # boosting irrelevant pericopes for "what did Jesus say about war?".
         conditions = topic_words.map { |w|
-          "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(w)}%")}"
+          escaped = w.gsub(/[\\.\[\]^$()|*+?{}]/) { |c| "\\#{c}" }
+          "p.name ~* #{conn.quote("\\y#{escaped}\\y")}"
         }
 
         # Also match on the person name if provided (pericopes like
         # "Jesus Heals the Blind Man", "Paul in Athens")
         if person_name
-          conditions << "p.name ILIKE #{conn.quote("%#{ApplicationRecord.sanitize_sql_like(person_name)}%")}"
+          escaped = person_name.gsub(/[\\.\[\]^$()|*+?{}]/) { |c| "\\#{c}" }
+          conditions << "p.name ~* #{conn.quote("\\y#{escaped}\\y")}"
         end
 
         rows = conn.select_all(<<~SQL)
