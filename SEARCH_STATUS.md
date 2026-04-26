@@ -305,23 +305,16 @@ Expected after Phase 3: MRR(name) ~0.75–0.80, comparable to commercial RAG.
 
 If query volume grows past CPU saturation, fall back to `bge-reranker-base` (110M, ~200–500 ms) or move reranker to a sibling box. Phase 1 explicitly does NOT need the bigger Qwen3-Reranker-4B/8B.
 
-### Known data bugs (TODO)
+### Known data bugs
 
-- **Greek lemma duplicates from polytonic Unicode codepoints.** Some lemmas
-  exist as two rows: one using deprecated precomposed polytonic codepoints
-  (e.g. U+1F79 `OMICRON WITH OXIA`) and one using the modern monotonic
-  codepoint (U+03CC `OMICRON WITH TONOS`). They look identical on screen
-  but have different byte sequences. Example found 2026-04-26: `θρόνος`
-  exists at lemma id 527 (freq 304) and id 15161 (freq 62). Both decompose
-  to the same NFD sequence, so NFC normalization would collapse them.
-
-  Fix path: NFC-normalize `lemmas.lemma` and `words.surface` at import time
-  (`text.unicode_normalize(:nfc)`). One-time migration to merge existing
-  duplicates: walk every NFC-equivalent group, move all `words.lemma_id`
-  references to one canonical id, sum frequencies, delete the others. Add
-  a unique index on `lemmas (lemma, language)` after merge so this can't
-  recur. Probably affects every polytonic Greek lemma with the deprecated
-  precomposed form, not just `θρόνος`.
+- ✅ **DONE 2026-04-26: Greek lemma Unicode duplicates.** Migration
+  `20260426230000_merge_unicode_duplicate_lemmas` NFC-normalized 7,144
+  duplicate rows across 3,572 (NFC, language) groups, summing
+  frequencies into the highest-freq canonical and remapping
+  `words.lemma_id` + `lemmas.related_lemma_ids` array entries.
+  `Lemma#nfc_normalize_lemma` (before_validation) closes the gate
+  for future imports. θρόνος is now one row, frequency 366.
+  Existing UNIQUE (language, lemma) index prevents recurrence.
 
 ### Side tables (model race infra)
 
