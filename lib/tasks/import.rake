@@ -220,7 +220,6 @@ namespace :import do
     # Primary keys, unique constraints, and foreign keys are kept.
     DROPPABLE_INDEXES = %w[
       idx_work_units_body_tsvector
-      idx_work_units_body_embedding_hnsw
       index_words_on_strongs_number
       idx_lemmas_gloss_fts
       idx_lemmas_normalized_trgm

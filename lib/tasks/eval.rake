@@ -18,7 +18,7 @@ namespace :eval do
   desc "Thematic retrieval eval: query search_concepts, measure MRR/Recall/NDCG@K"
   task :thematic, [:k] => :environment do |_, args|
     k          = (args[:k] || ENV["K"] || "10").to_i
-    model_path = ENV.fetch("MODEL_PATH", Rails.root.join("tmp/embedding_model/labse_scripture").to_s)
+    model_path = ENV.fetch("MODEL_PATH", "Qwen/Qwen3-Embedding-0.6B")
     device     = ENV.fetch("DEVICE", "mps")
     slug       = ENV.fetch("SLUG", File.basename(model_path)).gsub(/[^a-z0-9_]/, "_")
     out_path   = ENV.fetch("OUT", Rails.root.join("tmp/eval/thematic_#{slug}_#{Time.now.strftime('%Y%m%d_%H%M%S')}.jsonl").to_s)
