@@ -162,8 +162,42 @@ namespace :import do
     Importers::StepLexiconImporter.new.call
   end
 
+  desc "Clone Clear-Bible/macula-{hebrew,greek} into tmp/ (prerequisite for macula_lemma_fix etc.)"
+  task macula_download: :environment do
+    # Self-contained prerequisite for any importer that reads from
+    # tmp/macula-{hebrew,greek}/. Idempotent — skips if the dir already
+    # exists and has content. Macula data is ~2.7 GB total; the --depth 1
+    # shallow clone keeps it ~1.5 GB lighter than full history.
+    repos = {
+      "macula-hebrew" => "https://github.com/Clear-Bible/macula-hebrew.git",
+      "macula-greek"  => "https://github.com/Clear-Bible/macula-greek.git",
+    }
+    repos.each do |name, url|
+      target = Rails.root.join("tmp", name)
+      if target.directory? && target.children.any?
+        puts "#{name}: already populated at #{target} — skipping clone"
+        next
+      end
+      target.dirname.mkpath
+      puts "Cloning #{url} → #{target} (--depth 1)..."
+      ok = system("git", "clone", "--depth", "1", url, target.to_s)
+      abort "Clone failed: #{name}" unless ok
+    end
+    # Sanity check the layouts the lemma-fix importer expects.
+    %w[macula-hebrew/WLC/lowfat macula-greek/Nestle1904/lowfat].each do |sub|
+      path = Rails.root.join("tmp", sub)
+      n = path.directory? ? path.children.size : 0
+      puts "  #{sub}: #{n} files"
+      abort "Expected XML files in #{path}" if n.zero?
+    end
+  end
+
   desc "Fix Hebrew/Greek lemmas to root forms using Macula stronglemma data"
   task macula_lemma_fix: :environment do
+    unless Rails.root.join("tmp/macula-hebrew/WLC/lowfat").directory? &&
+           Rails.root.join("tmp/macula-greek/Nestle1904/lowfat").directory?
+      abort "Macula source files missing — run `rake import:macula_download` first."
+    end
     Importers::MaculaLemmaFixImporter.new.call
   end
 
