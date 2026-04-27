@@ -4200,6 +4200,7 @@ ALTER TABLE ONLY public.participant_references
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260427100000'),
 ('20260427000000'),
 ('20260426230000'),
 ('20260426220000'),

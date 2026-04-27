@@ -167,6 +167,313 @@ namespace :import do
     Importers::MaculaLemmaFixImporter.new.call
   end
 
+  desc "Polish lemma bindings: prefer StepLexicon dictionary lemmas over BSB inflected-form placeholders. DRY_RUN=1 to preview."
+  task consolidate_lemma_canonicals: :environment do
+    # Phase 2 of the lemma cleanup. After rebind_lemmas_by_strongs lands
+    # words on whichever Greek/Hebrew lemma was most-used, this task
+    # promotes proper StepLexicon dictionary headwords (with gloss,
+    # senses, etymology) over BSB-imported placeholders (lowercase
+    # surface forms with no metadata) within each Strong's group.
+    #
+    # Idempotent. Re-running on a clean DB does no work.
+    # Set DRY_RUN=1 to print the proposed remap without writing.
+
+    dry_run = ENV["DRY_RUN"] == "1"
+    conn = ActiveRecord::Base.connection
+    greek_langs  = %w[el-koine grc]
+    hebrew_langs = %w[hbo he arc]
+
+    norm_strongs = ->(s) {
+      s = s.to_s
+      return nil if s.empty?
+      first = s.split(",").first
+      first = first.sub(/\A[GHgh]/, "")
+      first = first[0..-2] if first.length == 5 && first =~ /\A\d+\z/
+      n = first.to_i
+      return nil if n <= 0
+      n.to_s
+    }
+
+    step_lexicon_run_ids = ImportRun.where(importer_class: "Importers::StepLexiconImporter").pluck(:id).to_set
+    bsb_tables_run_ids   = ImportRun.where(importer_class: "Importers::BsbTablesImporter").pluck(:id).to_set
+
+    # Score a lemma row by data completeness. Higher = better canonical.
+    score = ->(row) {
+      s = 0
+      s += 10 if row["primary_gloss"].to_s.strip.size > 0
+      senses = row["senses"]
+      senses_str = senses.is_a?(String) ? senses : senses.to_s
+      s += 10 if senses_str.size > 2 && senses_str != "[]" && senses_str != "null"
+      s += 5  if row["etymology"].to_s.strip.size > 0
+      run_id = row["import_run_id"]
+      s += 5  if step_lexicon_run_ids.include?(run_id)
+      s -= 3  if bsb_tables_run_ids.include?(run_id)
+      lemma = row["lemma"].to_s
+      # Greek: any uppercase or polytonic diacritic char (outside
+      # lowercase monotonic range α-ω). Hebrew: presence of pointing.
+      if lemma.match?(/[Α-Ωἀ-῿]/) || lemma.match?(/[֑-ֽֿ-ׇ]/)
+        s += 2
+      end
+      s
+    }
+
+    [
+      ["Greek",  greek_langs],
+      ["Hebrew", hebrew_langs],
+    ].each do |label, langs|
+      lang_list = langs.map { |l| conn.quote(l) }.join(",")
+      puts "\n=== #{label} consolidation ==="
+
+      # 1. Pull all (word, lemma) pairs in this language family with a
+      #    Strong's number, plus the lemma's metadata for scoring.
+      puts "Loading word→lemma pairs..."
+      pairs = conn.exec_query(<<~SQL).rows
+        SELECT w.strongs_number, w.lemma_id, COUNT(*) AS n_words
+          FROM words w
+          JOIN works wk ON wk.id = w.work_id
+          JOIN lemmas l ON l.id  = w.lemma_id
+         WHERE wk.language IN (#{lang_list})
+           AND l.language  IN (#{lang_list})
+           AND w.strongs_number IS NOT NULL AND w.strongs_number <> ''
+         GROUP BY w.strongs_number, w.lemma_id
+      SQL
+
+      # 2. Group by normalized Strong's. Each entry: { lemma_id => n_words }.
+      groups = Hash.new { |h, k| h[k] = Hash.new(0) }
+      pairs.each do |s, lid, n|
+        ns = norm_strongs.call(s)
+        next unless ns
+        groups[ns][lid.to_i] += n.to_i
+      end
+      puts "  Strong's groups: #{groups.size}, multi-lemma groups: #{groups.count { |_, h| h.size > 1 }}"
+
+      # 3. Score lemmas in multi-lemma groups, pick canonical, build remap.
+      multi = groups.select { |_, h| h.size > 1 }
+      lemma_ids = multi.values.flat_map(&:keys).uniq
+      next if lemma_ids.empty?
+
+      puts "Loading lemma metadata for #{lemma_ids.size} candidate rows..."
+      meta = conn.exec_query(<<~SQL).to_a.index_by { |r| r["id"].to_i }
+        SELECT id, lemma, primary_gloss, senses::text AS senses,
+               etymology, import_run_id
+          FROM lemmas
+         WHERE id IN (#{lemma_ids.join(",")})
+      SQL
+
+      remap = {}              # alternate_id => canonical_id
+      promotions_by_kind = Hash.new(0)
+      sample_promotions = []
+
+      multi.each do |strongs, candidates|
+        scored = candidates.map do |lid, n|
+          row = meta[lid] || {}
+          [lid, score.call(row), n, row["lemma"]]
+        end
+        # Pick the canonical lemma. Order of preference:
+        #   1. Highest data-completeness score (gloss + senses + etymology + StepLexicon).
+        #   2. SHORTEST lemma text — root forms beat inflected forms ("אמר" beats "אמרין",
+        #      "γίνομαι" beats "γενέσεως"). Inflected forms accumulate by frequency
+        #      and would otherwise win the tie via word count.
+        #   3. Most words (frequency tiebreaker; only kicks in when length ties).
+        #   4. Smallest id (earliest import is the historical root).
+        canonical = scored.max_by do |lid, sc, n, l|
+          [sc, -l.to_s.length, n, -lid]
+        end
+        canonical_id = canonical[0]
+
+        scored.each do |lid, _sc, _n, _l|
+          remap[lid] = canonical_id if lid != canonical_id
+        end
+
+        # Track for the dry-run summary.
+        next unless sample_promotions.size < 5
+        non_canon = scored.reject { |row| row[0] == canonical_id }
+        if non_canon.any?
+          sample_promotions << [strongs,
+                                "#{canonical[3]} (id=#{canonical[0]}, score=#{canonical[1]})",
+                                non_canon.map { |row| "#{row[3]} (id=#{row[0]}, score=#{row[1]}, n=#{row[2]})" }]
+        end
+      end
+
+      affected_words = conn.select_value(<<~SQL).to_i
+        SELECT COUNT(*) FROM words WHERE lemma_id IN (#{remap.keys.join(',')})
+      SQL
+
+      puts
+      puts "  remap entries:  #{remap.size}"
+      puts "  affected words: #{affected_words}"
+      puts
+      puts "  sample promotions:"
+      sample_promotions.each do |strongs, canonical, alternates|
+        puts "    Strong's #{strongs}:"
+        puts "      keep:    #{canonical}"
+        alternates.each { |a| puts "      promote: #{a}" }
+      end
+
+      if dry_run
+        puts "  (dry run, no writes)"
+        next
+      end
+
+      # 4. Bulk remap via temp table.
+      puts "Applying remap..."
+      conn.execute("DROP TABLE IF EXISTS tmp_lemma_canonical_remap")
+      conn.execute("CREATE TEMP TABLE tmp_lemma_canonical_remap (old_id bigint PRIMARY KEY, new_id bigint NOT NULL)")
+      remap.each_slice(2000) do |chunk|
+        values = chunk.map { |old_id, new_id| "(#{old_id}, #{new_id})" }.join(",")
+        conn.execute("INSERT INTO tmp_lemma_canonical_remap VALUES #{values}")
+      end
+      n = conn.update(<<~SQL)
+        UPDATE words w SET lemma_id = m.new_id
+          FROM tmp_lemma_canonical_remap m
+         WHERE w.lemma_id = m.old_id
+      SQL
+      puts "  words remapped: #{n}"
+
+      # 5. Strip the now-orphaned ids from any related_lemma_ids arrays.
+      conn.execute(<<~SQL)
+        UPDATE lemmas l
+           SET related_lemma_ids = COALESCE((
+             SELECT array_agg(DISTINCT COALESCE(m.new_id, x)::integer)
+               FROM unnest(l.related_lemma_ids) x
+          LEFT JOIN tmp_lemma_canonical_remap m ON m.old_id = x
+           ), '{}'::integer[])
+         WHERE l.related_lemma_ids && (SELECT array_agg(old_id::integer) FROM tmp_lemma_canonical_remap)
+      SQL
+
+      # 6. Delete BSB-placeholder orphans (no words point at them, came
+      #    from BsbTablesImporter, are in our remap as old_ids). Skip
+      #    orphans from other importers to be safe.
+      bsb_run_list = bsb_tables_run_ids.to_a.join(",")
+      bsb_run_list = "0" if bsb_run_list.empty?
+      orphans_deleted = conn.delete(<<~SQL)
+        DELETE FROM lemmas l
+         WHERE l.id IN (SELECT old_id FROM tmp_lemma_canonical_remap)
+           AND l.import_run_id IN (#{bsb_run_list})
+           AND NOT EXISTS (SELECT 1 FROM words w WHERE w.lemma_id = l.id)
+      SQL
+      puts "  orphan placeholders deleted: #{orphans_deleted}"
+      conn.execute("DROP TABLE IF EXISTS tmp_lemma_canonical_remap")
+    end
+  end
+
+  desc "Rebind Greek/Hebrew words.lemma_id by Strong's number using existing clean lemmas (no Macula download required)"
+  task rebind_lemmas_by_strongs: :environment do
+    # Self-contained one-shot fix: after the cleanup migration NULLed
+    # ~218K Greek and ~6K Hebrew word→lemma pointers (corruption from
+    # the old MaculaLemmaFixImporter bug), this task repopulates them
+    # from clean lemmas already in the DB. No Macula download needed.
+    #
+    # Strong's number is stored inconsistently across importers:
+    #   - nestle1904, rp:        "3588" (bare integer)
+    #   - cntr-sr:               "G25320" (G-prefix + 5-digit, trailing 0
+    #                            marks the base entry; G25321 etc are
+    #                            homonym variants for the same lemma)
+    #   - kjv, patriarchal-1904: "G2532" or "G2532,G3756" (multi)
+    #
+    # Normalize on both sides to a common bare-integer string.
+    norm_strongs = ->(s) {
+      s = s.to_s
+      return nil if s.empty?
+      first = s.split(",").first
+      first = first.sub(/\A[GHgh]/, "")
+      # cntr-sr's 5-digit format: drop the trailing variant digit so
+      # G25320, G25321, G25322 all collapse to base 2532.
+      first = first[0..-2] if first.length == 5 && first =~ /\A\d+\z/
+      first.to_i.to_s
+    }
+
+    conn = ActiveRecord::Base.connection
+    greek_langs  = %w[el-koine grc]
+    hebrew_langs = %w[hbo he arc]
+
+    [
+      ["Greek",  greek_langs],
+      ["Hebrew", hebrew_langs],
+    ].each do |label, langs|
+      lang_list = langs.map { |l| conn.quote(l) }.join(",")
+
+      puts "\n=== #{label} pass ==="
+
+      # Pull every (clean) word→lemma pair, normalize Strong's, pick the
+      # canonical lemma per normalized Strong's by total word count.
+      puts "Building normalized Strong's map from clean #{label} pointers..."
+      pairs = conn.exec_query(<<~SQL).rows
+        SELECT w.strongs_number, w.lemma_id, COUNT(*) AS n
+          FROM words w
+          JOIN works wk ON wk.id = w.work_id
+          JOIN lemmas l ON l.id  = w.lemma_id
+         WHERE wk.language IN (#{lang_list})
+           AND l.language  IN (#{lang_list})
+           AND w.strongs_number IS NOT NULL AND w.strongs_number <> ''
+         GROUP BY w.strongs_number, w.lemma_id
+      SQL
+
+      tally = Hash.new { |h, k| h[k] = Hash.new(0) }
+      pairs.each do |s, lid, n|
+        ns = norm_strongs.call(s)
+        next unless ns
+        tally[ns][lid.to_i] += n.to_i
+      end
+      strongs_to_lemma = tally.transform_values { |h| h.max_by { |_, n| n }.first }
+      puts "  normalized Strong's map: #{strongs_to_lemma.size} distinct numbers"
+
+      # Build a mapping table keyed by RAW strongs_number value, expanded
+      # so the UPDATE can join by the exact column value used in `words`.
+      puts "Expanding map to all known raw Strong's variants..."
+      raw_to_lemma = {}
+      conn.exec_query(<<~SQL).rows.each do |raw|
+        SELECT DISTINCT w.strongs_number
+          FROM words w
+          JOIN works wk ON wk.id = w.work_id
+         WHERE w.lemma_id IS NULL
+           AND w.strongs_number IS NOT NULL
+           AND wk.language IN (#{lang_list})
+      SQL
+        raw_strongs = raw.first
+        ns = norm_strongs.call(raw_strongs)
+        if ns && (lid = strongs_to_lemma[ns])
+          raw_to_lemma[raw_strongs] = lid
+        end
+      end
+      puts "  raw-form coverage: #{raw_to_lemma.size} variants"
+
+      conn.execute("DROP TABLE IF EXISTS tmp_strongs_map")
+      conn.execute(<<~SQL)
+        CREATE TEMP TABLE tmp_strongs_map (
+          strongs_number text PRIMARY KEY,
+          lemma_id bigint NOT NULL
+        )
+      SQL
+      raw_to_lemma.each_slice(2000) do |chunk|
+        values = chunk.map { |s, lid| "(#{conn.quote(s)}, #{lid.to_i})" }.join(",")
+        conn.execute("INSERT INTO tmp_strongs_map VALUES #{values}") unless values.empty?
+      end
+
+      n = conn.update(<<~SQL)
+        UPDATE words w
+           SET lemma_id = m.lemma_id
+          FROM tmp_strongs_map m, works wk
+         WHERE w.strongs_number = m.strongs_number
+           AND w.work_id = wk.id
+           AND wk.language IN (#{lang_list})
+           AND w.lemma_id IS NULL
+      SQL
+      puts "  rebound: #{n}"
+      conn.execute("DROP TABLE IF EXISTS tmp_strongs_map")
+
+      remaining = conn.select_value(<<~SQL).to_i
+        SELECT COUNT(*)
+          FROM words w
+          JOIN works wk ON wk.id = w.work_id
+         WHERE w.lemma_id IS NULL
+           AND w.strongs_number IS NOT NULL
+           AND wk.language IN (#{lang_list})
+      SQL
+      puts "  still NULL (Strong's not in map): #{remaining}"
+    end
+  end
+
   desc "Import participant references from Macula (coreference, subject refs, semantic frames)"
   task macula_participants: :environment do
     Importers::MaculaParticipantsImporter.new.call

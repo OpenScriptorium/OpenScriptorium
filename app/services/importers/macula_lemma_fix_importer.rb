@@ -64,21 +64,37 @@ module Importers
       end
     end
 
+    # `words.strongs_number` is stored as the bare number ("1078") without
+    # the H/G prefix that distinguishes Hebrew Strong's H1078 from Greek
+    # G1078. Every query in this method must scope by the language of the
+    # owning Work — otherwise the bare-number match collides Hebrew and
+    # Greek, ending up with Greek words pointing at Hebrew lemmas (and the
+    # primary_lemma_id fallback then overwrites a Hebrew lemma's text with
+    # a Greek string, corrupting that row's data).
+    GREEK_LANGS  = %w[el-koine grc].freeze
+    HEBREW_LANGS = %w[hbo he arc].freeze
+
     def fix_lemma_roots!
       conn = ApplicationRecord.connection
 
       # For each Strong's number, find the lemma and update if the root differs
       @strongs_to_root.each do |strongs_key, data|
         # Find words with this Strong's number
-        prefix = strongs_key[0]
-        number = strongs_key[1..]
+        prefix = strongs_key[0]   # "G" (Greek) or "H" (Hebrew/Aramaic)
+        number = strongs_key[1..] # bare digits
 
-        # Find lemmas linked to words with this Strong's number
+        target_langs = (prefix == "G") ? GREEK_LANGS : HEBREW_LANGS
+        lang_list = target_langs.map { |l| conn.quote(l) }.join(",")
+
+        # Find lemmas linked to words with this Strong's number, scoped to
+        # works in the right language.
         lemma_ids = conn.select_values(<<~SQL)
           SELECT DISTINCT w.lemma_id
           FROM words w
+          JOIN works wk ON wk.id = w.work_id
           WHERE w.strongs_number = '#{number}'
             AND w.lemma_id IS NOT NULL
+            AND wk.language IN (#{lang_list})
         SQL
 
         next if lemma_ids.empty?
@@ -88,21 +104,35 @@ module Importers
         root_normalized = root.unicode_normalize(:nfd)
                               .gsub(/[\u0300-\u036F\u0591-\u05BD\u05BF-\u05C7]/, "")
 
-        existing_root = Lemma.find_by(lemma: root)
-        existing_root ||= Lemma.find_by(normalized: root_normalized)
+        # Look up the canonical lemma — also language-scoped, so a
+        # corrupted lemma row whose `lemma` column was overwritten with
+        # the wrong-script text in a prior bad run can't be picked up
+        # here and propagated forward.
+        existing_root = Lemma.where(language: target_langs).find_by(lemma: root)
+        existing_root ||= Lemma.where(language: target_langs).find_by(normalized: root_normalized)
 
         if existing_root
-          # Point all words to the existing root lemma
+          # Point all language-correct words to the existing root lemma.
+          # The lemma_id IN (...) restriction keeps us from sweeping in
+          # cross-language words that happen to share the bare number.
           Word.where(strongs_number: number, lemma_id: lemma_ids)
               .where.not(lemma_id: existing_root.id)
               .update_all(lemma_id: existing_root.id)
           bump :words_relinked
         else
-          # Update the most-used lemma to be the root form
+          # Update the most-used (language-correct) lemma to be the root
+          # form. Without the language scope this would happily overwrite
+          # a Hebrew lemma row with a Greek string (or vice versa).
           primary_lemma_id = conn.select_value(<<~SQL)
-            SELECT lemma_id FROM words
-            WHERE strongs_number = '#{number}' AND lemma_id IS NOT NULL
-            GROUP BY lemma_id ORDER BY COUNT(*) DESC LIMIT 1
+            SELECT w.lemma_id
+            FROM words w
+            JOIN works wk ON wk.id = w.work_id
+            JOIN lemmas l  ON l.id  = w.lemma_id
+            WHERE w.strongs_number = '#{number}'
+              AND wk.language IN (#{lang_list})
+              AND l.language  IN (#{lang_list})
+              AND w.lemma_id IS NOT NULL
+            GROUP BY w.lemma_id ORDER BY COUNT(*) DESC LIMIT 1
           SQL
 
           if primary_lemma_id
