@@ -934,7 +934,6 @@ CREATE TABLE public.pericopes (
     updated_at timestamp(6) without time zone NOT NULL,
     canonical_range int4range NOT NULL,
     tradition character varying,
-    name_embedding public.vector(768),
     name_embedding_qwen3 public.vector(1024)
 );
 
@@ -1690,8 +1689,7 @@ CREATE TABLE public.work_units (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     import_run_id bigint,
-    body_tsvector tsvector,
-    body_embedding public.vector(768)
+    body_tsvector tsvector
 );
 
 
@@ -2452,13 +2450,6 @@ CREATE INDEX idx_passage_alias_names_trgm ON public.passage_alias_names USING gi
 
 
 --
--- Name: idx_pericopes_name_embedding_hnsw; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_pericopes_name_embedding_hnsw ON public.pericopes USING hnsw (name_embedding public.vector_cosine_ops) WHERE (name_embedding IS NOT NULL);
-
-
---
 -- Name: idx_pericopes_name_embedding_qwen3_hnsw; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2526,13 +2517,6 @@ CREATE INDEX idx_words_surface_trgm ON public.words USING gin (surface public.gi
 --
 
 CREATE INDEX idx_words_work_morph ON public.words USING btree (work_id, morph_code);
-
-
---
--- Name: idx_work_units_body_embedding_hnsw; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_work_units_body_embedding_hnsw ON public.work_units USING hnsw (body_embedding public.vector_cosine_ops) WHERE (body_embedding IS NOT NULL);
 
 
 --
@@ -4216,6 +4200,7 @@ ALTER TABLE ONLY public.participant_references
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260427000000'),
 ('20260426230000'),
 ('20260426220000'),
 ('20260425200001'),

@@ -269,20 +269,25 @@ ORDER BY relevance DESC,
   </p>
 
   <p>
-    A multilingual sentence embedding model (fine-tuned LaBSE, 768 dimensions)
-    encodes every work unit in the corpus into a dense vector. At query time,
-    the user&rsquo;s query is encoded into the same space and the nearest
-    neighbours are found via a pgvector HNSW index. The two result sets
-    (FTS and embedding) are merged with configurable weights.
+    A multilingual sentence embedding model
+    (<a href="https://huggingface.co/Qwen/Qwen3-Embedding-0.6B">Qwen3-Embedding-0.6B</a>,
+    1024 dimensions) encodes every work unit in the corpus into a dense
+    vector. At query time, the user&rsquo;s query is encoded into the
+    same space and the nearest neighbours are found via a pgvector HNSW
+    index. The dense list is then fused with the FTS list via
+    <a href="#fusion">Reciprocal Rank Fusion</a> (RRF, k=60), so items
+    that appear high in both lists rise to the top.
   </p>
 
   <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Find the 50 nearest verses by cosine similarity.
 -- The &lt;=&gt; operator is pgvector's cosine distance.
--- HNSW index makes this sub-millisecond across 672,000 vectors.</span>
-SELECT work_units.*,
-       1 - (body_embedding &lt;=&gt; query_embedding) AS similarity
-FROM work_units
-ORDER BY body_embedding &lt;=&gt; query_embedding
+-- HNSW index makes this sub-millisecond across 672,000 vectors.
+-- Vectors live in a side table to keep the work_units row narrow.</span>
+SELECT wu.*,
+       1 - (e.embedding &lt;=&gt; query_embedding) AS similarity
+FROM work_unit_embeddings_qwen3_06b e
+JOIN work_units wu ON wu.id = e.work_unit_id
+ORDER BY e.embedding &lt;=&gt; query_embedding
 LIMIT 50</pre>
 
   <h3>Training data</h3>
@@ -349,28 +354,45 @@ LIMIT 50</pre>
     lookup, but because the model learned from aligned usage in parallel texts.
   </p>
 
-  <h3>Hybrid scoring</h3>
+  <h3 id="fusion">Hybrid scoring (Reciprocal Rank Fusion)</h3>
 
   <p>
-    The final search score combines both layers:
+    The final ranking combines both layers via
+    <strong>Reciprocal Rank Fusion</strong>: each item gets a score of
+    <code>1 / (k + rank<sub>L</sub>)</code> from each list it appears in,
+    summed across lists. Items that rank well in <em>both</em> the FTS
+    and semantic list end up on top &mdash; the literal-match keyword
+    hits and the paraphrase-friendly semantic hits reinforce each other.
+    The constant <code>k = 60</code> is the value from the original RRF
+    paper; it dampens the spread between rank 1 and rank 50 enough that
+    a doc at rank 5 in both lists outranks a doc at rank 1 in only one.
   </p>
 
-  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Hybrid merge: FTS results + embedding results, deduplicated</span>
+  <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- RRF score = sum of 1/(k + rank) across both lists.
+-- No score normalization needed; ranks are comparable.</span>
 WITH fts AS (
-  SELECT id, relevance AS fts_score FROM ... <span class="text-[var(--color-ink-soft)]">-- full-text query</span>
+  SELECT id, ROW_NUMBER() OVER (ORDER BY ts_rank DESC) AS rnk
+  FROM ... <span class="text-[var(--color-ink-soft)]">-- full-text query</span>
 ),
 semantic AS (
-  SELECT id, 1 - (body_embedding &lt;=&gt; query_embedding) AS sem_score
-  FROM work_units
-  ORDER BY body_embedding &lt;=&gt; query_embedding
-  LIMIT 50
+  SELECT wu.id,
+         ROW_NUMBER() OVER (ORDER BY e.embedding &lt;=&gt; query_embedding) AS rnk
+  FROM work_unit_embeddings_qwen3_06b e
+  JOIN work_units wu ON wu.id = e.work_unit_id
+  ORDER BY e.embedding &lt;=&gt; query_embedding
+  LIMIT 100
 )
 SELECT COALESCE(fts.id, semantic.id) AS id,
-       COALESCE(&alpha; * fts.fts_score, 0)
-         + COALESCE(&beta; * semantic.sem_score, 0) AS score
+       COALESCE(1.0 / (60 + fts.rnk), 0) +
+       COALESCE(1.0 / (60 + semantic.rnk), 0) AS score
 FROM fts
 FULL OUTER JOIN semantic ON fts.id = semantic.id
 ORDER BY score DESC</pre>
+
+  <p class="text-sm text-[var(--color-ink-soft)] mt-2">
+    Measured on a 355-concept thematic eval (2026-04-26): RRF beats
+    bi-encoder alone by +7.8 pp MRR and FTS alone by +11.9 pp MRR.
+  </p>
 
   <p>
     The &alpha; and &beta; weights are tuned so that exact keyword matches

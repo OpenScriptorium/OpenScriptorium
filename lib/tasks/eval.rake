@@ -25,10 +25,10 @@ namespace :eval do
     retrieve_n = (ENV["RETRIEVE_N"] || "500").to_i
 
     # Embedding source: where to read corpus vectors from. Defaults to the
-    # original work_units.body_embedding column (current production); can be
-    # pointed at a per-model side table for the model race.
-    emb_table  = ENV.fetch("EMB_TABLE", "work_units")
-    emb_column = ENV.fetch("EMB_COLUMN", "body_embedding")
+    # current production side table (Qwen3-Embedding-0.6B, 1024d). Can be
+    # pointed at any other (table, column) pair to compare model variants.
+    emb_table  = ENV.fetch("EMB_TABLE", "work_unit_embeddings_qwen3_06b")
+    emb_column = ENV.fetch("EMB_COLUMN", "embedding")
     # Query encoding: instruction-tuned models (Qwen3) need a prompt prefix
     # only on queries. Models accept truncated dims (Matryoshka) too.
     query_prompt = ENV["QUERY_PROMPT"] # e.g. "query" for Qwen3

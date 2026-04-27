@@ -299,11 +299,53 @@ Expected after Phase 2: MRR(name) ~0.65–0.75.
 
 Expected after Phase 3: MRR(name) ~0.75–0.80, comparable to commercial RAG.
 
-### Reranker latency on 4 GB / 2 vCPU VPS
+### Reranker latency on 4 GB / 2 vCPU VPS — Qwen3-Reranker shelved 2026-04-26
 
-`Qwen3-Reranker-0.6B`, top-50, batched, int8: ~1–2 s on 2 vCPU. With progressive UX (initial bi-encoder paint in ~200 ms, reranked list streams in via Turbo Stream when SolidQueue job finishes), perceived latency is fine.
+The earlier estimate of "~1–2 s on 2 vCPU" for `Qwen3-Reranker-0.6B`
+was wrong. Measured on actual hardware:
 
-If query volume grows past CPU saturation, fall back to `bge-reranker-base` (110M, ~200–500 ms) or move reranker to a sibling box. Phase 1 explicitly does NOT need the bigger Qwen3-Reranker-4B/8B.
+| Hardware | Per-pair latency | Top-50 rerank wall time |
+|---|---|---|
+| Apple A18 Pro CPU (single-thread fp16 ORT) | 358 ms | ~18 s |
+| GTX 1050 Ti CUDA (Pascal, no Tensor Cores) | 192 ms | ~9.6 s |
+| Prod 2 vCPU x86 CPU (no NEON, no Tensor Cores) | **estimated 1–3 s** | **estimated 50–150 s** |
+
+The 200–500 ms/pair number quoted in the original `Search::Reranker`
+comments holds only on **GPUs with Tensor Cores**. Qwen3-Reranker is
+decoder-style (full LLM forward pass per pair, ~600M params, seq_len
+~250), and CPU performance is bounded by general-purpose matmul speed.
+Even with the planned progressive UX (Turbo Stream broadcast of
+reranked list when ready), 50–150 s of wall time before the page
+updates is a poor user experience.
+
+**Decision 2026-04-26:** Qwen3-Reranker is shelved indefinitely.
+The Hotwire/SolidQueue infrastructure built around it
+(`app/jobs/search_rerank_job.rb`, `app/services/search/reranker.rb`,
+the progress partials and Stimulus controller, the Capistrano systemd
+unit for SolidQueue) is left uncommitted in case a smaller reranker
+revives it. Decoder-style cross-encoders are simply the wrong fit for
+a 2 vCPU box.
+
+**Recommended path if reranking is revisited:**
+
+1. **`bge-reranker-base` (110M params, encoder-only).** Apache 2.0,
+   multilingual, ~30–100 ms/pair on Apple Silicon CPU and likely
+   100–200 ms/pair on the prod VPS. Top-50 in 5–10 s with progressive
+   UX. The audit framework in `lib/tasks/eval.rake` (RRF=1 mode +
+   RERANK_INPUT_OUT/RERANK_SCORES_IN two-pass mode) is generic enough
+   to evaluate any cross-encoder against the existing 355-concept
+   thematic eval before integration.
+2. **`ms-marco-MiniLM-L-12-v2` (33M, English-only).** ~10–20 ms/pair
+   on CPU; would only help English queries but wouldn't degrade
+   anything for Hebrew/Greek queries since they bypass it.
+3. **Modal-hosted reranker** (one-off Docker function called from
+   Rails) for higher-quality models. ~$0.0001/query at our volumes,
+   ~100 ms per call including the network round-trip.
+
+The RRF audit (2026-04-26) already gave us +7.83 pp MRR over
+bi-encoder alone with **zero additional inference cost**, which is
+the better cost/benefit point for the current VPS budget. A
+cross-encoder layer on top of RRF is a Phase-2 lever, not Phase-1.
 
 ### Known data bugs
 
@@ -318,10 +360,10 @@ If query volume grows past CPU saturation, fall back to `bge-reranker-base` (110
 
 ### Side tables (model race infra)
 
-- `work_unit_embeddings_qwen3_06b (work_unit_id PK, embedding vector(1024))` + HNSW
+- `work_unit_embeddings_qwen3_06b (work_unit_id PK, embedding vector(1024))` + HNSW (current production).
 - `work_unit_embeddings_bge_m3` — created during the race, dropped 2026-04-25 after Qwen3 won.
-- `lib/tasks/embeddings.rake :import_side[slug,dim,path]` rebuilds either from a TSV.
-- A future cleanup migration will drop the LaBSE columns (`work_units.body_embedding`, `pericopes.name_embedding`) once Qwen3 is confirmed stable in production.
+- ✅ **DONE 2026-04-27:** `work_units.body_embedding` and `pericopes.name_embedding` (768-dim LaBSE columns) dropped via `20260427000000_drop_labse_embedding_columns`. Run `VACUUM FULL work_units` separately on prod (off-deploy) to actually reclaim the ~5 GB; the column drop only releases the bytes lazily otherwise.
+- `lib/tasks/embeddings.rake :import_side[slug,dim,path]` rebuilds any side table from a TSV.
 
 ### Production deploy runbook (Phase 1.1)
 

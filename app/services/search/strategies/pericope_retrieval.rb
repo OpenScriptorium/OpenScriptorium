@@ -64,7 +64,11 @@ module Search
       end
 
       def pericope_embeddings_available?
-        Pericope.where.not(name_embedding: nil).exists?
+        # The actual query (find_topic_pericope_refs) reads
+        # `name_embedding_qwen3` — a stale `name_embedding` check here
+        # would gate retrieval on the LaBSE-era column that's about to
+        # be dropped.
+        Pericope.where.not(name_embedding_qwen3: nil).exists?
       end
 
       def detect_person
