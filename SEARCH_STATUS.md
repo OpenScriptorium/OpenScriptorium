@@ -112,7 +112,7 @@ Alias system works well for exact names. Failures are mostly fuzzy matches that 
 
 2. **Tier 2c: Topical query expansion**: Extend pericope retrieval to fire for "passages/verses about X" patterns (not just question queries). Currently only runs for question-word queries. Would help the 58% paraphrase_semantic category.
 
-3. **Greek lemma remapping**: ~13K Nestle 1904 words point to BSB-created inflected-form lemma records (wrong Hebrew lemmas). Match by Strong's number to proper STEP dictionary lemmas. Would improve lemma search, cross-language sidebar, and syntax search.
+3. ✅ **DONE 2026-04-27: Greek lemma remapping.** The actual scope was 4-5× the original estimate: ~218,000 Greek words pointed at Hebrew lemmas (and ~272 the other direction) due to a `MaculaLemmaFixImporter` bug that queried `words.strongs_number = '<bare>'` without scoping by the work's language, so Hebrew H1078 collided with Greek G1078. Three-step fix: patch the importer with language scoping; cleanup migration `20260427100000_cleanup_lemma_language_corruption` (NULLed cross-language pointers + deleted 100 corrupt lemma rows whose text had been overwritten); two new rake tasks `import:rebind_lemmas_by_strongs` (rebuilt the Strong's→canonical map from clean corpora — `cntr-sr`, `patriarchal-1904`, `wlc` — and bulk-repointed) + `import:consolidate_lemma_canonicals` (promoted StepLexicon dictionary headwords over BSB-imported placeholder rows). Net: 237K Greek + 278 Hebrew words rebound, 158K + 278 promoted to dictionary headwords, 331 orphan rows deleted, **0 cross-language pointers remaining**.
 
 ### Medium impact
 
