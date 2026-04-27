@@ -53,3 +53,6 @@ __pycache__/
 /scripts/**/*.log
 
 public/downloads/
+
+# Local working notes — never commit
+SEARCH_STATUS.md
