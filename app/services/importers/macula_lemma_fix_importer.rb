@@ -97,7 +97,10 @@ module Importers
             AND wk.language IN (#{lang_list})
         SQL
 
-        next if lemma_ids.empty?
+        # NOTE: don't early-return on `lemma_ids.empty?` here — even if no
+        # words are currently bound to a lemma for this Strong's (e.g.
+        # they were NULLed by the cleanup migration), the existing_root
+        # lookup below can still bind them via the new NULL-words path.
 
         # Check if we already have a root lemma
         root = data[:root]
@@ -110,6 +113,46 @@ module Importers
         # here and propagated forward.
         existing_root = Lemma.where(language: target_langs).find_by(lemma: root)
         existing_root ||= Lemma.where(language: target_langs).find_by(normalized: root_normalized)
+
+        # When NO lemma exists for this Strong's at all (neither matching
+        # the Macula root nor anchored by any clean word), CREATE one
+        # from the Macula data. This is the only way to bind the ~272
+        # WLC Hebrew words whose Strong's was wiped by the cleanup
+        # migration but whose lemma never made it into StepLexicon.
+        if existing_root.nil? && lemma_ids.empty?
+          null_count = Word.where(strongs_number: number, lemma_id: nil)
+                           .joins("JOIN works wk ON wk.id = words.work_id")
+                           .where("wk.language IN (#{lang_list})")
+                           .count
+          if null_count > 0
+            existing_root = Lemma.new(
+              language:        target_langs.first,
+              lemma:           root,
+              normalized:      root_normalized,
+              primary_gloss:   data[:gloss],
+              transliteration: data[:transliteration],
+              frequency:       null_count
+            )
+            stamp(existing_root)
+            existing_root.save!
+            bump :lemmas_created
+          end
+        end
+
+        # Bind any NULL-lemma_id words for this Strong's to the canonical.
+        # Catches words that the cleanup migration NULLed (cross-language
+        # pointers cleared) where no other clean source had this Strong's
+        # bound. Macula's stronglemma is authoritative — if we have a
+        # matching language-scoped Lemma, use it.
+        if existing_root
+          null_bound = Word.where(strongs_number: number, lemma_id: nil)
+                           .joins("JOIN works wk ON wk.id = words.work_id")
+                           .where("wk.language IN (#{lang_list})")
+                           .update_all(lemma_id: existing_root.id)
+          bump(:null_words_bound, null_bound) if null_bound > 0
+        end
+
+        next if lemma_ids.empty?
 
         if existing_root
           # Point all language-correct words to the existing root lemma.
