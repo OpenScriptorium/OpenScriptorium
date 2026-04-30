@@ -47,10 +47,8 @@ module Search
     def encode(text, prompt: :query)
       return nil unless model_available?
 
-      @mutex.synchronize do
-        load_model! unless @session
-        run_inference(text, prompt: prompt)
-      end
+      ensure_loaded!
+      run_inference(text, prompt: prompt)
     rescue => e
       Rails.logger.warn("[EmbeddingEncoder] encode failed: #{e.message}")
       nil
@@ -62,9 +60,18 @@ module Search
 
     private
 
-    def load_model!
-      @tokenizer = Tokenizers::Tokenizer.from_file(File.join(MODEL_DIR, "tokenizer.json"))
-      @session = OnnxRuntime::InferenceSession.new(File.join(MODEL_DIR, "model.onnx"))
+    # Lazy-load with double-checked locking. The mutex protects the
+    # one-time tokenizer + session construction; once loaded, encode()
+    # has no shared mutable state — the underlying Tokenizers (Rust)
+    # and ONNX Runtime sessions are thread-safe for concurrent .encode
+    # / .run calls. This unlocks parallel encoding in SemanticMerge.
+    def ensure_loaded!
+      return if @session
+      @mutex.synchronize do
+        next if @session
+        @tokenizer = Tokenizers::Tokenizer.from_file(File.join(MODEL_DIR, "tokenizer.json"))
+        @session = OnnxRuntime::InferenceSession.new(File.join(MODEL_DIR, "model.onnx"))
+      end
     end
 
     def run_inference(text, prompt: :query)

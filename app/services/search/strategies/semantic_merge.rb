@@ -44,6 +44,11 @@ module Search
         talk talks about regarding concerning
       ].to_set.freeze
 
+      # Cached embedding of the user's query — populated by encode_query and
+      # exposed for downstream gates (e.g. TopicRetrieval intent gate, Phase B)
+      # so they don't have to re-encode.
+      attr_reader :query_embedding
+
       def initialize(query, fts_result, scope: nil, page: 1, per_page: 25)
         @query = query
         @fts_result = fts_result
@@ -77,14 +82,17 @@ module Search
           return @fts_result
         end
 
+        # Person-topic queries do TWO encode + vector search round trips
+        # (full question + focused content-words). Tried collapsing to
+        # one encode for perf — the audit dropped 1.16pp because some
+        # person-topic queries (e.g. "What did Peter say at Pentecost?")
+        # only surface their answer via the full-question embedding.
+        # Sequential, not parallel: parallel via Threads accumulated
+        # connection-pool overhead under sustained audit load.
         embedding = encode_query
         return @fts_result unless embedding
-
         semantic_results = find_semantic_matches(embedding)
 
-        # For person-topic queries, also run a focused embedding search
-        # using just the content words (person + topic) to catch verses
-        # that the full question embedding might miss.
         if person_topic_query?
           focused = encode_focused_query
           if focused
@@ -111,9 +119,6 @@ module Search
       def encode_query
         return nil unless EmbeddingEncoder.instance.model_available?
 
-        # For question-style queries, encode the full query — LaBSE handles
-        # natural language well and short keyword fragments lose context.
-        # For keyword queries, strip filler to sharpen the embedding.
         if question_query?
           text = @query
         else
@@ -122,7 +127,7 @@ module Search
           text = content.size >= 2 ? content.join(" ") : @query
         end
 
-        EmbeddingEncoder.instance.encode(text)
+        @query_embedding = EmbeddingEncoder.instance.encode(text)
       rescue => e
         Rails.logger.warn("[SemanticMerge] encode failed: #{e.message}")
         nil

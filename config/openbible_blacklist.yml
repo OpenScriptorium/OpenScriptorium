@@ -1,0 +1,173 @@
+# Topics excluded from the OpenBible.info Topics import.
+#
+# Hard-skip on the way in: the importer drops any row whose Topic field
+# matches one of these keys (case-insensitive, exact match after lowercase
+# strip). The dropped data is never persisted; this file is the editorial
+# audit trail.
+#
+# Inclusion criteria: a topic appears here when the verse-to-topic mapping
+# is itself anachronistic (importing modern moral framing into texts that
+# don't address the question) OR significantly distorting (top hits omit
+# the foundational text in active scholarly debate). Topics where
+# evangelical voters happen to read the corpus a particular way but the
+# verse mapping is honest are NOT here.
+#
+# CC BY 4.0 already requires us to indicate when changes are made; this
+# file plus the editorial-policy page derived from it satisfies that.
+
+contested_topics:
+  # ---- Sexuality ----
+  - keys:
+      - homosexuality
+      - homosexual
+      - sodomy
+      - sodomite
+      - lesbian
+      - gay
+      - sexual orientation
+      - same sex
+      - same-sex
+      - transgender
+      - gender identity
+      - lgbt
+    category: sexuality
+    reason: >
+      Top hits import modern orientation category onto Holiness Code +
+      Pauline texts; conflate Sodom (Gen 19, ANE hospitality + gang rape
+      per Ezek 16:49-50) with male-male sex. Sefaria's narrower
+      'homosexual-male-intercourse' (Lev 18:22 + 20:13 only) is closer
+      to academic critical consensus.
+  - keys:
+      - masturbation
+    category: sexuality
+    reason: >
+      Top hits cite Onan (Gen 38) — a passage about levirate-duty refusal,
+      not masturbation. Anachronistic mapping.
+
+  # ---- Reproductive / bioethics ----
+  - keys:
+      - abortion
+    category: reproductive
+    reason: >
+      Top hits lead with Exod 20:13 ('you shall not murder'). Sefaria's
+      own description: "though the Bible does not explicitly address the
+      topic of abortion." Exod 21:22-25 is the only relevant text and
+      its Hebrew is contested (whether the unborn counts as nephesh).
+  - keys:
+      - contraception
+      - birth control
+    category: reproductive
+    reason: >
+      Same Onan misreading as masturbation. No biblical text addresses
+      contraception.
+  - keys:
+      - euthanasia
+      - assisted suicide
+      - end of life
+    category: reproductive
+    reason: >
+      Modern bioethical category not addressed in biblical text;
+      mapping is by proof-text reflex.
+
+  # ---- Gender ----
+  - keys:
+      - women
+      - women in ministry
+      - women preachers
+      - women preaching
+      - women in leadership
+      - head of household
+      - wives submit
+      - submission of wives
+      - complementarian
+      - biblical womanhood
+      - biblical manhood
+    category: gender
+    reason: >
+      Top-10 includes 1 Tim 2:11-15, Tit 2:3-5, Prov 21:9 ('quarrelsome
+      wife'), and OMITS Gal 3:28, Rom 16 (Phoebe, Junia), the Daughters
+      of Zelophehad, Miriam, Deborah, Huldah. Worst single distortion
+      in the audit.
+
+  # ---- Marriage ----
+  - keys:
+      - divorce
+      - divorce and remarriage
+      - remarriage
+    category: marriage
+    reason: >
+      Top-10 is NT-only and entirely OMITS Deut 24:1-4 — the foundational
+      text and locus of Hillel/Shammai dispute. Sefaria correctly anchors
+      at Deut 24:1.
+  - keys:
+      - interracial marriage
+      - mixed marriage
+      - marrying outside the faith
+      - unequally yoked
+    category: marriage
+    reason: >
+      Cites Ezra 9-10 (forced divorce of foreign wives) without
+      redactional context. Subject of active scholarly debate re:
+      post-exilic identity politics.
+  - keys:
+      - polygamy
+    category: marriage
+    reason: >
+      Reads modern monogamy norm back into patriarchal narratives that
+      describe but don't legislate.
+
+  # ---- Civic / political ----
+  - keys:
+      - gun rights
+      - second amendment
+      - 2nd amendment
+    category: political
+    reason: >
+      Modern political category with no biblical text; mapping is purely
+      proof-text reflex.
+
+  # ---- Origins / theology hot-buttons ----
+  - keys:
+      - evolution
+      - creation vs evolution
+      - age of the earth
+      - young earth
+      - dinosaurs
+      - dinosaur
+    category: origins
+    reason: >
+      Theological-political category that doesn't exist in the biblical
+      corpus; framing is post-Scopes.
+  - keys:
+      - predestination
+      - election
+      - free will
+      - eternal security
+      - once saved always saved
+    category: theology
+    reason: >
+      Active Calvinist/Arminian debate; ranking encodes a position within
+      active interpretive controversy.
+  - keys:
+      - rapture
+      - pre tribulation
+      - pre-tribulation
+      - end times prophecy
+      - dispensationalism
+    category: theology
+    reason: >
+      Dispensationalist framing not shared by mainline/critical
+      scholarship; reads modern eschatological scheme into texts that
+      don't argue for it.
+
+  # ---- Money ----
+  - keys:
+      - tithing
+      - prosperity
+      - wealth and prosperity
+      - prosperity gospel
+    category: money
+    reason: >
+      OT tithe laws are about temple/Levite economy, not modern church
+      giving. Prosperity gospel reads NT promises out of context.
+      Active intra-evangelical debate.

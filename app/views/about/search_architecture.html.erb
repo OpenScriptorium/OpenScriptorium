@@ -23,11 +23,12 @@
   <h2>Overview</h2>
 
   <p>
-    Every search query passes through three stages: classification,
-    execution, and (for text queries) semantic enrichment. The classifier
-    inspects the raw query string and dispatches it to one of eleven
-    specialised strategies. Most queries also receive a cross-language
-    sidebar showing related Hebrew and Greek lemmas.
+    Every search query passes through four stages: classification,
+    execution, semantic enrichment (for text queries), and topical
+    enrichment from external thematic indexes. The classifier inspects
+    the raw query string and dispatches it to one of eleven specialised
+    strategies. Most queries also receive a cross-language sidebar
+    showing related Hebrew and Greek lemmas.
   </p>
 
   <h2>Query classification</h2>
@@ -408,6 +409,84 @@ ORDER BY score DESC</pre>
     users who want strict keyword-only results.
   </p>
 
+  <h2>Topical themes</h2>
+
+  <p>
+    On top of FTS and semantic search, the executor merges in a third
+    signal: <strong>topical themes</strong>. Two external CC BY 4.0
+    datasets are imported into a generic
+    <code>topics</code> + <code>topic_verses</code> schema:
+  </p>
+
+  <ul>
+    <li>
+      <strong><a href="https://www.openbible.info/topics/" class="underline decoration-dotted">OpenBible.info Topics</a></strong>
+      &mdash; community-voted thematic mappings, ~6,700 topics (after
+      editorial filtering, see below) covering ~210,000 topic&ndash;verse
+      pairs. Ranked by quality score (percentage of votes for each passage).
+    </li>
+    <li>
+      <strong><a href="https://www.sefaria.org/topics/" class="underline decoration-dotted">Sefaria Topics</a></strong>
+      &mdash; curator-vetted Jewish topical index, filtered to Tanakh refs
+      only (~2,100 topics, ~16,000 pairs). Ranked by Sefaria&rsquo;s
+      PageRank-style <code>order.pr</code> score.
+    </li>
+  </ul>
+
+  <p>
+    At query time, the <code>TopicRetrieval</code> strategy extracts every
+    1- to 4-word contiguous substring of the query and looks them up
+    against an indexed <code>topics.name</code> column. Each match
+    contributes its top-ranked verses, scored as
+    <code>(rank_within_topic / topic_max) &times; source_weight &times; 3.0</code>.
+    Sefaria gets a <code>1.5&times;</code> source weight relative to
+    OpenBible&rsquo;s <code>1.0&times;</code> &mdash; on contested topics
+    where both have data, Sefaria&rsquo;s ranking is the stronger signal,
+    a finding from the
+    <a href="https://github.com/openscriptorium/openscriptorium" class="underline decoration-dotted">2026-04-27 bias audit</a>
+    that compared OpenBible, Nave&rsquo;s, and Sefaria against modern
+    academic critical consensus.
+  </p>
+
+  <h3>Editorial filtering on OpenBible Topics</h3>
+
+  <p>
+    OpenBible&rsquo;s topics dataset is community-voted; the voter base
+    skews American evangelical, which encodes detectable bias on socially
+    contested questions. A small editorial blacklist
+    (<code>config/openbible_blacklist.yml</code>) excludes ~13 topic
+    clusters where the verse-to-topic mapping is anachronistic
+    (importing modern moral framing onto texts that don&rsquo;t address
+    the question) or significantly distorting (the foundational text in
+    an active scholarly debate is missing from the top-N). Topics where
+    a conservative reading is vocal but the verse mapping itself is honest
+    are <em>not</em> excluded. The full list and reasoning is in the YAML
+    file, version-controlled.
+  </p>
+
+  <p>
+    The blacklist applies only to OpenBible&rsquo;s ranking; the verses
+    themselves remain available via FTS, semantic, and (where applicable)
+    Sefaria&rsquo;s alternative topical view. Filtering doesn&rsquo;t
+    remove text from the corpus &mdash; it removes one source&rsquo;s
+    framing of which texts answer which question.
+  </p>
+
+  <h3>Match-stop list</h3>
+
+  <p>
+    Two classes of topic names never trigger a match: query
+    meta-vocabulary (&ldquo;bible,&rdquo; &ldquo;scripture,&rdquo;
+    &ldquo;verse&rdquo;) and biblical person names (&ldquo;jesus,&rdquo;
+    &ldquo;paul,&rdquo; &ldquo;moses,&rdquo; &hellip;). Person names are
+    the domain of <code>PersonTopicSearch</code>; matching them as
+    topics double-counts and floods results with generic person verses.
+    Query meta-vocabulary fires on phrases like &ldquo;what does the
+    bible say about X,&rdquo; activating a niche &ldquo;bible&rdquo;
+    topic about scripture itself rather than the user&rsquo;s actual
+    topic word.
+  </p>
+
   <h2>Script and word-level search</h2>
 
   <p>
@@ -570,10 +649,11 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
     For natural-language questions (&ldquo;What did Jesus say about
     war?&rdquo;), the search runs a secondary retrieval pass against
     the pericope name embeddings. Each of the 3,002+ pericopes has
-    its name encoded into the same 768-dimensional vector space as
+    its name encoded into the same 1024-dimensional vector space as
     the verse embeddings. The query is encoded and matched against
     pericope names by cosine similarity, then the top-matching
-    pericopes&rsquo; verses are injected into the result set.
+    pericopes&rsquo; verses are injected into the result set in a
+    single batched join.
   </p>
 
   <p>

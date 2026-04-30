@@ -17,17 +17,29 @@ module Search
     # path makes zero DB calls.
     CONCEPTS_ENABLED = ENV.fetch("SEARCH_CONCEPTS", "on") != "off"
 
+    # External topical-index integration (OpenBible Topics + Sefaria Topics).
+    # Same rollback knob: set SEARCH_TOPICS=off to disable. When off,
+    # the topic path makes zero DB calls.
+    TOPICS_ENABLED = ENV.fetch("SEARCH_TOPICS", "on") != "off"
+
+    # Per-stage timing instrumentation. Set SEARCH_TIMING=1 to emit a
+    # one-line breakdown to stderr after each query showing milliseconds
+    # spent in dispatch, alias, transliteration, pericope, semantic,
+    # concept, topic, cross-language. Zero-cost when off.
+    TIMING_ENABLED = ENV.fetch("SEARCH_TIMING", "0") == "1"
+
     def initialize(raw_query, scope: nil, page: 1, per_page: 25)
       @raw_query = raw_query.to_s.strip
       @scope = apply_default_scope(scope)
       @page = page
       @per_page = per_page
+      @timings = {} if TIMING_ENABLED
     end
 
     def call
       classified = QueryClassifier.classify(@raw_query)
 
-      result = dispatch(classified)
+      result = time_stage(:dispatch) { dispatch(classified) }
 
       # Person-topic queries have their own ranking pipeline — skip the
       # general text post-processing (aliases, pericope, semantic merge).
@@ -37,7 +49,7 @@ module Search
       # (e.g. "golden rule", "shepherd psalm", "prodigal son"), inject the
       # target passage at the top of results.
       if is_text
-        result = inject_alias_matches(result)
+        result = time_stage(:alias) { inject_alias_matches(result) }
       end
 
       # Transliteration fallback: if text search returned very few results and
@@ -46,16 +58,27 @@ module Search
       # Only replace when text results are truly sparse (< 5) — words like
       # "Hallelujah" appear in English text and shouldn't be diverted.
       if is_text && result.total_count < 5 && latin_script?(@raw_query) && !@raw_query.include?(" ")
-        transliteration_result = try_transliteration_fallback(classified.query)
+        transliteration_result = time_stage(:translit) { try_transliteration_fallback(classified.query) }
         result = transliteration_result if transliteration_result && !transliteration_result.empty?
       end
 
       # Pericope-based retrieval: ONLY for question queries ("What did
       # Jesus say about war?"). Non-question queries use FTS + aliases.
-      if is_text && question_query?(@raw_query)
-        result = Strategies::PericopeRetrieval.new(
-          @raw_query, result, scope: @scope
-        ).call
+      #
+      # Skip pericope retrieval when the topic gate would fire — topics
+      # handle thematic queries more precisely. PericopeRetrieval's
+      # MULTI_HOP expansion grabs broadly-related pericopes (e.g.,
+      # "anxiety" → "peace trust faith" → Faith pericopes injected at
+      # relevance ~8.0), which then dominates topic-injected verses
+      # (relevance ~4.5) and buries the actual right answer. For narrative
+      # questions ("what happened at the tower of Babel") the topic gate
+      # doesn't fire and pericope retrieval still runs.
+      pericope_eligible = is_text && question_query?(@raw_query) &&
+                          (!TOPICS_ENABLED || !topic_retrieval_helpful?(result))
+      if pericope_eligible
+        result = time_stage(:pericope) {
+          Strategies::PericopeRetrieval.new(@raw_query, result, scope: @scope).call
+        }
       end
 
       # Semantic enrichment: if embeddings are available and mode is hybrid,
@@ -69,10 +92,14 @@ module Search
       semantic_eligible = (is_text || result.query_type == :person_topic) &&
                           semantic_mode? && embeddings_available?
       if semantic_eligible
-        result = Strategies::SemanticMerge.new(
+        sem_strategy = Strategies::SemanticMerge.new(
           @raw_query, result,
           scope: @scope, page: @page, per_page: @per_page
-        ).call
+        )
+        result = time_stage(:semantic) { sem_strategy.call }
+        # Cache the query embedding for downstream gates (TopicRetrieval
+        # intent gate, Phase B). Avoids a redundant ONNX inference.
+        @cached_query_embedding = sem_strategy.query_embedding
       end
 
       # Concept retrieval: merge curated concept → signature-verse
@@ -81,16 +108,35 @@ module Search
       # benefits from a "Forgiveness" concept pointing at Matt 6:14.
       # Gated by CONCEPTS_ENABLED so it's a zero-cost no-op when off.
       if CONCEPTS_ENABLED && (is_text || result.query_type == :person_topic)
-        concept_result = Strategies::ConceptRetrieval.new(
-          @raw_query, scope: @scope, per_page: @per_page
-        ).call
+        concept_result = time_stage(:concept) {
+          Strategies::ConceptRetrieval.new(@raw_query, scope: @scope, per_page: @per_page).call
+        }
         result = Strategies::ConceptRetrieval.merge(result, concept_result, per_page: @per_page)
+      end
+
+      # Topic retrieval: merge external topical-index matches (OpenBible +
+      # Sefaria) into the result set. Same base gating as concepts, plus
+      # an intent gate — topics only fire when the query *shape* looks
+      # thematic (asking about a topic) rather than specific (quoting a
+      # verse, naming a passage). The gate eliminates the regression on
+      # paraphrase / named-passage queries from the 2026-04-28 audit
+      # while preserving the natural_language wins.
+      if TOPICS_ENABLED && (is_text || result.query_type == :person_topic) &&
+         topic_retrieval_helpful?(result)
+        topic_result = time_stage(:topic) {
+          Strategies::TopicRetrieval.new(
+            @raw_query, scope: @scope, per_page: @per_page,
+            query_embedding: @cached_query_embedding
+          ).call
+        }
+        result = Strategies::TopicRetrieval.merge(result, topic_result, per_page: @per_page)
       end
 
       # For English text searches, also run cross-language search for the sidebar card
       if (is_text || result.query_type == :person_topic) && result.cross_language_card.nil?
-        card = Strategies::CrossLanguageSearch.new(classified.query).call
+        card = time_stage(:xlang) { Strategies::CrossLanguageSearch.new(classified.query).call }
         if card
+          emit_timings!
           return ResultSet.new(
             results: result.results,
             query: result.query,
@@ -105,10 +151,28 @@ module Search
         end
       end
 
+      emit_timings!
       result
     end
 
     private
+
+    # No-op when SEARCH_TIMING isn't set.
+    def time_stage(name)
+      return yield unless TIMING_ENABLED
+      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = yield
+      @timings[name] = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000
+      result
+    end
+
+    def emit_timings!
+      return unless TIMING_ENABLED
+      total = @timings.values.sum.round
+      parts = @timings.map { |k, v| "#{k}=#{v.round}" }.join(" ")
+      preview = @raw_query.length > 50 ? "#{@raw_query[0, 50]}..." : @raw_query
+      $stderr.puts "[SEARCH_TIMING] #{total}ms total | #{parts} | q=#{preview.inspect}"
+    end
 
     def dispatch(classified)
       case classified.type
@@ -533,6 +597,139 @@ module Search
     def question_query?(q)
       q.strip.match?(/\A(what|where|when|who|why|how|is|does|did|can|should|are)\b/i) ||
         q.strip.end_with?("?")
+    end
+
+    # Intent gate for TopicRetrieval. Topics fire only when the query
+    # *shape* looks thematic — asking about a topic — rather than specific
+    # (quoting a verse, paraphrasing one, naming a passage). On the
+    # 2026-04-28 audit, ungated topics regressed paraphrase_semantic
+    # by 17.5pp because topic-injected verses (relevance ~4.5) overran
+    # FTS+semantic correct answers (post-RRF relevance ~0.04).
+    #
+    # The gate is a fast-path: regex patterns for explicit thematic
+    # phrasings, plus a short-query fallback for single-word topical
+    # lookups ("anxiety", "war"). A second-layer embedding-similarity
+    # gate is planned for the queries this misses.
+    THEMATIC_PATTERNS = [
+      /\b(verses?|passages?)\s+(about|on|regarding|concerning|of)\b/i,
+      /\bwhat\s+(does|do)\s+(the\s+)?(bible|scripture|scriptures)\s+(say|teach)/i,
+      /\bwhat\s+(is|are)\s+\w+/i,
+      /\bbiblical\s+view\s+of\b/i,
+      /\b(in|throughout)\s+(the\s+)?(bible|scripture|scriptures)\b/i,
+      /\babout\s+\w+\s+in\s+the\s+bible\b/i
+    ].freeze
+
+    # Stop words for the content-word count fallback. Same minimal set
+    # used by other gates here — short-circuits "the war" / "of love"
+    # being treated as 2-word queries.
+    INTENT_GATE_STOP_WORDS = %w[
+      a an the of in on at to for and or but is are was were
+      that this these those it its with from by my our your
+    ].to_set.freeze
+
+    def topic_retrieval_helpful?(result)
+      # Person-topic queries are explicitly thematic by detection.
+      return true if result.query_type == :person_topic
+
+      q = @raw_query
+      return false if q.blank?
+
+      # Phase A — explicit thematic phrasing.
+      return true if THEMATIC_PATTERNS.any? { |re| q.match?(re) }
+
+      # Phase A — short keyword queries are usually topical lookup.
+      content = q.downcase.gsub(/[^a-z0-9\s]/, " ").split
+                 .reject { |w| INTENT_GATE_STOP_WORDS.include?(w) || w.length < 2 }
+      return true if content.size <= 2
+
+      # Phase B — embedding similarity to thematic vs non-thematic
+      # prototype queries. Catches phrasings the regex patterns miss
+      # ("tell me about peace", "show me wisdom verses"). Reuses the
+      # query embedding SemanticMerge already computed; if the cache
+      # is empty (rare — e.g. SemanticMerge bailed out before encoding),
+      # falls back to false rather than triggering a fresh encode.
+      thematic_via_embedding?
+    end
+
+    # Thematic vs non-thematic prototype queries. The vectors are encoded
+    # lazily on first use and memoized at the class level. Queries get
+    # classified by whichever side they're more similar to, with a small
+    # bias toward firing (thematic_max > non_thematic_max + threshold).
+    THEMATIC_PROTOTYPES = [
+      "verses about anxiety",
+      "what does the bible say about lust",
+      "what is grace",
+      "biblical view of marriage",
+      "passages on forgiveness",
+      "tell me about peace in the bible",
+      "show me verses on hope",
+      "wisdom verses",
+      "anxiety in the bible",
+      "what is the kingdom of god",
+      "scriptures about love",
+      "verses on fear",
+      "what does scripture teach about money",
+      "biblical perspective on suffering"
+    ].freeze
+
+    NON_THEMATIC_PROTOTYPES = [
+      "for God so loved the world",
+      "the lord is my shepherd",
+      "blessed are the meek",
+      "wash me clean from my sin",
+      "Jacob wrestled with the angel",
+      "parable of the prodigal son",
+      "Magnificat",
+      "in the beginning God created",
+      "thou shalt not kill",
+      "Genesis 1:1",
+      "Sermon on the Mount",
+      "the writing on the wall",
+      "Jesus wept",
+      "armor of God"
+    ].freeze
+
+    THEMATIC_THRESHOLD = 0.04  # cosine margin: thematic_max must beat non-thematic by this much
+
+    @@prototype_embedding_mutex = Mutex.new
+
+    def self.prototype_embeddings
+      return @@prototype_embeddings if defined?(@@prototype_embeddings) && @@prototype_embeddings
+      @@prototype_embedding_mutex.synchronize do
+        return @@prototype_embeddings if defined?(@@prototype_embeddings) && @@prototype_embeddings
+        encoder = Search::EmbeddingEncoder.instance
+        return nil unless encoder.model_available?
+        thematic = THEMATIC_PROTOTYPES.filter_map { |p| encoder.encode(p) }
+        non_thematic = NON_THEMATIC_PROTOTYPES.filter_map { |p| encoder.encode(p) }
+        @@prototype_embeddings = { thematic: thematic, non_thematic: non_thematic }
+      end
+    rescue => e
+      Rails.logger.warn("[Executor] prototype embedding failed: #{e.message}")
+      nil
+    end
+
+    def thematic_via_embedding?
+      embedding = @cached_query_embedding
+      return false unless embedding
+      protos = self.class.prototype_embeddings
+      return false unless protos
+
+      thematic_max = protos[:thematic].map { |v| dot(embedding, v) }.max || 0.0
+      non_thematic_max = protos[:non_thematic].map { |v| dot(embedding, v) }.max || 0.0
+      thematic_max > non_thematic_max + THEMATIC_THRESHOLD
+    end
+
+    # Cosine on L2-normalized vectors reduces to dot product.
+    # Both sides are normalized in the Qwen3-Embedding fused export.
+    def dot(a, b)
+      sum = 0.0
+      i = 0
+      n = a.length
+      while i < n
+        sum += a[i] * b[i]
+        i += 1
+      end
+      sum
     end
 
     # Detect person-topic queries like "What did Jesus say about money?"

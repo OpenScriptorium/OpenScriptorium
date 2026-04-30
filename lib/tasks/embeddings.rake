@@ -43,6 +43,122 @@ namespace :embeddings do
     puts "\nDone in #{(Time.now - t0).round(1)}s. encoded=#{encoded}, failed=#{failed}."
   end
 
+  desc "Encode all topic names with Qwen3-Embedding; fills topics.name_embedding_qwen3 (used by TopicRetrieval to match e.g. 'hopeless' → 'hope' topic)"
+  task encode_topics_qwen3: :environment do
+    require_relative "../../app/services/search/embedding_encoder"
+
+    encoder = Search::EmbeddingEncoder.instance
+    abort "model not found at #{Search::EmbeddingEncoder::MODEL_DIR}" unless encoder.model_available?
+
+    total = Topic.count
+    todo  = Topic.where(name_embedding_qwen3: nil).count
+    puts "Topics: #{total} total, #{todo} to encode."
+
+    if todo.zero?
+      puts "All topics already encoded; nothing to do."
+      next
+    end
+
+    encoded = 0
+    failed = 0
+    t0 = Time.now
+
+    # Encode as DOCUMENTS (no Instruct prefix) so the indexed form matches
+    # query-side encoded vectors at search time.
+    Topic.where(name_embedding_qwen3: nil).find_each do |topic|
+      text = topic.display_name.presence || topic.name
+      vec = encoder.encode(text, prompt: :document)
+      if vec.nil?
+        failed += 1
+        next
+      end
+      vec_literal = "[#{vec.join(',')}]"
+      Topic.connection.exec_update(
+        "UPDATE topics SET name_embedding_qwen3 = $1::vector WHERE id = $2",
+        "encode_topics_qwen3",
+        [vec_literal, topic.id]
+      )
+      encoded += 1
+      if encoded % 200 == 0
+        rate = encoded / (Time.now - t0)
+        $stdout.print "\r  encoded #{encoded}/#{todo}  #{rate.round(1)} rows/s"
+        $stdout.flush
+      end
+    end
+    puts "\nDone in #{(Time.now - t0).round(1)}s. encoded=#{encoded}, failed=#{failed}."
+  end
+
+  desc "Compute topic centroid embeddings: average of each topic's top-K tagged verses' embeddings (used by TopicRetrieval centroid-expansion to surface verses semantically near a topic's anchors but not explicitly tagged)"
+  task :compute_topic_centroids, [:k] => :environment do |_, args|
+    k = (args[:k] || ENV["K"] || "8").to_i
+    conn = ActiveRecord::Base.connection
+    total = Topic.count
+    todo  = Topic.where(centroid_embedding_qwen3: nil).count
+    puts "Topics: #{total}, to compute: #{todo}, K (top verses per topic)=#{k}"
+    next if todo.zero?
+
+    computed = 0
+    skipped = 0
+    t0 = Time.now
+
+    # For each topic, fetch the top-K tagged verses' embeddings and avg them.
+    # The embedding lives in work_unit_embeddings_qwen3_06b keyed by work_unit_id;
+    # topic_verses are keyed by canonical_ref_id, which can have multiple work_units.
+    # We pick the FIRST work_unit per canonical_ref (any English translation suffices —
+    # the embedding model maps cross-translation to the same vector neighborhood anyway).
+    Topic.where(centroid_embedding_qwen3: nil).find_each do |topic|
+      vectors = conn.select_values(<<~SQL)
+        WITH top_refs AS (
+          SELECT canonical_ref_id
+          FROM topic_verses
+          WHERE topic_id = #{topic.id}
+          ORDER BY source_rank DESC
+          LIMIT #{k}
+        ),
+        first_wu_per_ref AS (
+          SELECT DISTINCT ON (wu.canonical_ref_id) wu.id
+          FROM work_units wu
+          JOIN top_refs tr ON tr.canonical_ref_id = wu.canonical_ref_id
+          ORDER BY wu.canonical_ref_id, wu.id
+        )
+        SELECT e.embedding::text
+        FROM work_unit_embeddings_qwen3_06b e
+        JOIN first_wu_per_ref f ON f.id = e.work_unit_id
+      SQL
+
+      if vectors.empty?
+        skipped += 1
+        next
+      end
+
+      # Parse "[a,b,c,...]" strings into arrays of floats and average elementwise.
+      arrs = vectors.map { |s| s.tr("[]", "").split(",").map(&:to_f) }
+      n = arrs.size
+      dim = arrs.first.size
+      sum = Array.new(dim, 0.0)
+      arrs.each { |a| dim.times { |i| sum[i] += a[i] } }
+      centroid = sum.map { |x| x / n }
+
+      # L2-normalize so cosine == dot (matches how the model emits doc vectors).
+      norm = Math.sqrt(centroid.reduce(0.0) { |acc, x| acc + x * x })
+      centroid = centroid.map { |x| x / norm } if norm > 0
+
+      vec_lit = "[#{centroid.join(',')}]"
+      conn.exec_update(
+        "UPDATE topics SET centroid_embedding_qwen3 = $1::vector WHERE id = $2",
+        "compute_topic_centroids",
+        [vec_lit, topic.id]
+      )
+      computed += 1
+      if computed % 200 == 0
+        rate = computed / (Time.now - t0)
+        $stdout.print "\r  computed #{computed}/#{todo}  #{rate.round(1)} topics/s"
+        $stdout.flush
+      end
+    end
+    puts "\nDone in #{(Time.now - t0).round(1)}s. computed=#{computed}, skipped=#{skipped}."
+  end
+
   desc "Bulk-import (id, vector) TSV into a per-model side table (work_unit_embeddings_<slug>); build HNSW after"
   task :import_side, [:slug, :dim, :path] => :environment do |_, args|
     slug = args[:slug] || ENV["SLUG"] or abort("usage: rake 'embeddings:import_side[<slug>,<dim>,<path>]'")

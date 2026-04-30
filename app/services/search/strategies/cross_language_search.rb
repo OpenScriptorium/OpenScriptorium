@@ -65,7 +65,6 @@ module Search
         end
 
         conn = ApplicationRecord.connection
-        word_count_sql = "(SELECT COUNT(*) FROM words WHERE words.lemma_id = lemmas.id)"
 
         # Build gloss patterns: the query itself + any concept synonyms.
         # Use hyphen-aware word boundaries so "law" doesn't match "mother-in-law".
@@ -81,8 +80,8 @@ module Search
         }
         combined_pattern = gloss_patterns.map { |p| "primary_gloss ~* #{p}" }.join(" OR ")
 
-        hebrew = find_candidates(combined_pattern, conn, HEBREW_LANGS, word_count_sql)
-        greek  = find_candidates(combined_pattern, conn, GREEK_LANGS, word_count_sql)
+        hebrew = find_candidates(combined_pattern, conn, HEBREW_LANGS)
+        greek  = find_candidates(combined_pattern, conn, GREEK_LANGS)
 
         top_hebrew = pick_top(hebrew, @query, MAX_PER_LANGUAGE)
         top_greek  = pick_top(greek, @query, MAX_PER_LANGUAGE)
@@ -121,7 +120,6 @@ module Search
 
       def search_multiple_words(words)
         conn = ApplicationRecord.connection
-        word_count_sql = "(SELECT COUNT(*) FROM words WHERE words.lemma_id = lemmas.id)"
 
         all_hebrew = []
         all_greek = []
@@ -143,8 +141,8 @@ module Search
             "primary_gloss ~* #{p}"
           }.join(" OR ")
 
-          hebrew = find_candidates(combined, conn, HEBREW_LANGS, word_count_sql)
-          greek  = find_candidates(combined, conn, GREEK_LANGS, word_count_sql)
+          hebrew = find_candidates(combined, conn, HEBREW_LANGS)
+          greek  = find_candidates(combined, conn, GREEK_LANGS)
 
           # Topic words get more sidebar slots than person names/verbs
           slots = topic_words.include?(word) ? 2 : 1
@@ -181,17 +179,21 @@ module Search
         }
       end
 
-      def find_candidates(gloss_condition, conn, languages, word_count_sql)
+      def find_candidates(gloss_condition, conn, languages)
         sanitized = conn.quote(@query)
 
-        # Pass 1: word-boundary match on primary_gloss (only attested lemmas)
-        # gloss_condition is a SQL fragment like "primary_gloss ~* '...' OR primary_gloss ~* '...'"
+        # Pass 1: word-boundary match on primary_gloss (only attested lemmas).
+        # `lemmas.frequency` is a denormalized count of occurrences in `words`
+        # — we use it for ordering instead of recomputing per-row via
+        # `(SELECT COUNT(*) FROM words WHERE lemma_id = lemmas.id)`, which
+        # was previously the dominant cost (>1s on text searches). The
+        # frequency column may drift after lemma cleanups; refresh it via
+        # `rake lemmas:refresh_frequency` periodically.
         results = Lemma
           .where(Arel.sql("(#{gloss_condition})"))
           .where(language: languages)
           .where("frequency > 0")
-          .select("lemmas.*, #{word_count_sql} AS word_count")
-          .order(Arel.sql("#{word_count_sql} DESC"))
+          .order(frequency: :desc)
           .limit(15)
           .to_a
 
@@ -204,8 +206,7 @@ module Search
             .where(language: languages)
             .where("frequency > 0")
             .where.not(id: results.map(&:id))
-            .select("lemmas.*, #{word_count_sql} AS word_count")
-            .order(Arel.sql("#{word_count_sql} DESC"))
+            .order(frequency: :desc)
             .limit(10)
             .to_a
           results.concat(fts_results)
@@ -223,8 +224,7 @@ module Search
             .where("frequency > 0")
             .where("primary_gloss !~ '^[A-Z]'")  # exclude proper names
             .where.not(id: results.map(&:id))
-            .select("lemmas.*, #{word_count_sql} AS word_count")
-            .order(Arel.sql("#{word_count_sql} DESC"))
+            .order(frequency: :desc)
             .limit(5)
             .to_a
           results.concat(senses_results)
@@ -263,7 +263,7 @@ module Search
             end
           }
           best_score = ([direct_score] + syn_scores).max
-          [l, best_score, l.respond_to?(:word_count) ? l.word_count.to_i : 0]
+          [l, best_score, l.frequency.to_i]
         }
 
         # Sort by score tier (bucket scores within 15 points of each other),

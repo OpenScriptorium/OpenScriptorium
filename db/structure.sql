@@ -1363,6 +1363,80 @@ ALTER SEQUENCE public.syntax_nodes_id_seq OWNED BY public.syntax_nodes.id;
 
 
 --
+-- Name: topic_verses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.topic_verses (
+    id bigint NOT NULL,
+    topic_id bigint NOT NULL,
+    canonical_ref_id bigint NOT NULL,
+    source_rank double precision NOT NULL,
+    import_run_id bigint,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: topic_verses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.topic_verses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: topic_verses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.topic_verses_id_seq OWNED BY public.topic_verses.id;
+
+
+--
+-- Name: topics; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.topics (
+    id bigint NOT NULL,
+    source character varying NOT NULL,
+    source_topic_id character varying NOT NULL,
+    name character varying NOT NULL,
+    display_name character varying,
+    description text,
+    category character varying,
+    license_id bigint,
+    import_run_id bigint,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    name_embedding_qwen3 public.vector(1024),
+    centroid_embedding_qwen3 public.vector(1024)
+);
+
+
+--
+-- Name: topics_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.topics_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: topics_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.topics_id_seq OWNED BY public.topics.id;
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1961,6 +2035,20 @@ ALTER TABLE ONLY public.syntax_nodes ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: topic_verses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topic_verses ALTER COLUMN id SET DEFAULT nextval('public.topic_verses_id_seq'::regclass);
+
+
+--
+-- Name: topics id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topics ALTER COLUMN id SET DEFAULT nextval('public.topics_id_seq'::regclass);
+
+
+--
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2271,6 +2359,22 @@ ALTER TABLE ONLY public.syntax_nodes
 
 
 --
+-- Name: topic_verses topic_verses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topic_verses
+    ADD CONSTRAINT topic_verses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: topics topics_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topics
+    ADD CONSTRAINT topics_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2415,6 +2519,20 @@ CREATE INDEX idx_lemmas_normalized_trgm ON public.lemmas USING gin (normalized p
 
 
 --
+-- Name: idx_lemmas_primary_gloss_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_lemmas_primary_gloss_trgm ON public.lemmas USING gin (primary_gloss public.gin_trgm_ops);
+
+
+--
+-- Name: idx_lemmas_senses_fts; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_lemmas_senses_fts ON public.lemmas USING gin (to_tsvector('english'::regconfig, COALESCE((senses)::text, ''::text)));
+
+
+--
 -- Name: idx_lemmas_transliteration_trgm; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2482,6 +2600,27 @@ CREATE UNIQUE INDEX idx_rp_entries_order ON public.reading_plan_entries USING bt
 --
 
 CREATE UNIQUE INDEX idx_rp_progress_unique ON public.reading_plan_progress USING btree (user_id, reading_plan_entry_id);
+
+
+--
+-- Name: idx_topic_verses_by_rank; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_topic_verses_by_rank ON public.topic_verses USING btree (topic_id, source_rank DESC);
+
+
+--
+-- Name: idx_topic_verses_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_topic_verses_unique ON public.topic_verses USING btree (topic_id, canonical_ref_id);
+
+
+--
+-- Name: idx_topics_name_embedding_qwen3_hnsw; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_topics_name_embedding_qwen3_hnsw ON public.topics USING hnsw (name_embedding_qwen3 public.vector_cosine_ops) WHERE (name_embedding_qwen3 IS NOT NULL);
 
 
 --
@@ -3290,6 +3429,62 @@ CREATE INDEX index_syntax_nodes_on_work_unit_id_and_node_class ON public.syntax_
 
 
 --
+-- Name: index_topic_verses_on_canonical_ref_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_topic_verses_on_canonical_ref_id ON public.topic_verses USING btree (canonical_ref_id);
+
+
+--
+-- Name: index_topic_verses_on_import_run_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_topic_verses_on_import_run_id ON public.topic_verses USING btree (import_run_id);
+
+
+--
+-- Name: index_topic_verses_on_topic_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_topic_verses_on_topic_id ON public.topic_verses USING btree (topic_id);
+
+
+--
+-- Name: index_topics_on_import_run_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_topics_on_import_run_id ON public.topics USING btree (import_run_id);
+
+
+--
+-- Name: index_topics_on_license_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_topics_on_license_id ON public.topics USING btree (license_id);
+
+
+--
+-- Name: index_topics_on_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_topics_on_name ON public.topics USING btree (name);
+
+
+--
+-- Name: index_topics_on_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_topics_on_source ON public.topics USING btree (source);
+
+
+--
+-- Name: index_topics_on_source_and_source_topic_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_topics_on_source_and_source_topic_id ON public.topics USING btree (source, source_topic_id);
+
+
+--
 -- Name: index_users_on_email_address; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3866,6 +4061,14 @@ ALTER TABLE ONLY public.words
 
 
 --
+-- Name: topic_verses fk_rails_7ad664861a; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topic_verses
+    ADD CONSTRAINT fk_rails_7ad664861a FOREIGN KEY (canonical_ref_id) REFERENCES public.canonical_refs(id);
+
+
+--
 -- Name: alignment_group_members fk_rails_7bf8f65f9e; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3938,6 +4141,14 @@ ALTER TABLE ONLY public.variant_units
 
 
 --
+-- Name: topics fk_rails_9f48bfbb80; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topics
+    ADD CONSTRAINT fk_rails_9f48bfbb80 FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id);
+
+
+--
 -- Name: participant_references fk_rails_9fca1b46d3; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3994,6 +4205,14 @@ ALTER TABLE ONLY public.bookmarks
 
 
 --
+-- Name: topic_verses fk_rails_b8e9cb0bc4; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topic_verses
+    ADD CONSTRAINT fk_rails_b8e9cb0bc4 FOREIGN KEY (topic_id) REFERENCES public.topics(id) ON DELETE CASCADE;
+
+
+--
 -- Name: personal_notes fk_rails_bbd960570a; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4023,6 +4242,14 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.bookmarks
     ADD CONSTRAINT fk_rails_c1ff6fa4ac FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: topics fk_rails_c338b052e7; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topics
+    ADD CONSTRAINT fk_rails_c338b052e7 FOREIGN KEY (license_id) REFERENCES public.licenses(id);
 
 
 --
@@ -4194,12 +4421,24 @@ ALTER TABLE ONLY public.participant_references
 
 
 --
+-- Name: topic_verses fk_rails_fdc55e617b; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.topic_verses
+    ADD CONSTRAINT fk_rails_fdc55e617b FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260429160000'),
+('20260429140000'),
+('20260428100000'),
+('20260427120000'),
 ('20260427100000'),
 ('20260427000000'),
 ('20260426230000'),

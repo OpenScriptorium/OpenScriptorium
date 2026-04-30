@@ -79,6 +79,18 @@ namespace :import do
     Importers::OpenbibleXrefsImporter.new(download: download).call
   end
 
+  desc "Import OpenBible.info Topics (CC BY 4.0, ~71k topic-verse pairs; editorially filtered, see config/openbible_blacklist.yml)"
+  task openbible_topics: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::OpenbibleTopicsImporter.new(download: download).call
+  end
+
+  desc "Import Sefaria Topics, Tanakh-only refs (CC BY 4.0; per-topic API calls, cached under tmp/sefaria_topics/refs/. REFRESH=true to re-fetch)"
+  task sefaria_topics: :environment do
+    refresh = ENV["REFRESH"] == "true"
+    Importers::SefariaTopicsImporter.new(refresh: refresh).call
+  end
+
   desc "Import Treasury of Scripture Knowledge cross-references (CC BY-SA 4.0, ~305k links)"
   task tsk: :environment do
     download = ENV["DOWNLOAD"] != "false"
@@ -554,6 +566,11 @@ namespace :import do
       { name: "Vilna references", tasks: %w[vilna_refs] },
       # Phase 8: Lexicon cleanup (needs all word data)
       { name: "Lexicon cleanup", tasks: %w[step_lexicon] },
+      # Phase 9: Topical themes (CC BY 4.0 datasets used by topic search).
+      # openbible_topics is fast (single TSV); sefaria_topics fetches per-
+      # topic via Sefaria's API on first run (~13 min) and caches under
+      # tmp/sefaria_topics/refs/ for subsequent runs.
+      { name: "Topical themes", tasks: %w[openbible_topics sefaria_topics] },
     ]
 
     # Non-essential indexes to drop before import and rebuild after.
@@ -565,6 +582,8 @@ namespace :import do
       idx_lemmas_gloss_fts
       idx_lemmas_normalized_trgm
       idx_lemmas_transliteration_trgm
+      idx_lemmas_primary_gloss_trgm
+      idx_lemmas_senses_fts
     ].freeze
 
     # Force stdout to flush every line so progress shows in real time

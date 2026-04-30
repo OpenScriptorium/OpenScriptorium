@@ -543,16 +543,17 @@
 
   <p>
     The second layer is semantic search via sentence embeddings.
-    A multilingual embedding model &mdash; fine-tuned on 1.2 million
-    parallel pairs extracted from the corpus itself (parallel translations,
-    Hebrew&ndash;English word alignments, Greek&ndash;English word
-    alignments, and cross-reference pairs) &mdash; maps every work unit
-    to a 768-dimensional vector stored in pgvector. At query time, the
-    search encodes the user&rsquo;s query into the same vector space and
-    finds semantically similar verses via HNSW approximate nearest-neighbor
-    lookup. This means a search for &ldquo;What did Jesus teach about
-    wealth?&rdquo; finds the parable of the rich fool and &ldquo;you
-    cannot serve God and mammon&rdquo; even though the word
+    A multilingual embedding model
+    (<a href="https://huggingface.co/Qwen/Qwen3-Embedding-0.6B" class="underline decoration-dotted">Qwen3-Embedding-0.6B</a>)
+    fine-tuned on 1.2 million parallel pairs extracted from the corpus
+    itself (parallel translations, Hebrew&ndash;English word alignments,
+    Greek&ndash;English word alignments, and cross-reference pairs) maps
+    every work unit to a 1024-dimensional vector stored in pgvector. At
+    query time, the search encodes the user&rsquo;s query into the same
+    vector space and finds semantically similar verses via HNSW approximate
+    nearest-neighbor lookup. This means a search for &ldquo;What did Jesus
+    teach about wealth?&rdquo; finds the parable of the rich fool and
+    &ldquo;you cannot serve God and mammon&rdquo; even though the word
     &ldquo;wealth&rdquo; never appears in those verses.
   </p>
 
@@ -560,10 +561,18 @@
     Because the embedding model was trained on the corpus&rsquo;s own
     word-level alignments, Hebrew, Greek, and English all share the same
     vector space. An English query finds source-language verses by meaning,
-    not gloss lookup. The query classifier automatically detects citations,
-    Strong&rsquo;s numbers, Hebrew/Greek script, lemma prefixes, proximity
-    operators, and regex patterns, dispatching each to a specialised
-    strategy. Full details are on the
+    not gloss lookup. A third layer fuses
+    in <strong>topical themes</strong> &mdash; thematic verse mappings
+    drawn from <a href="https://www.openbible.info/topics/" class="underline decoration-dotted">OpenBible.info Topics</a>
+    (CC BY 4.0, editorially filtered) and
+    <a href="https://www.sefaria.org/topics/" class="underline decoration-dotted">Sefaria Topics</a>
+    (CC BY 4.0, Tanakh-only) &mdash; so a search for
+    &ldquo;anxiety&rdquo; surfaces Phil 4:6&ndash;7 and Prov 12:25 even
+    when those verses are buried deep in lexical results. The query
+    classifier automatically detects citations, Strong&rsquo;s numbers,
+    Hebrew/Greek script, lemma prefixes, proximity operators, and regex
+    patterns, dispatching each to a specialised strategy. Full details
+    are on the
     <%= link_to "search architecture", search_architecture_path,
           class: "underline decoration-dotted" %> page.
   </p>

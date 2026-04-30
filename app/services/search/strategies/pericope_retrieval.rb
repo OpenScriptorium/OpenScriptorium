@@ -188,59 +188,87 @@ module Search
       end
 
       def fetch_pericope_verses(pericopes, person)
-        results = []
+        return [] if pericopes.empty?
+
+        # Filter by testament before querying — skip wrong-testament pericopes
+        # so we don't fetch their verses unnecessarily.
         testament = person ? (PERSON_NAMES[person] || :nt) : nil
-
-        pericopes.each do |pericope|
-          cw_id = pericope["canonical_work_id"]
-          range = pericope["canonical_range"]
-          name = pericope["name"]
-          similarity = pericope["similarity"].to_f
-
-          # Skip pericopes from wrong testament if person is specified
-          if testament && person
-            book = pericope["book_key"]
-            nt_books = Search::Strategies::SemanticMerge::NT_BOOKS rescue Set.new
-            ot_books = Search::Strategies::SemanticMerge::OT_BOOKS rescue Set.new
-            if testament == :nt && !nt_books.include?(book)
-              next
-            elsif testament == :ot && !ot_books.include?(book)
-              next
-            end
+        if testament && person
+          nt_books = Search::Strategies::SemanticMerge::NT_BOOKS rescue Set.new
+          ot_books = Search::Strategies::SemanticMerge::OT_BOOKS rescue Set.new
+          pericopes = pericopes.reject do |p|
+            book = p["book_key"]
+            (testament == :nt && !nt_books.include?(book)) ||
+              (testament == :ot && !ot_books.include?(book))
           end
+        end
+        return [] if pericopes.empty?
 
-          # Find English work_units in this pericope's range
-          wus = WorkUnit.joins(:work, :canonical_ref)
-                       .where(works: { language: "en" })
-                       .where(canonical_refs: { canonical_work_id: cw_id })
-                       .where("canonical_refs.ord <@ ?::int4range", range)
-                       .includes(:canonical_ref, work: :license)
-                       .order("canonical_refs.ord")
-                       .limit(20)
+        # Single batched query fetches all verses across all matched
+        # pericopes — replaces the prior N+1 (one query per pericope).
+        # Joins through pericopes so each row carries its source pericope,
+        # which is what we need for per-pericope grouping below.
+        pericope_ids = pericopes.map { |p| p["id"].to_i }
+        ids_list = pericope_ids.join(",")
+        conn = ApplicationRecord.connection
 
-          # If person specified, prefer verses mentioning them
+        rows = conn.select_all(<<~SQL)
+          SELECT p.id              AS pericope_id,
+                 p.name            AS pericope_name,
+                 wu.id             AS wu_id,
+                 wu.body           AS body,
+                 wu.canonical_ref_id,
+                 cr.ord            AS ord,
+                 cr.hierarchy      AS hierarchy,
+                 cr.sbl_citation   AS citation,
+                 w.slug            AS work_slug,
+                 w.title           AS work_title,
+                 w.language        AS language,
+                 cw.book_key       AS book_key,
+                 l.name            AS license
+          FROM pericopes p
+          JOIN canonical_refs cr
+            ON cr.canonical_work_id = p.canonical_work_id
+           AND cr.ord <@ p.canonical_range
+          JOIN work_units wu ON wu.canonical_ref_id = cr.id
+          JOIN works w ON w.id = wu.work_id
+          JOIN licenses l ON l.id = w.license_id
+          JOIN canonical_works cw ON cw.id = cr.canonical_work_id
+          WHERE p.id IN (#{ids_list})
+            AND w.language = 'en'
+          ORDER BY p.id, cr.ord
+        SQL
+
+        # Build similarity lookup for the relevance score, and a name
+        # lookup for the result payload.
+        sim_by_pid = pericopes.each_with_object({}) { |p, h| h[p["id"].to_i] = p["similarity"].to_f }
+
+        # Group rows by pericope, then optionally prefer person-mention
+        # rows within each pericope, and take MAX_VERSES_PER_PERICOPE.
+        grouped = rows.group_by { |r| r["pericope_id"].to_i }
+        results = []
+        grouped.each do |pid, group|
+          wus = group
           if person
-            person_wus = wus.select { |wu| wu.body&.downcase&.include?(person) }
-            wus = person_wus.any? ? person_wus : wus.to_a
-          else
-            wus = wus.to_a
+            person_wus = wus.select { |r| r["body"].to_s.downcase.include?(person) }
+            wus = person_wus.any? ? person_wus : wus
           end
-
-          # Take best verses (first few, which are usually most relevant)
-          wus.first(MAX_VERSES_PER_PERICOPE).each do |wu|
+          similarity = sim_by_pid[pid].to_f
+          name = wus.first&.dig("pericope_name")
+          wus.first(MAX_VERSES_PER_PERICOPE).each do |r|
             results << {
-              id: wu.id,
-              work_slug: wu.work.slug,
-              work_title: wu.work.title,
-              language: wu.work.language,
-              canonical_ref_id: wu.canonical_ref_id,
-              citation: wu.canonical_ref.sbl_citation,
-              hierarchy: wu.canonical_ref.hierarchy,
-              body: wu.body,
-              headline: wu.body,
+              id: r["wu_id"].to_i,
+              work_slug: r["work_slug"],
+              work_title: r["work_title"],
+              language: r["language"],
+              canonical_ref_id: r["canonical_ref_id"].to_i,
+              citation: r["citation"],
+              hierarchy: r["hierarchy"],
+              body: r["body"],
+              headline: r["body"],
               relevance: similarity * 15.0,  # Must outrank generic person-topic results
-              license: wu.work.license.name,
-              book_slug: wu.canonical_ref.canonical_work.book_key,
+              license: r["license"],
+              book_slug: r["book_key"],
               pericope_name: name,
               pericope_match: true
             }
