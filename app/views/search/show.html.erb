@@ -237,11 +237,11 @@
       </div>
 
       <p class="text-center text-xs text-[var(--color-ink-soft)] mt-6 font-serif">
-        Searching across <%= Work.count %> works &middot;
-        <%= number_with_delimiter(WorkUnit.count) %> passages &middot;
-        <%= number_with_delimiter(Word.count) %> words with morphology &middot;
-        <%= number_with_delimiter(SyntaxNode.count) %> syntax nodes &middot;
-        <%= number_with_delimiter(ParticipantReference.count) %> discourse links
+        Searching across <%= CorpusStats.count(:works) %> works &middot;
+        <%= number_with_delimiter(CorpusStats.count(:work_units)) %> passages &middot;
+        <%= number_with_delimiter(CorpusStats.count(:words)) %> words with morphology &middot;
+        <%= number_with_delimiter(CorpusStats.count(:syntax_nodes)) %> syntax nodes &middot;
+        <%= number_with_delimiter(CorpusStats.count(:participant_references)) %> discourse links
       </p>
     </div>
 
@@ -293,7 +293,7 @@
       <div class="flex-1 min-w-0">
         <%= render partial: "search/facets", locals: { facets: @result.facets } %>
 
-        <div class="space-y-1">
+        <div class="space-y-1" data-controller="word-popover">
           <% if @group_by == "work" %>
             <% @result.grouped_by_work.each do |work_slug, results| %>
               <h3 class="font-serif text-sm font-bold text-[var(--color-ink)] mt-6 mb-2 first:mt-0">

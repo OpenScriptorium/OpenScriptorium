@@ -46,6 +46,7 @@ module Importers
           perform
         end
         @import_run.complete!(stats: @stats)
+        CorpusStats.expire! if defined?(CorpusStats)
         Rails.logger.info "[#{self.class.name}] done in #{(Time.now - started).round(2)}s — #{report}"
         stats
       rescue => e

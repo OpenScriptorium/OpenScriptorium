@@ -72,18 +72,7 @@ class AboutController < ApplicationController
         unit_count: WorkUnit.where(work_id: w.id).count
       }
     end
-    @corpus_totals = {
-      works:                  Work.count,
-      canonical_works:        CanonicalWork.count,
-      canonical_refs:         CanonicalRef.count,
-      work_units:             WorkUnit.count,
-      words:                  Word.count,
-      lemmas:                 Lemma.count,
-      cross_references:       CrossReference.count,
-      alignment_groups:       AlignmentGroup.count,
-      pericopes:              Pericope.count,
-      versification_mappings: VersificationMapping.count
-    }
+    @corpus_totals = CorpusStats.totals
   end
 
   def downloads

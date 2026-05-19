@@ -199,7 +199,7 @@ module ReaderHelper
   # the picker UI. Cached per-request via @available_xref_datasets so
   # we don't requery on every helper call.
   def available_xref_datasets
-    @available_xref_datasets ||= CrossReference.distinct.pluck(:source_dataset).compact.sort
+    @available_xref_datasets ||= CorpusStats.xref_datasets
   end
 
   # Display labels for known xref datasets — falls back to a

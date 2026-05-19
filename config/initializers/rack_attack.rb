@@ -1,8 +1,22 @@
-# Rate limiting to stay within bandwidth limits.
-# Mild limits — enough to stop automated abuse without
-# inconveniencing real users or researchers.
+# Rate limiting + crawler control. Mild limits — enough to stop automated
+# abuse and misbehaving crawlers without inconveniencing real users.
 
 class Rack::Attack
+  # --- Hard blocks for clearly-malformed bot traffic on /search ---------------
+  # We've seen crawlers requesting URLs where "section" got split on the
+  # letter "s", producing literal "§ion[]=" tokens in the querystring.
+  # Real users never generate these; cheap to short-circuit at the edge.
+  blocklist("search/malformed-params") do |req|
+    req.path == "/search" && req.query_string.to_s.include?("§")
+  end
+
+  # /search is also disallowed by robots.txt; well-behaved crawlers obey it.
+  # Misbehaving ones get a tight throttle on top of the general limit.
+  throttle("search/ip", limit: 10, period: 60) do |req|
+    req.ip if req.path == "/search"
+  end
+
+  # --- General-purpose throttles ---------------------------------------------
   # API: 60 requests per minute per IP
   throttle("api/ip", limit: 60, period: 60) do |req|
     req.ip if req.path.start_with?("/api/")
@@ -18,9 +32,12 @@ class Rack::Attack
     req.ip unless req.path.start_with?("/assets/")
   end
 
-  # Custom response
   self.throttled_responder = lambda do |req|
     [429, { "Content-Type" => "text/plain" },
      ["Rate limit exceeded. Please slow down.\n"]]
+  end
+
+  self.blocklisted_responder = lambda do |req|
+    [400, { "Content-Type" => "text/plain" }, ["Bad request\n"]]
   end
 end
