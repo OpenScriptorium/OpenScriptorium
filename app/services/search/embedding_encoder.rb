@@ -47,8 +47,11 @@ module Search
     def encode(text, prompt: :query)
       return nil unless model_available?
 
-      ensure_loaded!
-      run_inference(text, prompt: prompt)
+      cache_key = "emb/v1/#{prompt}/#{Digest::SHA1.hexdigest(text.to_s)}"
+      Rails.cache.fetch(cache_key, expires_in: 30.days) do
+        ensure_loaded!
+        run_inference(text, prompt: prompt)
+      end
     rescue => e
       Rails.logger.warn("[EmbeddingEncoder] encode failed: #{e.message}")
       nil
