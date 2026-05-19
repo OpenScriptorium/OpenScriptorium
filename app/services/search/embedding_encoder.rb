@@ -61,6 +61,14 @@ module Search
       File.exist?(File.join(MODEL_DIR, "model.onnx"))
     end
 
+    # Force-load the model + tokenizer into memory without running an
+    # inference or hitting the embedding cache. Used by the boot warmup
+    # to pay the ~11s model-load cost once at startup so the first real
+    # query doesn't.
+    def preload!
+      ensure_loaded!
+    end
+
     private
 
     # Lazy-load with double-checked locking. The mutex protects the

@@ -17,7 +17,7 @@ if Rails.env.production? && is_server_process
         if Search::EmbeddingEncoder.instance.model_available?
           Rails.logger.info "[EmbeddingWarmup] preloading ONNX model"
           t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          Search::EmbeddingEncoder.instance.encode("warmup")
+          Search::EmbeddingEncoder.instance.preload!
           elapsed = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
           Rails.logger.info "[EmbeddingWarmup] ready in #{elapsed}ms"
         end
