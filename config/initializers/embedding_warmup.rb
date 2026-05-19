@@ -2,7 +2,11 @@
 # the first semantic search after a deploy doesn't pay an ~11s model-load
 # tax. Skipped in dev/test (slow boots) and when the model file isn't
 # present (e.g. on a fresh machine before the model has been pulled).
-if Rails.env.production? && defined?(Puma)
+# Skip if we're running a rake task (assets:precompile, db:migrate, etc.) —
+# those boots don't need a 1.1GB model loaded. Puma boots via `bundle exec
+# puma` with no rake task active, so warmup fires there.
+rake_task_running = defined?(Rake) && Rake.application.top_level_tasks.any?
+if Rails.env.production? && !rake_task_running
   Rails.application.config.after_initialize do
     Thread.new do
       begin
