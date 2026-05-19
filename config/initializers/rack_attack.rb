@@ -7,7 +7,11 @@ class Rack::Attack
   # letter "s", producing literal "§ion[]=" tokens in the querystring.
   # Real users never generate these; cheap to short-circuit at the edge.
   blocklist("search/malformed-params") do |req|
-    req.path == "/search" && req.query_string.to_s.include?("§")
+    next false unless req.path == "/search"
+    qs = req.query_string.to_s
+    # § byte sequence — appears literal, percent-encoded UTF-8, or
+    # percent-encoded Latin-1 in scraper-generated URLs.
+    qs.include?("§") || qs.include?("%C2%A7") || qs.include?("%A7")
   end
 
   # /search is also disallowed by robots.txt; well-behaved crawlers obey it.
