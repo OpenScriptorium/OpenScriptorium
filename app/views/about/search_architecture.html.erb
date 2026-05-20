@@ -23,12 +23,12 @@
   <h2>Overview</h2>
 
   <p>
-    Every search query passes through four stages: classification,
-    execution, semantic enrichment (for text queries), and topical
-    enrichment from external thematic indexes. The classifier inspects
-    the raw query string and dispatches it to one of eleven specialised
-    strategies. Most queries also receive a cross-language sidebar
-    showing related Hebrew and Greek lemmas.
+    Every query passes through four stages: classification, execution,
+    semantic enrichment (for text queries), and topical enrichment from
+    external thematic indexes. The classifier inspects the raw query
+    string and dispatches it to one of eleven strategies. Most queries
+    also get a cross-language sidebar with related Hebrew and Greek
+    lemmas.
   </p>
 
   <h2>Query classification</h2>
@@ -112,10 +112,10 @@
   <h2>Full-text search</h2>
 
   <p>
-    Text queries are the most common and the most complex strategy.
-    Every <code>work_unit</code> has a pre-computed <code>body_tsvector</code>
-    column populated by a trigger that chooses the right text search
-    configuration based on the work&rsquo;s language:
+    Text queries are the common case. Every <code>work_unit</code> has a
+    pre-computed <code>body_tsvector</code> column populated by a trigger
+    that picks a text search configuration based on the work&rsquo;s
+    language:
   </p>
 
   <ul>
@@ -127,12 +127,13 @@
   </ul>
 
   <p>
-    Both configurations are searched simultaneously: the query is parsed into
-    a <code>websearch_to_tsquery</code> against both <code>scriptorium_english</code>
-    (for stemmed matching) and <code>scriptorium_simple</code> (for exact matching),
-    OR&rsquo;d together. This means &ldquo;beginning&rdquo; matches English
-    works via the stemmer and Hebrew/Greek works via exact token overlap.
-    The actual tsquery combines synonym-expanded and raw forms:
+    Both configurations are searched at once: the query is parsed into a
+    <code>websearch_to_tsquery</code> against both <code>scriptorium_english</code>
+    (for stemmed matching) and <code>scriptorium_simple</code> (for exact
+    matching), then OR&rsquo;d together. So &ldquo;beginning&rdquo;
+    matches English works via the stemmer and Hebrew/Greek works via
+    exact token overlap. The tsquery combines synonym-expanded and raw
+    forms:
   </p>
 
   <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Three tsqueries OR'd: synonym-expanded stemmed, raw stemmed, raw exact</span>
@@ -140,7 +141,7 @@
  || websearch_to_tsquery('scriptorium_english', 'honour thy father')
  || websearch_to_tsquery('scriptorium_simple', 'honour thy father'))</pre>
 
-  <h3>Hebrew diacritics &mdash; <code>strip_hebrew_points()</code></h3>
+  <h3>Hebrew diacritics: <code>strip_hebrew_points()</code></h3>
 
   <p>
     The <code>body_tsvector</code> trigger calls a custom SQL function
@@ -153,11 +154,10 @@
 $$ LANGUAGE sql IMMUTABLE;</pre>
 
   <p>
-    This means a search for
-    <code>&#x05D0;&#x05DC;&#x05D4;&#x05D9;&#x05DD;</code> (consonants
-    only) matches
+    A search for <code>&#x05D0;&#x05DC;&#x05D4;&#x05D9;&#x05DD;</code>
+    (consonants only) matches
     <span dir="rtl">&#x05D0;&#x05B1;&#x05DC;&#x05B9;&#x05D4;&#x05B4;&#x05D9;&#x05DD;</span>
-    (fully pointed) &mdash; the tsvector stores only consonantal forms.
+    (fully pointed), since the tsvector stores only consonantal forms.
   </p>
 
   <h3>Synonym expansion</h3>
@@ -184,8 +184,8 @@ $$ LANGUAGE sql STABLE;</pre>
     normalises spelling variants
     (<code>hallelujah</code>&thinsp;&harr;&thinsp;<code>alleluia</code>,
     <code>immanuel</code>&thinsp;&harr;&thinsp;<code>emmanuel</code>).
-    The original query is also searched unstemmed, so exact matches
-    still rank highest.
+    The original query is also searched unstemmed, so exact matches still
+    rank highest.
   </p>
 
   <h3>Ranking</h3>
@@ -204,25 +204,25 @@ $$ LANGUAGE sql STABLE;</pre>
 
   <ol>
     <li>
-      <strong><code>ts_rank</code></strong> &mdash; Postgres&rsquo;s built-in
+      <strong><code>ts_rank</code></strong>: Postgres&rsquo;s built-in
       relevance score based on term frequency and document length.
     </li>
     <li>
-      <strong>Cross-reference density</strong> &mdash; a precomputed
+      <strong>Cross-reference density</strong>: a precomputed
       <code>xref_count</code> on each <code>canonical_ref</code> counts
       how many cross-references touch that verse. Iconic verses like
-      Genesis 1:1 and John 3:16 have high counts and receive a
-      logarithmic boost. This is what makes &ldquo;in the beginning God
-      created&rdquo; rank Genesis 1:1 first despite many verses containing
+      Genesis 1:1 and John 3:16 have high counts and get a logarithmic
+      boost. That&rsquo;s why &ldquo;in the beginning God created&rdquo;
+      ranks Genesis 1:1 first even though plenty of verses contain
       similar words.
     </li>
     <li>
-      <strong>Phrase bonus</strong> &mdash; for multi-word queries, verses
-      containing the exact phrase (checked with punctuation stripped) get a
+      <strong>Phrase bonus</strong>: for multi-word queries, verses
+      containing the exact phrase (with punctuation stripped) get a
       10&times; bonus. Synonym-expanded phrase matches get 8&times;. For
-      single-word queries, exact word-boundary matches
-      (<code>\y</code> regex) get 5&times;, preventing stemming contamination
-      where &ldquo;Eve&rdquo; would otherwise match &ldquo;even&rdquo; and
+      single-word queries, exact word-boundary matches (<code>\y</code>
+      regex) get 5&times;, which prevents stemming contamination where
+      &ldquo;Eve&rdquo; would otherwise match &ldquo;even&rdquo; and
       &ldquo;evening.&rdquo;
     </li>
   </ol>
@@ -254,30 +254,31 @@ ORDER BY relevance DESC,
   <h3>OR fallback</h3>
 
   <p>
-    Multi-word queries are searched with AND logic by default. If the AND
-    query returns zero results (common for long phrases with stopwords),
-    the search automatically retries with OR logic so that verses matching
-    <em>most</em> content words still appear. This is how &ldquo;put on
-    the whole armor of God&rdquo; finds Ephesians 6:11 even when the
-    stemmer disagrees about &ldquo;armor.&rdquo;
+    Multi-word queries use AND logic by default. If the AND query returns
+    zero results (common for long phrases with stopwords), the search
+    retries with OR logic so verses matching <em>most</em> content words
+    still appear. That&rsquo;s how &ldquo;put on the whole armor of
+    God&rdquo; finds Ephesians 6:11 even when the stemmer disagrees about
+    &ldquo;armor.&rdquo;
   </p>
 
   <h2>Semantic search (embeddings)</h2>
 
   <p>
-    The full-text layer finds what the user <em>said</em>. The embedding
-    layer finds what the user <em>meant</em>.
+    The full-text layer matches the words the user typed. The embedding
+    layer catches paraphrases and conceptual matches that share no
+    vocabulary.
   </p>
 
   <p>
     A multilingual sentence embedding model
     (<a href="https://huggingface.co/Qwen/Qwen3-Embedding-0.6B">Qwen3-Embedding-0.6B</a>,
     1024 dimensions) encodes every work unit in the corpus into a dense
-    vector. At query time, the user&rsquo;s query is encoded into the
-    same space and the nearest neighbours are found via a pgvector HNSW
-    index. The dense list is then fused with the FTS list via
+    vector. At query time the query is encoded into the same space and
+    the nearest neighbours come back from a pgvector HNSW index. That
+    dense list is fused with the FTS list via
     <a href="#fusion">Reciprocal Rank Fusion</a> (RRF, k=60), so items
-    that appear high in both lists rise to the top.
+    that rank high in both lists rise to the top.
   </p>
 
   <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Find the 50 nearest verses by cosine similarity.
@@ -310,7 +311,7 @@ LIMIT 50</pre>
       <tr>
         <td>English paraphrase pairs</td>
         <td>96,778</td>
-        <td>Same verse in BSB, KJV, WEBBE, JPS &mdash; different wording, same meaning</td>
+        <td>Same verse in BSB, KJV, WEBBE, JPS: different wording, same meaning</td>
       </tr>
       <tr>
         <td>Hebrew&ndash;English word alignments</td>
@@ -336,23 +337,23 @@ LIMIT 50</pre>
   </table>
 
   <p>
-    The training uses MultipleNegativesRankingLoss: given a pair of texts
-    that should be similar, other items in the batch serve as negatives.
-    The model learns to pull parallel and related texts together in the
-    vector space while pushing unrelated texts apart.
+    The training uses MultipleNegativesRankingLoss: given a pair of
+    texts that should be similar, other items in the batch act as
+    negatives. The model learns to pull parallel and related texts
+    together in the vector space and push unrelated texts apart.
   </p>
 
   <h3>Trilingual vector space</h3>
 
   <p>
-    Because the training data includes 411,000 word-level alignments between
-    Hebrew/Greek source words and their English translations, the model
-    learns a single vector space where all three languages coexist. A search
-    for the English word &ldquo;peace&rdquo; is geometrically close to
+    Because the training data includes 411,000 word-level alignments
+    between Hebrew/Greek source words and their English translations,
+    the model learns a single vector space where all three languages
+    coexist. A search for &ldquo;peace&rdquo; is geometrically close to
     <span dir="rtl">&#x05E9;&#x05C1;&#x05B8;&#x05DC;&#x05D5;&#x05B9;&#x05DD;</span>
     (shalom) and &#x03B5;&#x1F30;&#x03C1;&#x03AE;&#x03BD;&#x03B7;
-    (eirene) in the embedding space &mdash; not because of a dictionary
-    lookup, but because the model learned from aligned usage in parallel texts.
+    (eirene). No dictionary lookup is involved; the model learned the
+    relationship from aligned usage in parallel texts.
   </p>
 
   <h3 id="fusion">Hybrid scoring (Reciprocal Rank Fusion)</h3>
@@ -360,11 +361,10 @@ LIMIT 50</pre>
   <p>
     The final ranking combines both layers via
     <strong>Reciprocal Rank Fusion</strong>: each item gets a score of
-    <code>1 / (k + rank<sub>L</sub>)</code> from each list it appears in,
-    summed across lists. Items that rank well in <em>both</em> the FTS
-    and semantic list end up on top &mdash; the literal-match keyword
-    hits and the paraphrase-friendly semantic hits reinforce each other.
-    The constant <code>k = 60</code> is the value from the original RRF
+    <code>1 / (k + rank<sub>L</sub>)</code> from each list it appears
+    in, summed across lists. Items that rank well in <em>both</em> lists
+    end up on top, so keyword hits and semantic hits reinforce each
+    other. The constant <code>k = 60</code> comes from the original RRF
     paper; it dampens the spread between rank 1 and rank 50 enough that
     a doc at rank 5 in both lists outranks a doc at rank 1 in only one.
   </p>
@@ -396,12 +396,12 @@ ORDER BY score DESC</pre>
   </p>
 
   <p>
-    The &alpha; and &beta; weights are tuned so that exact keyword matches
-    always rank above pure semantic matches, but semantic matches fill in
-    where keywords fail. A user searching &ldquo;forgiveness&rdquo; sees
-    verses containing that word first (FTS), followed by verses about
-    pardoning, mercy, and reconciliation that never use the word itself
-    (embeddings).
+    The &alpha; and &beta; weights are tuned so exact keyword matches
+    always rank above pure semantic matches, with semantic matches
+    filling in where keywords fail. A search for
+    &ldquo;forgiveness&rdquo; shows verses containing that word first
+    (FTS), then verses about pardoning, mercy, and reconciliation that
+    never use the word itself (embeddings).
   </p>
 
   <p>
@@ -420,15 +420,15 @@ ORDER BY score DESC</pre>
 
   <ul>
     <li>
-      <strong><a href="https://www.openbible.info/topics/" class="underline decoration-dotted">OpenBible.info Topics</a></strong>
-      &mdash; community-voted thematic mappings, ~6,700 topics (after
-      editorial filtering, see below) covering ~210,000 topic&ndash;verse
-      pairs. Ranked by quality score (percentage of votes for each passage).
+      <strong><a href="https://www.openbible.info/topics/" class="underline decoration-dotted">OpenBible.info Topics</a></strong>:
+      community-voted thematic mappings, ~6,700 topics (after editorial
+      filtering, see below) covering ~210,000 topic&ndash;verse pairs.
+      Ranked by quality score (percentage of votes for each passage).
     </li>
     <li>
-      <strong><a href="https://www.sefaria.org/topics/" class="underline decoration-dotted">Sefaria Topics</a></strong>
-      &mdash; curator-vetted Jewish topical index, filtered to Tanakh refs
-      only (~2,100 topics, ~16,000 pairs). Ranked by Sefaria&rsquo;s
+      <strong><a href="https://www.sefaria.org/topics/" class="underline decoration-dotted">Sefaria Topics</a></strong>:
+      curator-vetted Jewish topical index, filtered to Tanakh refs only
+      (~2,100 topics, ~16,000 pairs). Ranked by Sefaria&rsquo;s
       PageRank-style <code>order.pr</code> score.
     </li>
   </ul>
@@ -440,9 +440,9 @@ ORDER BY score DESC</pre>
     contributes its top-ranked verses, scored as
     <code>(rank_within_topic / topic_max) &times; source_weight &times; 3.0</code>.
     Sefaria gets a <code>1.5&times;</code> source weight relative to
-    OpenBible&rsquo;s <code>1.0&times;</code> &mdash; on contested topics
-    where both have data, Sefaria&rsquo;s ranking is the stronger signal,
-    a finding from the
+    OpenBible&rsquo;s <code>1.0&times;</code>: on contested topics where
+    both have data, Sefaria&rsquo;s ranking is the stronger signal, per
+    the
     <a href="https://github.com/openscriptorium/openscriptorium" class="underline decoration-dotted">2026-04-27 bias audit</a>
     that compared OpenBible, Nave&rsquo;s, and Sefaria against modern
     academic critical consensus.
@@ -451,25 +451,25 @@ ORDER BY score DESC</pre>
   <h3>Editorial filtering on OpenBible Topics</h3>
 
   <p>
-    OpenBible&rsquo;s topics dataset is community-voted; the voter base
-    skews American evangelical, which encodes detectable bias on socially
-    contested questions. A small editorial blacklist
+    OpenBible&rsquo;s topics dataset is community-voted, and the voter
+    base skews American evangelical, which encodes detectable bias on
+    socially contested questions. A small editorial blacklist
     (<code>config/openbible_blacklist.yml</code>) excludes ~13 topic
     clusters where the verse-to-topic mapping is anachronistic
     (importing modern moral framing onto texts that don&rsquo;t address
     the question) or significantly distorting (the foundational text in
     an active scholarly debate is missing from the top-N). Topics where
-    a conservative reading is vocal but the verse mapping itself is honest
-    are <em>not</em> excluded. The full list and reasoning is in the YAML
-    file, version-controlled.
+    a conservative reading is vocal but the verse mapping itself is
+    honest are <em>not</em> excluded. The full list and reasoning lives
+    in the YAML file, version-controlled.
   </p>
 
   <p>
     The blacklist applies only to OpenBible&rsquo;s ranking; the verses
-    themselves remain available via FTS, semantic, and (where applicable)
-    Sefaria&rsquo;s alternative topical view. Filtering doesn&rsquo;t
-    remove text from the corpus &mdash; it removes one source&rsquo;s
-    framing of which texts answer which question.
+    themselves remain available via FTS, semantic, and (where
+    applicable) Sefaria&rsquo;s alternative topical view. Filtering
+    doesn&rsquo;t remove text from the corpus; it removes one
+    source&rsquo;s framing of which texts answer which question.
   </p>
 
   <h3>Match-stop list</h3>
@@ -478,23 +478,23 @@ ORDER BY score DESC</pre>
     Two classes of topic names never trigger a match: query
     meta-vocabulary (&ldquo;bible,&rdquo; &ldquo;scripture,&rdquo;
     &ldquo;verse&rdquo;) and biblical person names (&ldquo;jesus,&rdquo;
-    &ldquo;paul,&rdquo; &ldquo;moses,&rdquo; &hellip;). Person names are
-    the domain of <code>PersonTopicSearch</code>; matching them as
-    topics double-counts and floods results with generic person verses.
-    Query meta-vocabulary fires on phrases like &ldquo;what does the
-    bible say about X,&rdquo; activating a niche &ldquo;bible&rdquo;
-    topic about scripture itself rather than the user&rsquo;s actual
-    topic word.
+    &ldquo;paul,&rdquo; &ldquo;moses,&rdquo; &hellip;). Person names
+    belong to <code>PersonTopicSearch</code>; matching them as topics
+    double-counts and floods results with generic person verses. Query
+    meta-vocabulary fires on phrases like &ldquo;what does the bible
+    say about X,&rdquo; which would otherwise activate a niche
+    &ldquo;bible&rdquo; topic about scripture itself rather than the
+    user&rsquo;s actual topic word.
   </p>
 
   <h2>Script and word-level search</h2>
 
   <p>
-    Queries in Hebrew or Greek script bypass text search entirely and go
-    through the word-level index. The query is normalised (Hebrew niqqud
+    Queries in Hebrew or Greek script skip text search and go through
+    the word-level index. The query is normalised (Hebrew niqqud
     stripped, Greek accents and breathings stripped) and matched against
     the <code>words.normalized</code> column using trigram similarity
-    (GIN-indexed). This lets a user type
+    (GIN-indexed). So a user can type
     <code>&#x05D0;&#x05DC;&#x05D4;&#x05D9;&#x05DD;</code>
     (without pointing) and find every occurrence of
     <span dir="rtl">&#x05D0;&#x05B1;&#x05DC;&#x05B9;&#x05D4;&#x05B4;&#x05D9;&#x05DD;</span>
@@ -503,21 +503,22 @@ ORDER BY score DESC</pre>
 
   <p>
     Strong&rsquo;s number queries (<code>H430</code>, <code>G3056</code>)
-    search the <code>words.strongs_number</code> column directly and return
-    every verse containing a word tagged with that number, with a sidebar
-    card showing the associated lemma, gloss, and frequency. The language
-    prefix (H or G) is used to filter the sidebar to the correct language
+    search the <code>words.strongs_number</code> column directly and
+    return every verse containing a word tagged with that number, plus a
+    sidebar card with the associated lemma, gloss, and frequency. The
+    language prefix (H or G) filters the sidebar to the correct language
     family.
   </p>
 
   <h2>Proximity search</h2>
 
   <p>
-    The <code>NEAR</code> operator finds verses where two terms co-occur.
-    <code>faith NEAR/3 works</code> finds verses where both terms appear
-    in the same verse, or within 3 verses of each other in the same work.
-    Both terms are matched via <code>body_tsvector</code> (not ILIKE),
-    so the search is index-accelerated and avoids substring false positives.
+    The <code>NEAR</code> operator finds verses where two terms
+    co-occur. <code>faith NEAR/3 works</code> finds verses where both
+    terms appear in the same verse, or within 3 verses of each other in
+    the same work. Both terms are matched via <code>body_tsvector</code>
+    (not ILIKE), so the search is index-accelerated and avoids substring
+    false positives.
   </p>
 
   <pre class="text-sm bg-[color-mix(in_oklab,var(--color-ink)_6%,transparent)] p-4 rounded overflow-x-auto"><span class="text-[var(--color-ink-soft)]">-- Same-verse: both terms in one work_unit (GIN-indexed)</span>
@@ -546,37 +547,39 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
   </p>
 
   <p>
-    To bridge the gap between how users search and how lexicons gloss,
-    a concept synonym layer expands queries with known equivalences:
+    Users and lexicons don&rsquo;t always pick the same word, so a
+    concept synonym layer expands queries with known equivalences:
     &ldquo;law&rdquo; also searches for &ldquo;instruction,&rdquo;
     &ldquo;statute,&rdquo; and &ldquo;commandment&rdquo; in the glosses,
     which is how
     <span dir="rtl">&#x05EA;&#x05BC;&#x05D5;&#x05B9;&#x05E8;&#x05B8;&#x05D4;</span>
-    (torah, glossed as &ldquo;instruction&rdquo;) appears in the sidebar
-    for a search for &ldquo;law.&rdquo;
+    (torah, glossed as &ldquo;instruction&rdquo;) shows up in the
+    sidebar for a search for &ldquo;law.&rdquo;
   </p>
 
   <h2>Transliteration fallback</h2>
 
   <p>
-    When a single Latin-script word returns very few text results (fewer
-    than 5), the search checks whether it matches a lemma transliteration.
-    If it does, the search pivots to a lemma search, returning every verse
-    containing that lemma. This is how typing &ldquo;agape&rdquo; finds
-    every occurrence of &#x1F00;&#x03B3;&#x03AC;&#x03C0;&#x03B7; across
-    the Greek New Testament.
+    When a single Latin-script word returns very few text results
+    (fewer than 5), the search checks whether it matches a lemma
+    transliteration. If it does, the search pivots to a lemma search and
+    returns every verse containing that lemma. That&rsquo;s how typing
+    &ldquo;agape&rdquo; finds every occurrence of
+    &#x1F00;&#x03B3;&#x03AC;&#x03C0;&#x03B7; across the Greek New
+    Testament.
   </p>
 
   <h2>Default scoping</h2>
 
   <p>
     By default, text searches are scoped to scripture-type works in
-    English, Hebrew, Aramaic, Greek, and Latin. This prevents commentary,
-    Talmud, and non-English translations from diluting results for typical
-    searches. The scope can be widened via section filters (Hebrew Bible,
-    Greek NT, Deuterocanon, Pseudepigrapha, Apostolic Fathers, Rabbinic,
-    Patristic), tradition filters, specific work selection, or by
-    choosing &ldquo;all works&rdquo; in the search controls.
+    English, Hebrew, Aramaic, Greek, and Latin. That keeps commentary,
+    Talmud, and non-English translations from diluting results for
+    typical searches. The scope can be widened via section filters
+    (Hebrew Bible, Greek NT, Deuterocanon, Pseudepigrapha, Apostolic
+    Fathers, Rabbinic, Patristic), tradition filters, specific work
+    selection, or by choosing &ldquo;all works&rdquo; in the search
+    controls.
   </p>
 
   <h2>Syntactic search</h2>
@@ -611,15 +614,15 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
     matched against the lemma&rsquo;s <code>primary_gloss</code> via
     ILIKE, FTS stemming, and the <code>senses</code> JSONB array, so
     &ldquo;speak&rdquo; finds both &ldquo;speaks&rdquo; and
-    &ldquo;spoken.&rdquo; Verb detection falls back to morphological
-    codes (<code>morph_code LIKE 'V%'</code>) when explicit role
-    annotations are absent.
+    &ldquo;spoken.&rdquo; When explicit role annotations are absent,
+    verb detection falls back to morphological codes
+    (<code>morph_code LIKE 'V%'</code>).
   </p>
 
   <p>
-    Each result includes an expandable syntax tree rendered client-side,
-    showing the clause structure with colour-coded grammatical roles.
-    The tree is fetched from the
+    Each result includes an expandable syntax tree rendered
+    client-side, showing the clause structure with colour-coded
+    grammatical roles. The tree is fetched from the
     <code>/api/v1/syntax/:work/:book/:chapter/:verse</code> endpoint.
   </p>
 
@@ -636,11 +639,11 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
 
   <p>
     Name matching uses exact lookup (with parenthetical variants and
-    prefix stripping: &ldquo;parable of the sower&rdquo; matches even
-    without the &ldquo;parable of the&rdquo; prefix) and trigram
+    prefix stripping, so &ldquo;parable of the sower&rdquo; matches even
+    without the &ldquo;parable of the&rdquo; prefix) plus trigram
     similarity for fuzzy matching. The alias system is many-to-many:
-    one name can map to multiple passages (e.g. the Great Commission
-    in Matthew and Mark), and one passage can have multiple names.
+    one name can map to multiple passages (e.g. the Great Commission in
+    Matthew and Mark), and one passage can have multiple names.
   </p>
 
   <h2>Pericope-based retrieval</h2>
@@ -648,20 +651,19 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
   <p>
     For natural-language questions (&ldquo;What did Jesus say about
     war?&rdquo;), the search runs a secondary retrieval pass against
-    the pericope name embeddings. Each of the 3,002+ pericopes has
-    its name encoded into the same 1024-dimensional vector space as
-    the verse embeddings. The query is encoded and matched against
-    pericope names by cosine similarity, then the top-matching
-    pericopes&rsquo; verses are injected into the result set in a
-    single batched join.
+    the pericope name embeddings. Each of the 3,002+ pericopes has its
+    name encoded into the same 1024-dimensional vector space as the
+    verse embeddings. The query is encoded and matched against pericope
+    names by cosine similarity, then the top-matching pericopes&rsquo;
+    verses are injected into the result set in a single batched join.
   </p>
 
   <p>
-    For broad topics, the retrieval uses multi-hop encoding: a topic
-    like &ldquo;war&rdquo; is expanded into multiple facets
-    (&ldquo;war violence battle,&rdquo; &ldquo;peace nonviolence,&rdquo;
+    For broad topics, retrieval uses multi-hop encoding: a topic like
+    &ldquo;war&rdquo; is expanded into multiple facets (&ldquo;war
+    violence battle,&rdquo; &ldquo;peace nonviolence,&rdquo;
     &ldquo;enemies love retaliation&rdquo;), each encoded separately.
-    The union of pericope matches across all facets provides broader
+    The union of pericope matches across all facets gives broader
     coverage than a single query vector.
   </p>
 
@@ -674,16 +676,17 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
 
   <ul>
     <li>
-      <strong>Lemma transliterations</strong> &mdash; typing
-      &ldquo;aga&rdquo; suggests &#x1F00;&#x03B3;&#x03AC;&#x03C0;&#x03B7;
-      (agape, &ldquo;love&rdquo;). Matched against the
+      <strong>Lemma transliterations</strong>: typing &ldquo;aga&rdquo;
+      suggests &#x1F00;&#x03B3;&#x03AC;&#x03C0;&#x03B7; (agape,
+      &ldquo;love&rdquo;). Matched against the
       <code>transliteration</code> column on lemmas with diacritics
-      stripped (so &ldquo;agape&rdquo; matches &ldquo;agap&#x0113;&rdquo;).
+      stripped, so &ldquo;agape&rdquo; matches
+      &ldquo;agap&#x0113;&rdquo;.
     </li>
     <li>
-      <strong>Passage aliases</strong> &mdash; typing &ldquo;prodig&rdquo;
-      suggests &ldquo;Prodigal Son.&rdquo; Matched via trigram similarity
-      against the <code>passage_alias_names</code> table.
+      <strong>Passage aliases</strong>: typing &ldquo;prodig&rdquo;
+      suggests &ldquo;Prodigal Son.&rdquo; Matched via trigram
+      similarity against the <code>passage_alias_names</code> table.
     </li>
   </ul>
 
@@ -698,6 +701,6 @@ WHERE a.body_tsvector @@ plainto_tsquery('scriptorium_english', 'faith')
   <ul>
     <li><%= link_to "Architecture overview", about_architecture_path, class: "underline decoration-dotted" %></li>
     <li><%= link_to "Schema reference", about_schema_path, class: "underline decoration-dotted" %></li>
-    <li><%= link_to "API documentation", downloads_path, class: "underline decoration-dotted" %> &mdash; the search endpoint supports all query types programmatically.</li>
+    <li><%= link_to "API documentation", downloads_path, class: "underline decoration-dotted" %>: the search endpoint supports all query types programmatically.</li>
   </ul>
 </div>
