@@ -346,7 +346,13 @@ module Importers
     def process_bsb_side!(canonical_work, canonical_ref, rows)
       bsb_unit = WorkUnit.find_by(work_id: @bsb_work.id, canonical_ref_id: canonical_ref.id)
       unless bsb_unit
-        bump(:bsb_unit_missing)
+        # BSB follows the modern critical text (Nestle/UBS), which omits 16
+        # verses present in the TR/Byzantine and tagged in bsb_tables.tsv —
+        # Matt 17:21, 18:11, 23:14; Mark 7:16, 9:44, 9:46, 11:26, 15:28;
+        # Luke 17:36, 23:17; John 5:4; Acts 8:37, 15:34, 24:7, 28:29; Rom
+        # 16:24. The tables ship interlinear rows for editorial completeness
+        # but BSB has no main-text work_unit for them, so we skip cleanly.
+        bump(:bsb_critical_text_omitted)
         return
       end
 

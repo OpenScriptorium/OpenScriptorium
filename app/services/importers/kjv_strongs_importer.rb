@@ -186,7 +186,7 @@ module Importers
           normalized:     surface.downcase.gsub(/[^\p{L}\p{N}\u2019'\-]/u, ""),
           lemma_id:       lemma&.id,
           morph_code:     nil,
-          strongs_number: strongs_list.join(","),
+          strongs_number: strongs_list.any? ? strongs_list.join(",") : nil,
           import_run_id:  @import_run.id,
           notes:          strongs_list.size > 1 ? { all_strongs: strongs_list } : {},
           created_at:     Time.current,
