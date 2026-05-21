@@ -708,7 +708,8 @@ CREATE TABLE public.lemmas (
     senses jsonb DEFAULT '[]'::jsonb NOT NULL,
     related_lemma_ids integer[] DEFAULT '{}'::integer[] NOT NULL,
     frequency_by_book jsonb DEFAULT '{}'::jsonb NOT NULL,
-    attested_period character varying
+    attested_period character varying,
+    canonical_lemma_id bigint
 );
 
 
@@ -729,6 +730,48 @@ CREATE SEQUENCE public.lemmas_id_seq
 --
 
 ALTER SEQUENCE public.lemmas_id_seq OWNED BY public.lemmas.id;
+
+
+--
+-- Name: lexicon_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lexicon_entries (
+    id bigint NOT NULL,
+    source character varying NOT NULL,
+    lemma_id bigint,
+    headword character varying NOT NULL,
+    normalized character varying,
+    transliteration character varying,
+    part_of_speech character varying,
+    summary_gloss character varying,
+    body_html text,
+    citations jsonb DEFAULT '[]'::jsonb,
+    meta jsonb DEFAULT '{}'::jsonb,
+    license_id bigint,
+    import_run_id bigint,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: lexicon_entries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.lexicon_entries_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: lexicon_entries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.lexicon_entries_id_seq OWNED BY public.lexicon_entries.id;
 
 
 --
@@ -1916,6 +1959,13 @@ ALTER TABLE ONLY public.lemmas ALTER COLUMN id SET DEFAULT nextval('public.lemma
 
 
 --
+-- Name: lexicon_entries id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lexicon_entries ALTER COLUMN id SET DEFAULT nextval('public.lexicon_entries_id_seq'::regclass);
+
+
+--
 -- Name: licenses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2212,6 +2262,14 @@ ALTER TABLE ONLY public.invitations
 
 ALTER TABLE ONLY public.lemmas
     ADD CONSTRAINT lemmas_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lexicon_entries lexicon_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lexicon_entries
+    ADD CONSTRAINT lexicon_entries_pkey PRIMARY KEY (id);
 
 
 --
@@ -2537,6 +2595,27 @@ CREATE INDEX idx_lemmas_senses_fts ON public.lemmas USING gin (to_tsvector('engl
 --
 
 CREATE INDEX idx_lemmas_transliteration_trgm ON public.lemmas USING gin (transliteration public.gin_trgm_ops);
+
+
+--
+-- Name: idx_lexicon_entries_by_lemma_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_lexicon_entries_by_lemma_source ON public.lexicon_entries USING btree (lemma_id, source);
+
+
+--
+-- Name: idx_lexicon_entries_by_source_headword; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_lexicon_entries_by_source_headword ON public.lexicon_entries USING btree (source, headword);
+
+
+--
+-- Name: idx_lexicon_entries_by_source_normalized; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_lexicon_entries_by_source_normalized ON public.lexicon_entries USING btree (source, normalized);
 
 
 --
@@ -3016,6 +3095,13 @@ CREATE INDEX index_invitations_on_used_by_user_id ON public.invitations USING bt
 
 
 --
+-- Name: index_lemmas_on_canonical_lemma_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_lemmas_on_canonical_lemma_id ON public.lemmas USING btree (canonical_lemma_id);
+
+
+--
 -- Name: index_lemmas_on_import_run_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3026,7 +3112,7 @@ CREATE INDEX index_lemmas_on_import_run_id ON public.lemmas USING btree (import_
 -- Name: index_lemmas_on_language_and_lemma; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_lemmas_on_language_and_lemma ON public.lemmas USING btree (language, lemma);
+CREATE INDEX index_lemmas_on_language_and_lemma ON public.lemmas USING btree (language, lemma);
 
 
 --
@@ -3048,6 +3134,27 @@ CREATE INDEX index_lemmas_on_lexicon_entry_id ON public.lemmas USING btree (lexi
 --
 
 CREATE INDEX index_lemmas_on_related_lemma_ids ON public.lemmas USING gin (related_lemma_ids);
+
+
+--
+-- Name: index_lexicon_entries_on_import_run_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_lexicon_entries_on_import_run_id ON public.lexicon_entries USING btree (import_run_id);
+
+
+--
+-- Name: index_lexicon_entries_on_lemma_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_lexicon_entries_on_lemma_id ON public.lexicon_entries USING btree (lemma_id);
+
+
+--
+-- Name: index_lexicon_entries_on_license_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_lexicon_entries_on_license_id ON public.lexicon_entries USING btree (license_id);
 
 
 --
@@ -3873,7 +3980,7 @@ ALTER TABLE ONLY public.reading_plan_entries
 --
 
 ALTER TABLE ONLY public.participant_references
-    ADD CONSTRAINT fk_rails_24c37b6850 FOREIGN KEY (referent_word_id) REFERENCES public.words(id);
+    ADD CONSTRAINT fk_rails_24c37b6850 FOREIGN KEY (referent_word_id) REFERENCES public.words(id) ON DELETE CASCADE;
 
 
 --
@@ -3889,7 +3996,7 @@ ALTER TABLE ONLY public.lemmas
 --
 
 ALTER TABLE ONLY public.alignment_group_members
-    ADD CONSTRAINT fk_rails_2abc28faff FOREIGN KEY (word_id) REFERENCES public.words(id);
+    ADD CONSTRAINT fk_rails_2abc28faff FOREIGN KEY (word_id) REFERENCES public.words(id) ON DELETE CASCADE;
 
 
 --
@@ -3962,6 +4069,14 @@ ALTER TABLE ONLY public.annotations
 
 ALTER TABLE ONLY public.variant_units
     ADD CONSTRAINT fk_rails_4267fb597a FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id);
+
+
+--
+-- Name: lexicon_entries fk_rails_47b00928be; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lexicon_entries
+    ADD CONSTRAINT fk_rails_47b00928be FOREIGN KEY (license_id) REFERENCES public.licenses(id);
 
 
 --
@@ -4074,6 +4189,14 @@ ALTER TABLE ONLY public.topic_verses
 
 ALTER TABLE ONLY public.alignment_group_members
     ADD CONSTRAINT fk_rails_7bf8f65f9e FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id);
+
+
+--
+-- Name: lexicon_entries fk_rails_7c25d0e11a; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lexicon_entries
+    ADD CONSTRAINT fk_rails_7c25d0e11a FOREIGN KEY (lemma_id) REFERENCES public.lemmas(id);
 
 
 --
@@ -4397,6 +4520,22 @@ ALTER TABLE ONLY public.work_authorships
 
 
 --
+-- Name: lemmas fk_rails_f20edc3309; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lemmas
+    ADD CONSTRAINT fk_rails_f20edc3309 FOREIGN KEY (canonical_lemma_id) REFERENCES public.lemmas(id);
+
+
+--
+-- Name: lexicon_entries fk_rails_f3c00dfa55; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lexicon_entries
+    ADD CONSTRAINT fk_rails_f3c00dfa55 FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id);
+
+
+--
 -- Name: syntax_nodes fk_rails_f4565f7ba8; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4417,7 +4556,7 @@ ALTER TABLE ONLY public.canonical_refs
 --
 
 ALTER TABLE ONLY public.participant_references
-    ADD CONSTRAINT fk_rails_fca994b121 FOREIGN KEY (word_id) REFERENCES public.words(id);
+    ADD CONSTRAINT fk_rails_fca994b121 FOREIGN KEY (word_id) REFERENCES public.words(id) ON DELETE CASCADE;
 
 
 --
@@ -4435,6 +4574,11 @@ ALTER TABLE ONLY public.topic_verses
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260520020000'),
+('20260520010000'),
+('20260505100000'),
+('20260504120000'),
+('20260501120000'),
 ('20260429160000'),
 ('20260429140000'),
 ('20260428100000'),

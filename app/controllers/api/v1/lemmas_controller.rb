@@ -53,11 +53,14 @@ module Api
       def show
         lemma = Lemma.find(params[:id])
 
-        # Gather Strong's numbers associated with this lemma
-        strongs = Word.where(lemma_id: lemma.id)
-                      .where.not(strongs_number: [nil, ""])
-                      .distinct
-                      .pluck(:strongs_number)
+        # Gather Strong's numbers associated with this lemma, collapsed
+        # to one canonical "G####" / "H####" per number — see Strongs
+        # for the storage-variant background.
+        raw_strongs_counts = Word.where(lemma_id: lemma.id)
+                                 .where.not(strongs_number: [nil, ""])
+                                 .group(:strongs_number)
+                                 .count
+        strongs = Strongs.normalize_set_with_counts(raw_strongs_counts, language: lemma.language)
 
         # Related lemmas
         related = if lemma.related_lemma_ids.present?
@@ -100,10 +103,56 @@ module Api
           normalized: l.normalized,
           language: l.language,
           part_of_speech: l.part_of_speech,
-          primary_gloss: l.primary_gloss,
+          primary_gloss: lexicon_or_short_gloss(l),
           transliteration: l.transliteration,
           frequency: l.frequency
         }
+      end
+
+      # Gloss-selection priority for the popover:
+      #   1. lemma.primary_gloss — curated by step_lexicon from STEPBible
+      #      TBESG/TBESH plus the fix_parenthetical_glosses and
+      #      prefer_step_glosses cleanup passes. Authoritative for
+      #      biblical Hebrew/Greek.
+      #   2. BDB short summary — clean, biblical-Hebrew-specific.
+      #   3. LSJ summary — last resort. LSJ covers all classical Greek
+      #      including Homeric senses that don't fit NT lemmas (it
+      #      ships "lay" for λέγω before "to say"; "abode" before
+      #      "house" for οἶκος). Only use it when nothing else exists.
+      def lexicon_or_short_gloss(l)
+        if l.primary_gloss.present? && !l.primary_gloss.start_with?("(")
+          return short_gloss(l.primary_gloss)
+        end
+        priority = %w[BDB LSJ Thayer]
+        entries = LexiconEntry.where(lemma_id: l.id, source: priority)
+                              .where.not(summary_gloss: [nil, ""])
+                              .pluck(:source, :summary_gloss)
+        if (best = entries.min_by { |source, _| priority.index(source) || 99 })
+          return truncate_gloss(best.last)
+        end
+        nil
+      end
+
+      def truncate_gloss(s)
+        out = s.to_s.strip
+        out.length > 80 ? "#{out[0..76].rstrip}…" : out
+      end
+
+      # Strong's-style primary_gloss values are often long lexicon dumps
+      # ("the first, in place, time, order or rank (specifically, a
+      # firstfruit) beginning, chief(-est)..."). The reader popover only
+      # has room for a short phrase, and the long form reads as
+      # disconnected from the translation the user is looking at. Trim
+      # at the first parenthesis or semicolon, strip trailing
+      # punctuation, cap at 80 chars.
+      def short_gloss(s)
+        return nil if s.blank?
+        cleaned = s.to_s.strip
+        cleaned = cleaned.split(/[(;]/).first.to_s.strip
+        cleaned = cleaned.sub(/[,.;:\-]+\z/, "").strip
+        return nil if cleaned.empty?
+        cleaned = "#{cleaned[0..76].rstrip}…" if cleaned.length > 80
+        cleaned
       end
 
       def lemma_detail(l)

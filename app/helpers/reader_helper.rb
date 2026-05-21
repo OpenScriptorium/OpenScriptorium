@@ -43,6 +43,108 @@ module ReaderHelper
     LANGUAGE_PRESENTATION.dig(work.language, :dir) == "rtl"
   end
 
+  # ==========================================================
+  # Word-level rendering (clickable lemma popovers)
+  # ==========================================================
+
+  # Languages whose Word rows are in *reading order* and reconstruct the
+  # body verbatim when joined with single spaces — Hebrew, Aramaic, Koine
+  # and modern Greek. English translations (BSB, KJV) also have Word
+  # rows, but those tables follow Hebrew/Greek source order rather than
+  # English surface order, so they don't render this way; word-clickable
+  # English is a future interlinear feature.
+  ORIGINAL_LANGUAGE_CODES = %w[he arc el el-koine].to_set.freeze
+
+  # English translations whose `words` rows include a `lemma_id` linking
+  # back to the underlying Hebrew/Greek lemma. These can be rendered as
+  # interlinear-style clickable words via surface-form matching (the
+  # words rows are stored in source-language order, not English surface
+  # order, so we can't simply join their surfaces). Other translations
+  # (Crampon French, Vulgate Latin, Luther German, JPS, etc.) currently
+  # have no word data and stay plain text.
+  TRANSLATION_WORK_SLUGS_WITH_LEMMA_LINKS = %w[bsb kjv].to_set.freeze
+
+  def original_language_unit?(unit)
+    work = unit.respond_to?(:work) ? unit.work : nil
+    work && ORIGINAL_LANGUAGE_CODES.include?(work.language)
+  end
+
+  # True for any unit whose work has Word rows with lemma_ids — original
+  # languages and the lemma-aligned English translations (BSB / KJV).
+  def clickable_words_unit?(unit)
+    work = unit.respond_to?(:work) ? unit.work : nil
+    return false unless work
+    ORIGINAL_LANGUAGE_CODES.include?(work.language) ||
+      TRANSLATION_WORK_SLUGS_WITH_LEMMA_LINKS.include?(work.slug)
+  end
+
+  # Render a verse body as a series of `<span class="w" data-lemma-id …>`
+  # word spans. The word-popover Stimulus controller wires these spans
+  # to lemma popovers via the existing `/api/v1/lemmas/:id` endpoint.
+  #
+  # Eager loading: callers must preload `unit.words` (and `:lemma` if
+  # they want the popover to fire without an N+1) before rendering.
+  def render_clickable_words(unit)
+    if original_language_unit?(unit)
+      render_word_spans(unit.words.sort_by { |w| w.position.to_i })
+    else
+      render_translation_clickable_body(unit)
+    end
+  end
+
+  # English-translation rendering with surface-form matching against the
+  # Word table. The corpus stores English-side `Word#surface` two ways
+  # depending on the source dataset:
+  #
+  #   - BSB stores one Word per surface token ("In", "the", "beginning"
+  #     each get a row, all sharing the same lemma_id for רֵאשִׁית).
+  #   - KJV stores Words at the *Strong's-aligned phrase* level
+  #     ("In the beginning" is a single Word row with that multi-word
+  #     surface, lemma_id = רֵאשִׁית).
+  #
+  # The matcher handles both: at each word-start in the body, take the
+  # longest available pool surface that starts here (with a word-boundary
+  # check to keep "the" from matching inside "their"). After that, a
+  # second pass joins consecutive single-word matches that share a
+  # lemma_id and are separated only by whitespace — that catches BSB's
+  # "and Zaccur" pattern where Hebrew prefixes are split across English
+  # tokens but both link back to the same Hebrew lemma.
+  def render_translation_clickable_body(unit)
+    body = unit.body.to_s
+    return ERB::Util.h(body) if body.empty?
+    pool, surfaces = build_translation_word_pool(unit)
+    return ERB::Util.h(body) if pool.empty?
+    apply_translation_word_spans(body, pool, surfaces)
+  end
+
+  # Layer word-clickability onto already-rendered HTML — used when a
+  # verse went through the anchor/red-letter renderer (KJV with margin
+  # notes). Walks the HTML, treats each text node as a candidate for
+  # word matching, and lets tags pass through. The pool is shared
+  # across text nodes so queue-popping (for repeated surfaces) stays
+  # consistent over the whole verse.
+  def layer_translation_word_spans_on_html(html, unit)
+    return html unless clickable_words_unit?(unit) && !original_language_unit?(unit)
+    pool, surfaces = build_translation_word_pool(unit)
+    return html if pool.empty?
+
+    html.gsub(/([^<]+)|(<[^>]*>)/) do
+      if $2
+        $2  # tag — pass through
+      else
+        apply_translation_word_spans($1, pool, surfaces, escape_unmatched: false)
+      end
+    end
+  end
+
+  # Same span rendering as render_clickable_words but works from a Word
+  # collection directly (used by search results, where the caller fetches
+  # words by work_unit_id rather than from a preloaded WorkUnit).
+  def render_word_spans(words)
+    return "".html_safe if words.empty?
+    words.map { |w| word_span(w) }.join(" ").html_safe
+  end
+
   # Companion priority for the contextual "Read in parallel" links.
   # The current work is always inserted first as the primary row anchor;
   # we then add ONE companion (default = 2 columns total) — the user can
@@ -80,7 +182,11 @@ module ReaderHelper
   # is still visually associated.
   def render_verse_body_with_anchors(unit, notes, base_index = 0)
     body = unit.body.dup
-    return (render_red_letter_spans? ? apply_red_letter_spans(body, unit.markup&.dig("red_letter_positions")).html_safe : body.html_safe) if notes.empty?
+    if notes.empty?
+      out = render_red_letter_spans? ? apply_red_letter_spans(body, unit.markup&.dig("red_letter_positions")) : body
+      out = layer_translation_word_spans_on_html(out, unit)
+      return out.html_safe
+    end
 
     matches = []
     trailing = []
@@ -122,6 +228,7 @@ module ReaderHelper
       body = apply_red_letter_to_html(body, unit.markup["red_letter_positions"])
     end
 
+    body = layer_translation_word_spans_on_html(body, unit)
     body.html_safe
   end
 
@@ -505,6 +612,139 @@ module ReaderHelper
   end
 
   private
+
+  # Build the pool + sorted-surfaces structure used by the translation
+  # word matchers. Pool is `surface_lower => queue<Word>`. Surfaces are
+  # sorted by descending length for greedy longest-match.
+  def build_translation_word_pool(unit)
+    pool = Hash.new { |h, k| h[k] = [] }
+    unit.words.sort_by { |w| w.position.to_i }.each do |w|
+      next if w.lemma_id.nil?
+      surface = w.surface.to_s.strip
+      next if surface.empty?
+      pool[surface.downcase] << w
+    end
+    [pool, pool.keys.sort_by { |s| -s.length }]
+  end
+
+  # Phrase-aware word matching against an English text fragment. Returns
+  # an HTML-safe string with matched ranges wrapped in `<span class="w">`.
+  # Pool/surfaces are shared by callers (queue-popping is stateful across
+  # multiple calls within one verse).
+  #
+  # `escape_unmatched`: when called from `render_translation_clickable_body`
+  # the input is plain text and unmatched portions need HTML escaping.
+  # When called from the HTML walker, the input is already an extracted
+  # text node from valid HTML — passing it through verbatim is correct.
+  def apply_translation_word_spans(text, pool, surfaces_by_length_desc, escape_unmatched: true)
+    return ERB::Util.h(text) if text.empty?
+
+    text_lower = text.downcase
+    text_len = text.length
+
+    # Phase 1: walk the text producing [substring, word_or_nil] segments.
+    segments = []
+    pos = 0
+    while pos < text_len
+      ch = text[pos]
+      if ch !~ /[A-Za-z]/
+        m = text[pos..].match(/\A[^A-Za-z]+/)
+        segments << [m[0], nil]
+        pos += m[0].length
+        next
+      end
+
+      matched_word = nil
+      matched_text = nil
+      matched_len = 0
+      surfaces_by_length_desc.each do |snorm|
+        next if pool[snorm].empty?
+        slen = snorm.length
+        next if pos + slen > text_len
+        next unless text_lower[pos, slen] == snorm
+        next if pos + slen < text_len && text[pos + slen] =~ /[A-Za-z]/
+        matched_word = pool[snorm].first
+        matched_text = text[pos, slen]
+        matched_len = slen
+        break
+      end
+
+      if matched_word
+        pool[matched_word.surface.to_s.strip.downcase].shift
+        segments << [matched_text, matched_word]
+        pos += matched_len
+      else
+        m = text[pos..].match(/\A[A-Za-z][A-Za-z'’\-]*/)
+        tok = m ? m[0] : text[pos]
+        segments << [tok, nil]
+        pos += tok.length
+      end
+    end
+
+    # Phase 2: join consecutive same-lemma matches separated by pure
+    # whitespace.
+    parts = []
+    i = 0
+    while i < segments.length
+      seg_text, w = segments[i]
+      if w && w.lemma_id
+        run_end = i
+        j = i + 1
+        while j + 1 < segments.length &&
+              segments[j][1].nil? && segments[j][0].match?(/\A\s+\z/) &&
+              segments[j + 1][1] && segments[j + 1][1].lemma_id == w.lemma_id
+          run_end = j + 1
+          j += 2
+        end
+        joined = segments[i..run_end].map { |t, _| t }.join
+        parts << word_span(w, display: joined)
+        i = run_end + 1
+      else
+        parts << (escape_unmatched ? ERB::Util.h(seg_text) : seg_text)
+        i += 1
+      end
+    end
+
+    parts.join.html_safe
+  end
+
+  # Build a single word span for `render_clickable_words`. Each span
+  # carries everything the popover controller needs (lemma_id for the
+  # API fetch, strongs/morph for inline display) so the JS doesn't
+  # have to do a second lookup.
+  #
+  # `display:` overrides the visible text — used for English clickability
+  # so the rendered span shows the body's punctuation-attached form
+  # (e.g. "earth.") even when the matching Word#surface is bare ("earth").
+  def word_span(word, display: nil)
+    visible = display.nil? ? word.surface.to_s : display
+    surface = ERB::Util.h(visible)
+    classes = ["w"]
+    classes << "w-clickable" if word.lemma_id
+
+    attrs = [%(class="#{classes.join(' ')}"), %(data-word-id="#{word.id}")]
+    attrs << %(data-lemma-id="#{word.lemma_id}") if word.lemma_id
+    attrs << %(data-strongs="#{ERB::Util.h(word.strongs_number)}") if word.strongs_number.present?
+    attrs << %(data-morph="#{ERB::Util.h(word.morph_code)}") if word.morph_code.present?
+
+    # Form-specific transliteration (surface, not lemma) when the source
+    # provides it — BSB tables ships this for every WLC + Nestle 1904
+    # word. Used by the popover to show "biblos" above the lemma's own
+    # "biblos" translit, distinguishing inflected form vs dictionary form.
+    if (translit = word.notes.is_a?(Hash) ? word.notes["translit"] : nil).present?
+      attrs << %(data-translit="#{ERB::Util.h(translit)}")
+    end
+
+    # Humanized parsing prose. Prefer the source-supplied parsing_long
+    # (BSB-tables; full sentences like "Verb, Qal, Perfect 3ms"). Fall
+    # back to MorphCodeHumanizer for RP/CNTR-SR Greek which only ship
+    # the SBLGNT-style morph code.
+    parsing = (word.notes.is_a?(Hash) ? word.notes["parsing_long"] : nil) ||
+              MorphCodeHumanizer.humanize(word.morph_code)
+    attrs << %(data-parsing="#{ERB::Util.h(parsing)}") if parsing.present?
+
+    %(<span #{attrs.join(' ')}>#{surface}</span>)
+  end
 
   # Superscript letter marker (ᵃ ᵇ ᶜ … ᶻ ᵃᵃ ᵃᵇ …) for note index N.
   # Markers are unique within a chapter via base-26 (bijective) lettering:

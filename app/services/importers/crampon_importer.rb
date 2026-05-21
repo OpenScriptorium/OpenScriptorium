@@ -87,7 +87,11 @@ module Importers
       false
     end
 
+    SOURCE_FILE_URL = "https://raw.githubusercontent.com/scrollmapper/bible_databases/master/formats/json/FreCrampon.json".freeze
+
     def perform
+      download_source unless File.exist?(@path)
+
       @license = License.find_by!(name: "Public Domain")
       @kjv_scheme = VersificationScheme.find_by!(code: "KJV")
       @work = ensure_work
@@ -99,6 +103,14 @@ module Importers
 
       @work.update!(last_imported_at: Time.current,
                     imported_at: @work.imported_at || Time.current)
+    end
+
+    def download_source
+      require "open-uri"
+      FileUtils.mkdir_p(File.dirname(@path))
+      Rails.logger.info "[CramponImporter] downloading #{SOURCE_FILE_URL}"
+      File.binwrite(@path, URI.open(SOURCE_FILE_URL).read)
+      bump(:source_downloaded)
     end
 
     private

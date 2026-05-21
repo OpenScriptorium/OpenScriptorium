@@ -43,7 +43,7 @@
     <article class="chapter-grid <%= scripture_classes_for(@work) %>"
              lang="<%= @work.language %>"
              dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>"
-             data-controller="annotation-highlight">
+             data-controller="annotation-highlight<%= ' word-popover' if clickable_words_unit?(@verses.first) %>">
       <% note_offset = 0 %>
       <% @verses.each do |unit| %>
         <% ch = unit.canonical_ref.hierarchy[0] %>
@@ -56,7 +56,7 @@
                     reader_verse_path(@work.slug, @canonical_work.slug, ch, v),
                     class: "hover:underline decoration-dotted",
                     dir: "ltr" %>
-            </sup><%= render_verse_body_with_anchors(unit, notes, note_offset) %>
+            </sup><%= clickable_words_unit?(unit) && notes.empty? ? render_clickable_words(unit) : render_verse_body_with_anchors(unit, notes, note_offset) %>
           </p>
           <aside class="verse-notes" aria-label="marginal notes">
             <%= render_verse_marginal_notes(notes, note_offset) %>
@@ -69,7 +69,8 @@
   <% else %>
     <article class="<%= scripture_classes_for(@work) %> max-w-prose"
              lang="<%= @work.language %>"
-             dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>">
+             dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>"
+             <% if clickable_words_unit?(@verses.first) %>data-controller="word-popover"<% end %>>
       <% @verses.each do |unit| %>
         <% ch = unit.canonical_ref.hierarchy[0] %>
         <% v  = unit.canonical_ref.hierarchy[1] %>
@@ -79,7 +80,7 @@
                   reader_verse_path(@work.slug, @canonical_work.slug, ch, v),
                   class: "hover:underline decoration-dotted",
                   dir: "ltr" %>
-          </sup><%= unit.body %>
+          </sup><%= clickable_words_unit?(unit) ? render_clickable_words(unit) : unit.body %>
         </p>
         <%= render "verse_xrefs", verse_unit: unit %>
       <% end %>

@@ -270,14 +270,27 @@ module Importers
       bump(:verses_processed)
     end
 
-    # Parse `word 976 {N-NSF} word 1078 {N-GSF} ...` into [[word, strongs, morph], ...]
+    # Parse `word 976 {N-NSF} word 1078 {N-GSF} ...` into [[word, strongs, morph], ...].
+    # The source occasionally drops or repeats tokens (we found 20 lemmas
+    # in Matt 4 + a handful of other verses where the each_slice(3) walk
+    # got 2-misaligned and started reading morph codes as words). Validate
+    # each triple against the column shapes — Strong's = digits, morph =
+    # {…} — and drop the rest of the verse on mismatch rather than poison
+    # downstream lemmas with morph-code surfaces.
     def parse_strongs_words(text)
       tokens = text.strip.split(/\s+/)
-      tokens.each_slice(3).map do |w, s, m|
-        next nil if w.nil? || s.nil? || m.nil?
-        morph = m.delete("{}")
-        [w, s, morph]
-      end.compact
+      results = []
+      tokens.each_slice(3) do |w, s, m|
+        break if w.nil? || s.nil? || m.nil?
+        unless m.start_with?("{") && m.end_with?("}") &&
+               s.match?(/\A\d+\z/) &&
+               !w.start_with?("{")
+          bump(:rp_misaligned_triples_skipped)
+          break  # rest of the verse is suspect; stop here cleanly
+        end
+        results << [w, s, m.delete("{}")]
+      end
+      results
     end
 
     def flush_all_batches!
@@ -325,6 +338,17 @@ module Importers
       key = strongs
       cached = @lemma_cache[key]
       return cached if cached
+
+      # Bind to whichever lemma the corpus already uses for this Strong's
+      # before considering creating a new one — otherwise this importer
+      # creates surface-form stubs in parallel with whatever BSB or KJV
+      # already loaded for the same Strong's.
+      lemma = find_lemma_by_strongs(strongs, "el-koine")
+      if lemma
+        @lemma_cache[key] = lemma
+        bump(:lemmas_resolved_by_strongs)
+        return lemma
+      end
 
       normalized = normalize_greek(surface)
       lemma = Lemma.find_by(language: "el-koine", lemma: normalized)

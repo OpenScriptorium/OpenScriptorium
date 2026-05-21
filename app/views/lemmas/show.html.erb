@@ -1,0 +1,234 @@
+<% content_for :title, "#{@lemma.lemma} — word study" %>
+
+<%
+  lang = @lemma.language
+  lang_label = case lang
+               when "he"        then "Hebrew"
+               when "arc"       then "Aramaic"
+               when "el-koine"  then "Koine Greek"
+               when "el"        then "Greek"
+               else lang
+               end
+  lemma_font_class =
+    case lang
+    when "he", "arc"        then "font-hebrew"
+    when "el", "el-koine"   then "font-greek"
+    end
+  rtl = %w[he arc].include?(lang)
+
+%>
+
+<div class="max-w-3xl mx-auto px-5 py-12">
+  <nav aria-label="Breadcrumb" class="text-sm text-[var(--color-ink-soft)] mb-4">
+    <ol class="flex flex-wrap items-center gap-x-1 list-none p-0 m-0">
+      <li><%= link_to "Words", "#", class: "hover:underline opacity-60 pointer-events-none" %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li aria-current="page"><%= lang_label %></li>
+      <li><span aria-hidden="true">&raquo;</span></li>
+      <li><span lang="<%= lang %>" class="<%= lemma_font_class %>"><%= @lemma.lemma %></span></li>
+    </ol>
+  </nav>
+
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-8">
+    <h1 class="font-serif text-4xl <%= lemma_font_class %> text-[var(--color-ink)]"
+        lang="<%= lang %>" dir="<%= rtl ? 'rtl' : 'ltr' %>">
+      <%= @lemma.lemma %>
+    </h1>
+    <% if @lemma.transliteration.present? %>
+      <p class="mt-1 text-lg italic text-[var(--color-ink-soft)] font-serif">
+        <%= @lemma.transliteration %>
+      </p>
+    <% end %>
+    <% if @lemma.primary_gloss.present? %>
+      <p class="mt-3 text-lg font-serif text-[var(--color-ink)]">
+        <%= @lemma.primary_gloss.strip.sub(/\s*[.;]\s*$/, "") %>
+      </p>
+    <% end %>
+    <p class="mt-3 text-sm text-[var(--color-ink-soft)] font-serif">
+      <%
+        bits = []
+        bits << @lemma.part_of_speech if @lemma.part_of_speech.present?
+        bits << "Strong’s #{@strongs_numbers.join(', ')}" if @strongs_numbers.any?
+        if @lemma.frequency.present? && @lemma.frequency.positive?
+          bits << "#{@lemma.frequency} #{'token'.pluralize(@lemma.frequency)} in #{@total_count} #{'verse'.pluralize(@total_count)}"
+        else
+          bits << "#{@total_count} #{'verse'.pluralize(@total_count)}"
+        end
+        bits << @lemma.attested_period if @lemma.attested_period.present?
+      %>
+      <%= bits.join(" · ") %>
+    </p>
+  </header>
+
+  <% if @lemma.etymology.present? %>
+    <section class="mb-10">
+      <h2 class="font-serif text-2xl text-[var(--color-ink)] mb-3">Etymology</h2>
+      <p class="font-serif text-[var(--color-ink)]"><%= @lemma.etymology %></p>
+    </section>
+  <% end %>
+
+  <% le_lang_class =
+        case lang
+        when "he", "arc"        then "font-hebrew"
+        when "el", "el-koine"   then "font-greek"
+        end %>
+
+  <% @lexicon_entries_by_source.each do |source, entries| %>
+    <% multiple = entries.size > 1 %>
+    <section class="mb-10 lex-entry">
+      <details class="senses-toggle" <%= "open" unless multiple && entries.size > 5 %>>
+        <summary class="flex items-baseline gap-2 cursor-pointer list-none mb-2 hover:text-[var(--color-link)]">
+          <span class="font-serif text-2xl text-[var(--color-ink)]"><%= source %></span>
+          <% if multiple %>
+            <span class="text-sm text-[var(--color-ink-soft)] font-normal">
+              (<%= pluralize(entries.size, "entry") %>)
+            </span>
+          <% else %>
+            <% le = entries.first %>
+            <% if le.headword.present? %>
+              <span class="<%= le_lang_class %> text-xl text-[var(--color-ink-soft)]"
+                    lang="<%= lang %>"><%= le.headword %></span>
+            <% end %>
+            <% if le.transliteration.present? %>
+              <span class="text-sm italic text-[var(--color-ink-soft)]"><%= le.transliteration %></span>
+            <% end %>
+          <% end %>
+          <span class="ml-auto text-xs text-[var(--color-ink-soft)] inline-flex items-baseline gap-1">
+            <span class="senses-state-closed">show</span>
+            <span class="senses-state-open">hide</span>
+            <span class="senses-chevron" aria-hidden="true">▾</span>
+          </span>
+        </summary>
+
+        <% entries.each_with_index do |le, idx| %>
+          <article class="<%= "mt-6 pt-4 border-t border-[var(--color-rule)]" if multiple && idx > 0 %>">
+            <% if multiple %>
+              <header class="flex items-baseline gap-2 mb-2">
+                <% if le.headword.present? %>
+                  <span class="<%= le_lang_class %> text-lg text-[var(--color-ink)] font-bold"
+                        lang="<%= lang %>"><%= le.headword %></span>
+                <% end %>
+                <% if le.transliteration.present? %>
+                  <span class="text-sm italic text-[var(--color-ink-soft)]"><%= le.transliteration %></span>
+                <% end %>
+                <% if le.part_of_speech.present? %>
+                  <span class="text-xs italic text-[var(--color-ink-soft)]"><%= le.part_of_speech %></span>
+                <% end %>
+                <% if le.summary_gloss.present? %>
+                  <span class="text-sm text-[var(--color-ink-soft)]">— <%= le.summary_gloss %></span>
+                <% end %>
+              </header>
+            <% end %>
+            <div class="font-serif text-[var(--color-ink)] lex-body" lang="en">
+              <%= sanitize le.body_html, tags: %w[span div em i b strong a sup sub br p ol ul li],
+                    attributes: %w[class lang data-ref data-n data-level data-marker] %>
+            </div>
+          </article>
+        <% end %>
+
+        <% first_with_license = entries.find(&:license) %>
+        <% if first_with_license %>
+          <p class="text-xs text-[var(--color-ink-soft)] mt-4 font-serif italic">
+            <%= source %> — <%= first_with_license.license.name %>.
+            <% case source
+               when "BDB" %>
+              Open Scriptures Hebrew Bible Project.
+            <% when "LSJ" %>
+              Perseus Digital Library, Tufts University.
+            <% when "STEPBible" %>
+              Tyndale House Cambridge / STEPBible.org.
+            <% end %>
+          </p>
+        <% end %>
+      </details>
+    </section>
+  <% end %>
+
+  <% if @related_lemmas.any? %>
+    <section class="mb-10">
+      <h2 class="font-serif text-2xl text-[var(--color-ink)] mb-3">Related</h2>
+      <ul class="flex flex-wrap gap-3 list-none p-0 m-0">
+        <% @related_lemmas.each do |rel| %>
+          <li>
+            <%= link_to lemma_path(rel),
+                  class: "inline-flex items-baseline gap-2 px-3 py-1 rounded border border-[var(--color-rule)] hover:bg-[color-mix(in_srgb,var(--color-ink-soft)_8%,transparent)]" do %>
+              <span lang="<%= rel.language %>"
+                    class="<%= case rel.language
+                                when 'he', 'arc'      then 'font-hebrew'
+                                when 'el', 'el-koine' then 'font-greek'
+                                end %>"><%= rel.lemma %></span>
+              <% if rel.primary_gloss.present? %>
+                <span class="text-xs text-[var(--color-ink-soft)]"><%= rel.primary_gloss.split(/[,;]/).first.to_s.strip %></span>
+              <% end %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <section>
+    <h2 class="font-serif text-2xl text-[var(--color-ink)] mb-3">
+      Concordance
+      <span class="text-sm text-[var(--color-ink-soft)] font-normal">
+        — <%= pluralize(@total_count, "verse") %>
+        <% if @total_pages > 1 %>(page <%= @page %> of <%= @total_pages %>)<% end %>
+      </span>
+    </h2>
+
+    <% if @available_sources.size > 1 %>
+      <nav aria-label="Concordance source" class="flex flex-wrap gap-1 mb-4 text-sm font-serif">
+        <% @available_sources.each do |slug, title, lang| %>
+          <% active = @selected_source && slug == @selected_source[0] %>
+          <%= link_to title,
+                lemma_path(@lemma, source: slug),
+                class: "px-3 py-1 rounded border #{active ? 'border-[var(--color-link)] text-[var(--color-link)] bg-[color-mix(in_srgb,var(--color-link)_8%,transparent)] font-bold' : 'border-[var(--color-rule)] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]'}" %>
+        <% end %>
+      </nav>
+    <% end %>
+
+    <% if @verses.any? %>
+      <ol class="list-none p-0 m-0 divide-y divide-[var(--color-rule)]">
+        <% @verses.each do |unit| %>
+          <li class="py-3">
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <%= link_to unit.canonical_ref.sbl_citation || unit.canonical_ref.display_label,
+                    reader_verse_path(
+                      unit.work.slug,
+                      unit.canonical_ref.canonical_work.book_key,
+                      unit.canonical_ref.hierarchy[0],
+                      unit.canonical_ref.hierarchy[1]
+                    ),
+                    class: "text-sm font-sans tabular-nums text-[var(--color-link)] hover:underline whitespace-nowrap" %>
+              <p class="<%= scripture_classes_for(unit.work) %> text-base flex-1 m-0"
+                 lang="<%= unit.work.language %>"
+                 dir="<%= rtl_work?(unit.work) ? 'rtl' : 'ltr' %>">
+                <%= unit.body %>
+              </p>
+            </div>
+          </li>
+        <% end %>
+      </ol>
+    <% else %>
+      <p class="text-[var(--color-ink-soft)] font-serif italic">No occurrences.</p>
+    <% end %>
+
+    <% if @total_pages > 1 %>
+      <% pagination_params = { page: nil }
+         pagination_params[:source] = @selected_source[0] if @selected_source %>
+      <nav aria-label="Concordance pagination" class="mt-6 flex justify-between text-sm font-serif">
+        <% if @page > 1 %>
+          <%= link_to "← Previous",
+                lemma_path(@lemma, **pagination_params.merge(page: @page - 1)),
+                class: "text-[var(--color-link)] hover:underline" %>
+        <% else %><span></span><% end %>
+        <span class="text-[var(--color-ink-soft)]">Page <%= @page %> of <%= @total_pages %></span>
+        <% if @page < @total_pages %>
+          <%= link_to "Next →",
+                lemma_path(@lemma, **pagination_params.merge(page: @page + 1)),
+                class: "text-[var(--color-link)] hover:underline" %>
+        <% else %><span></span><% end %>
+      </nav>
+    <% end %>
+  </section>
+</div>

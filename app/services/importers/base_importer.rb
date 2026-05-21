@@ -102,6 +102,67 @@ module Importers
       record
     end
 
+    # Find an existing lemma keyed by Strong's number, scoped to the right
+    # script family. Used by importers that ingest (surface, strongs)
+    # tuples so they reuse an existing lemma rather than creating yet
+    # another surface-form stub for the same Strong's.
+    #
+    # Strong's storage is inconsistent across importers — bare ("2532"),
+    # prefixed ("G2532"), zero-padded ("G02532") — so we expand to all
+    # known shapes. Language scoping is critical: a bare "2385" matches
+    # both Hebrew and Greek lemmas without it, and we'd happily wire
+    # NT words to Hebrew rows. The 286k cross-script mismatch incident
+    # in April started exactly this way.
+    #
+    # Returns nil when no corpus word has this Strong's, in which case
+    # the caller should fall through to its create-from-source path.
+    def find_lemma_by_strongs(strongs, language)
+      return nil if strongs.blank?
+
+      # Map importer-internal labels ("Greek", "Hebrew") down to BCP47
+      # since Strongs.normalize keys off BCP47 codes for the bare-number
+      # disambiguation path.
+      bcp = case language.to_s
+            when "Hebrew"  then "he"
+            when "Aramaic" then "arc"
+            when "Greek"   then "el-koine"
+            else language.to_s
+            end
+
+      canonical = Strongs.normalize(strongs.to_s.split(",").first.to_s.strip,
+                                    language: bcp)
+      return nil unless canonical
+      bare = canonical[1..]
+
+      family = case bcp
+               when "he", "arc", "hbo" then %w[he arc hbo]
+               when "el", "el-koine", "grc" then %w[el el-koine grc]
+               else [bcp]
+               end
+
+      # All callers now hand us standard Strong's (CntrSr pre-normalizes
+      # its Enhanced Strong's Numbers to standard form before calling),
+      # so we look up only the exact Strong's in its known storage
+      # variants. NO trail-drop fallback: that previously caused G250
+      # ἀλόη to be wrongly fused into G25 ἀγαπάω because CNTR's G250
+      # ESN (= G25 var 0) collided with the standard G250.
+      forms = [canonical, bare]
+      %w[G H].each do |p|
+        %w[ 0 00].each { |pad| forms << "#{p}#{pad}#{bare}" }
+      end
+      forms.uniq!
+
+      lemma_id = Word.joins(:lemma)
+                     .where(strongs_number: forms)
+                     .where("lemmas.language IN (?)", family)
+                     .where.not(lemma_id: nil)
+                     .group(:lemma_id)
+                     .order(Arel.sql("COUNT(*) DESC"))
+                     .limit(1)
+                     .pick(:lemma_id)
+      lemma_id && Lemma.find(lemma_id)
+    end
+
     # Concurrent-safe canonical_ref creation. Uses a Postgres advisory
     # lock per canonical_work to prevent ord collisions when multiple
     # importers run in parallel. The lock is transaction-scoped

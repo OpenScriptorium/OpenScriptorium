@@ -50,7 +50,11 @@ module Importers
       false
     end
 
+    SOURCE_FILE_URL = "https://raw.githubusercontent.com/openscriptures/morphhb/master/MAPM/MAPM.xml".freeze
+
     def perform
+      download_source unless File.exist?(@path)
+
       @wlc = Work.find_by!(slug: "wlc")
       @canonical_work_cache = {}
       @work_unit_cache = {}
@@ -67,6 +71,14 @@ module Importers
       update_pericope_traditions
 
       @wlc.update!(last_imported_at: Time.current)
+    end
+
+    def download_source
+      require "open-uri"
+      FileUtils.mkdir_p(File.dirname(@path))
+      Rails.logger.info "[OshbFeaturesImporter] downloading #{SOURCE_FILE_URL}"
+      File.binwrite(@path, URI.open(SOURCE_FILE_URL).read)
+      bump(:source_downloaded)
     end
 
     private

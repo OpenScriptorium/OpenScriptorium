@@ -37,6 +37,17 @@ Rails.application.routes.draw do
   # "Not in corpus" page for cross-references to works we haven't imported
   get "not-in-corpus/:slug", to: "works#not_in_corpus", as: :not_in_corpus
 
+  # Public lemma pages — word study with full senses + concordance.
+  # Distinct from the JSON Api::V1::LemmasController used by the reader
+  # popover; this serves HTML.
+  resources :lemmas, only: [:show]
+
+  # Strong's number lookup. Resolves H1234 / G5678 (or bare 1234) to the
+  # underlying lemma and redirects to the canonical /lemmas/:id page —
+  # which carries the full word study (definition, senses, concordance).
+  get "strongs/:number", to: "strongs#show", as: :strongs,
+      constraints: { number: /\d+|[HGhg]\d{1,5}/ }
+
   # Parallel reader. URL grammar matches the single-work reader so a
   # passage citation looks the same regardless of which view it lands in.
   # Defined before the /:work_slug scope so "parallel" isn't swallowed.

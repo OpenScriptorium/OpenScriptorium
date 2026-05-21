@@ -35,9 +35,9 @@
   <article class="<%= scripture_classes_for(@work) %> max-w-prose"
            lang="<%= @work.language %>"
            dir="<%= rtl_work?(@work) ? 'rtl' : 'ltr' %>"
-           data-controller="annotation-highlight">
+           data-controller="annotation-highlight<%= ' word-popover' if clickable_words_unit?(@verse) %>">
     <div class="verse-row">
-      <p class="verse-text"><%= render_verse_body_with_anchors(@verse, notes) %></p>
+      <p class="verse-text"><%= clickable_words_unit?(@verse) && notes.empty? ? render_clickable_words(@verse) : render_verse_body_with_anchors(@verse, notes) %></p>
       <% if notes.any? %>
         <aside class="verse-notes mt-6 pt-4 border-t border-[var(--color-rule)]"
                aria-label="marginal notes">

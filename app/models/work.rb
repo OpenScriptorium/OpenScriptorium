@@ -96,7 +96,13 @@ class Work < ApplicationRecord
   ].freeze
 
   def feature_flags
-    cached_feature_flags.presence || compute_feature_flags
+    # Use the cached array verbatim — including the empty case. `.presence`
+    # would treat `[]` as missing and trigger a recompute (8 expensive
+    # predicate queries per work) on every request, which used to dominate
+    # the works index page time. Refresh by running
+    # `Work.refresh_all_feature_flags!` after importer changes.
+    return cached_feature_flags if cached_feature_flags
+    compute_feature_flags
   end
 
   def compute_feature_flags

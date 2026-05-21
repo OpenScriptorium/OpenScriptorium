@@ -116,9 +116,11 @@ module Importers
         return
       end
 
-      data = JSON.parse(File.read(path))
-      book_data = data[code]
-      return unless book_data
+      pairs = parse_verse_pairs(path, code)
+      if pairs.empty?
+        bump(:books_no_verse_pairs)
+        return
+      end
 
       # Find the canonical_work that the KJV actually uses for this book.
       # The KJV importer may create KJV-specific canonical_works (e.g.
@@ -137,14 +139,8 @@ module Importers
         return
       end
 
-      book_data.each do |_chapter_key, chapter_verses|
-        chapter_verses.each do |verse_key, verse_data|
-          parts = verse_key.split("|")
-          next unless parts.length == 3
-          en_text = verse_data["en"]
-          next if en_text.blank?
-          process_verse(canonical_work, parts[1].to_i, parts[2].to_i, en_text)
-        end
+      pairs.each do |chap, verse_n, en_text|
+        process_verse(canonical_work, chap, verse_n, en_text)
       end
 
       bump(:books_imported)
@@ -152,6 +148,40 @@ module Importers
         $stdout.puts "[KjvStrongsImporter] #{@stats[:books_imported]} books, #{@stats[:words_created] || 0} words"
         $stdout.flush
       end
+    end
+
+    # Robustly extract `(chapter, verse, en_text)` triples from a kaiserlik
+    # KJV file, bypassing full JSON.parse because upstream files are
+    # inconsistent in two ways:
+    #
+    #  1. Some files use the book code as top-level key (`{"Gen": ...}`),
+    #     others the full book name (`{"1 Thessalonians": ...}`). The
+    #     original importer's `data[code]` only handled the first shape
+    #     and silently dropped the rest.
+    #
+    #  2. Several files (1Co, 1Ki, 2Ch, Act, Isa, Mar, Phm at last clone)
+    #     have unescaped quotes inside non-English translation fields
+    #     ("bg", "ch", etc.) that cause `JSON.parse` to throw partway
+    #     through, losing every verse after the first bad row.
+    #
+    # We don't need any field but `en` (with its inline `[H####]/[G####]`
+    # tags), so a regex over the raw text recovers every verse pair
+    # regardless of either issue.
+    def parse_verse_pairs(path, code)
+      raw = File.read(path)
+      key_pattern = Regexp.escape(code)
+      verse_re = /
+        "#{key_pattern}\|(\d+)\|(\d+)"  # "Mat|1|1"
+        \s*:\s*\{\s*
+        "en"\s*:\s*"((?:[^"\\]|\\.)*)"  # "en": "..." (escapes-aware)
+      /x
+      pairs = []
+      raw.scan(verse_re) do |chap, verse, en_escaped|
+        en = (JSON.parse("\"#{en_escaped}\"") rescue en_escaped)
+        next if en.blank?
+        pairs << [chap.to_i, verse.to_i, en]
+      end
+      pairs
     end
 
     def process_verse(canonical_work, chapter, verse_n, en_text)
@@ -170,7 +200,16 @@ module Importers
         return
       end
 
-      # Parse word-Strong's pairs from the inline-tagged text
+      # Parse word-Strong's pairs from the inline-tagged text. Keep
+      # word_pairs whose strongs_list is empty — these are KJV's
+      # translator-supplied editorial English (italicized phrases like
+      # "him.", "what have we?", trailing punctuation, "[fn]" footnote
+      # markers) that don't correspond to any Hebrew/Greek source word.
+      # Stored with NULL strongs_number and NULL lemma_id so the reader
+      # UI can surface "this word was added by translators". Matches the
+      # BSB importer's policy for the same class of insertion. (Earlier
+      # 2026-05-20 audit dropped them; the 2026-05-21 audit reversed
+      # that for consistency with BSB.)
       word_pairs = parse_strongs_text(en_text)
       return if word_pairs.empty?
 
@@ -226,10 +265,38 @@ module Importers
     def ensure_lemma(strongs_num)
       return @lemma_cache[strongs_num] if @lemma_cache.key?(strongs_num)
 
-      # First check if a lemma already exists from BSB tables import
-      # (they share the same Strong's number space)
+      # Look across all the Strong's storage shapes the corpus uses —
+      # bare ("337"), prefixed ("G337"), zero-padded ("G0337"). Without
+      # this we miss every prior import's mapping for the same number,
+      # fall through to the lexicon lookup, and have historically picked
+      # up wrong lex_entry data (e.g. "G337" pointing at Μῆδος instead
+      # of ἀναιρέω). Using all storage variants of the same canonical
+      # number keeps lemma assignments consistent across imports.
       lang = strongs_num.start_with?("H") ? "he" : "el-koine"
-      existing = Word.where(strongs_number: strongs_num).where.not(lemma_id: nil).limit(1).pick(:lemma_id)
+      lookup_forms = [strongs_num]
+      canonical = Strongs.normalize(strongs_num, language: lang)
+      if canonical
+        bare = canonical[1..]
+        lookup_forms.concat([
+          canonical, bare,
+          "G#{bare}", "G0#{bare}", "G00#{bare}",
+          "H#{bare}", "H0#{bare}", "H00#{bare}"
+        ])
+      end
+      lookup_forms.uniq!
+
+      # CRITICAL: scope by language. Without this, "G2385" looks up across
+      # all storage forms ("2385", "G2385", …) and finds Hebrew rows whose
+      # bare strongs_number happens to match — wiring NT KJV words to
+      # Hebrew lemmas like חֲזִיז instead of Ἰάκωβος. The audit run on
+      # 2026-05-01 found 286k such mismatches before this guard was added.
+      same_lang_langs = lang == "he" ? %w[he arc] : %w[el el-koine grc]
+      existing = Word.joins(:lemma)
+                     .where(strongs_number: lookup_forms)
+                     .where("lemmas.language IN (?)", same_lang_langs)
+                     .where.not(lemma_id: nil)
+                     .limit(1)
+                     .pick(:lemma_id)
       if existing
         @lemma_cache[strongs_num] = Lemma.find(existing)
         return @lemma_cache[strongs_num]
@@ -239,6 +306,13 @@ module Importers
       lex_entry = @lexicon&.dig(strongs_num)
       if lex_entry
         lemma_text = lex_entry["Gk_word"].presence || lex_entry["Hb_word"].presence || strongs_num
+        # Normalize Unicode to NFC. Hebrew niqqud (vowel points) can be
+        # encoded with combining marks in different orders — kaiserlik's
+        # lexicon writes "dagesh+patah", existing DB rows often have
+        # "patah+dagesh". Both are valid and visually identical, but
+        # byte-unequal — find_or_initialize_by misses the existing row
+        # and the unique index then catches the duplicate insert.
+        lemma_text = lemma_text.unicode_normalize(:nfc) if lemma_text.respond_to?(:unicode_normalize)
         l = Lemma.find_or_initialize_by(language: lang, lemma: lemma_text)
         if l.new_record?
           l.assign_attributes(
@@ -249,8 +323,31 @@ module Importers
             frequency:       0
           )
           stamp(l)
-          l.save!
-          bump(:lemmas_created)
+          begin
+            l.save!
+            bump(:lemmas_created)
+          rescue ActiveRecord::RecordInvalid
+            # `find_or_initialize_by(language:, lemma:)` missed an existing
+            # row that the unique index then catches — usually a casing or
+            # whitespace difference from a prior import. Re-find with
+            # tolerant matching and reuse it instead of creating.
+            # Try several tolerant lookups: case-insensitive in same lang,
+            # then any-language match (some lemmas were imported under
+            # different language codes — e.g. "grc" vs "el-koine").
+            existing = Lemma.where(language: lang)
+                            .where("LOWER(TRIM(lemma)) = LOWER(TRIM(?))", lemma_text)
+                            .first
+            existing ||= Lemma.where(lemma: lemma_text).first
+            existing ||= Lemma.where("LOWER(TRIM(lemma)) = LOWER(TRIM(?))", lemma_text).first
+            if existing
+              l = existing
+              bump(:lemmas_reused_after_collision)
+            else
+              $stderr.puts "[KjvStrongsImporter] cannot resolve lemma: strongs=#{strongs_num} lang=#{lang} text=#{lemma_text.inspect}"
+              $stderr.puts "  validation errors: #{l.errors.full_messages.inspect}"
+              raise
+            end
+          end
         end
         @lemma_cache[strongs_num] = l
         return l

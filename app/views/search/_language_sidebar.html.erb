@@ -14,7 +14,14 @@
       <div class="<%= 'pt-3 border-t border-[var(--color-rule)]' unless i == 0 %>">
         <p class="<%= i == 0 ? 'text-2xl' : 'text-xl' %> leading-tight text-center"
            dir="<%= dir %>">
-          <%= entry[:lemma] %>
+          <% if entry[:id] %>
+            <a href="/lemmas/<%= entry[:id] %>"
+               class="hover:underline focus:underline focus:outline-none focus:ring-2 focus:ring-[var(--color-link)] rounded">
+              <%= entry[:lemma] %>
+            </a>
+          <% else %>
+            <%= entry[:lemma] %>
+          <% end %>
         </p>
         <% if entry[:transliteration].present? %>
           <p class="font-serif text-xs italic text-[var(--color-ink-soft)] text-center mt-0.5"

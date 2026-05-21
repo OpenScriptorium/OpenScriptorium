@@ -63,7 +63,11 @@ module Importers
       false
     end
 
+    SOURCE_REPO_URL = "https://github.com/BibleCorps/FRA-B-LSG1910-PD-UBS.git".freeze
+
     def perform
+      download_source if Dir.glob(File.join(@dir, "*.sfm")).empty?
+
       @license = License.find_by!(name: "Public Domain")
       @kjv_scheme = VersificationScheme.find_by!(code: "KJV")
       @work = ensure_work
@@ -75,6 +79,19 @@ module Importers
 
       @work.update!(last_imported_at: Time.current,
                     imported_at: @work.imported_at || Time.current)
+    end
+
+    def download_source
+      FileUtils.mkdir_p(@dir)
+      Dir.mktmpdir do |tmp|
+        Rails.logger.info "[SegondImporter] cloning #{SOURCE_REPO_URL}"
+        ok = system("git", "clone", "--depth", "1", SOURCE_REPO_URL, tmp, exception: false)
+        raise "git clone failed: #{SOURCE_REPO_URL}" unless ok
+        Dir.glob(File.join(tmp, "p.sfm", "*.sfm")).each do |src|
+          FileUtils.cp(src, File.join(@dir, File.basename(src)))
+        end
+      end
+      bump(:source_downloaded)
     end
 
     private

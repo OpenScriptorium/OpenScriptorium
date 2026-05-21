@@ -309,7 +309,7 @@ module Importers
         # footnotes in column 22, and the cross-references in column
         # 15. Process them all here while we still hold the verse's
         # row set in memory.
-        process_bsb_side!(canonical_work, canonical_ref, ordered) if @bsb_work
+        process_bsb_side!(canonical_work, canonical_ref, ordered, language) if @bsb_work
 
         bump(:verses_processed)
         bump(:words_processed, word_attrs.size)
@@ -343,7 +343,7 @@ module Importers
     #   * Section headings — col 14 marks the START of a named
     #     pericope. We track open headings per class and flush them
     #     when a new heading at the same level arrives.
-    def process_bsb_side!(canonical_work, canonical_ref, rows)
+    def process_bsb_side!(canonical_work, canonical_ref, rows, language)
       bsb_unit = WorkUnit.find_by(work_id: @bsb_work.id, canonical_ref_id: canonical_ref.id)
       unless bsb_unit
         # BSB follows the modern critical text (Nestle/UBS), which omits 16
@@ -426,9 +426,15 @@ module Importers
         tokens = english_phrase.split(/\s+/).reject(&:empty?)
         next if tokens.empty?
 
-        source_strongs = (r[10].presence || r[11].presence)
-        source_lang    = r[4].to_s.strip
-        source_lemma   = source_strongs.present? ? lookup_lemma_for_strongs(source_lang, source_strongs) : nil
+        # Pick the column for *this verse's* language. The original code
+        # tried r[10] (Hebrew col) first and only fell back to r[11]
+        # (Greek col) — for NT rows where Hebrew col is non-empty (rare
+        # but it happens in the BSB tables file), this picked H#### and
+        # routed the lookup to wlc, returning a Hebrew lemma for English
+        # words from a Greek-source NT verse (e.g. James 1:1 "James" →
+        # H2385 חֲזִיז instead of G2385 Ἰάκωβος).
+        source_strongs = (language == "Greek" ? r[11] : r[10]).presence
+        source_lemma   = source_strongs.present? ? lookup_lemma_for_strongs(language, source_strongs) : nil
 
         first_position = bsb_word_position
         tokens.each do |tok|
@@ -901,8 +907,23 @@ module Importers
       return cached if cached
 
       bcp47 = LANG_TO_BCP47[language] || "und"
-      normalized_surface = normalize(surface, language)
 
+      # Prefer an existing DICTIONARY lemma keyed off this Strong's number
+      # over creating a new surface-form stub. Without this, every inflected
+      # form in the BSB tables (αἰτοῦντι, ἠγαπημένος, …) becomes its own
+      # lemma row with no metadata, and we end up with thousands of stubs
+      # that have to be consolidated later.
+      lemma = find_lemma_by_strongs(strongs, language)
+      if lemma
+        @lemma_cache[key] = lemma
+        bump(:lemmas_resolved_by_strongs)
+        return lemma
+      end
+
+      # Fallback: no corpus word has this Strong's yet. Match by surface
+      # within the same language, or create a new lemma. This path runs
+      # rarely once the rest of the corpus is loaded.
+      normalized_surface = normalize(surface, language)
       lemma = Lemma.find_by(language: bcp47, lemma: normalized_surface)
       lemma ||= begin
         l = Lemma.new(

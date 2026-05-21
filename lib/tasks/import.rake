@@ -63,11 +63,6 @@ namespace :import do
     Importers::SegondImporter.new.call
   end
 
-  desc "Add morphology and lemmas to Rahlfs LXX from CATSS parsed Septuagint"
-  task rahlfs_morph: :environment do
-    Importers::RahlfsMorphImporter.new.call
-  end
-
   desc "Import the CNTR Statistical Restoration Greek NT (CC BY 4.0)"
   task cntr_sr: :environment do
     Importers::CntrSrImporter.new.call
@@ -172,6 +167,22 @@ namespace :import do
   desc "Import STEP Bible lexicon data (CC BY 4.0): clean glosses, dedup lemmas, backfill frequencies"
   task step_lexicon: :environment do
     Importers::StepLexiconImporter.new.call
+  end
+
+  desc "Import STEPBible TBESG/TBESH brief lexicons as structured lexicon_entries (CC BY 4.0)"
+  task step_lexicon_entries: :environment do
+    Importers::StepLexiconEntriesImporter.new.call
+  end
+
+  desc "Import Brown-Driver-Briggs Hebrew Lexicon (CC BY 4.0; PD BDB content from openscriptures/HebrewLexicon)"
+  task bdb: :environment do
+    download = ENV["DOWNLOAD"] != "false"
+    Importers::BdbImporter.new(download: download).call
+  end
+
+  desc "Import Liddell-Scott-Jones Greek Lexicon (CC BY-SA 4.0 from PerseusDL/lexica). Requires sparse-checkout of LSJ TEI XML at tmp/lsj_src/."
+  task lsj: :environment do
+    Importers::LsjImporter.new.call
   end
 
   desc "Clone Clear-Bible/macula-{hebrew,greek} into tmp/ (prerequisite for macula_lemma_fix etc.)"
@@ -540,6 +551,15 @@ namespace :import do
     Importers::PassageAliasesImporter.new.call
   end
 
+  desc "Delete lemma rows with no attached words AND no lexicon entries (final cleanup after all lexicon imports)"
+  task cleanup_orphan_lemmas: :environment do
+    n = Lemma
+      .where("NOT EXISTS (SELECT 1 FROM words WHERE words.lemma_id = lemmas.id)")
+      .where("NOT EXISTS (SELECT 1 FROM lexicon_entries WHERE lexicon_entries.lemma_id = lemmas.id)")
+      .delete_all
+    puts "Deleted #{n} orphan lemma rows"
+  end
+
   desc "Run all importers in dependency order (see doc/import_dependency_tree.md)"
   task all: :environment do
     require "parallel" if defined?(Parallel) || Gem.loaded_specs["parallel"]
@@ -552,7 +572,12 @@ namespace :import do
       # Phase 1: Depends on Phase 0 works
       { name: "Phase 0 dependents", tasks: %w[bsb_tables brenton kjv_strongs jps1917 luther1912] },
       # Phase 2: Depends on Phase 1 outputs
-      # rahlfs_morph REMOVED — CATSS source data is non-free (academic use only)
+      # LXX morphology intentionally NOT imported here — the only available
+      # parsed-LXX corpora (CATSS / Tov-Polak and its derivatives) are
+      # "academic use only" and incompatible with the FSF-strict policy
+      # in CLAUDE.md. We delete the importer rather than disable it so it
+      # can't be re-enabled by accident. Building our own from Morpheus
+      # over Rahlfs is the planned replacement (see project notes).
       { name: "Versification + annotations", tasks: %w[tvtms oshb_features nestle_apparatus brenton_notes] },
       # Phase 3: Independent scripture translations (including Swete LXX)
       { name: "Additional translations", tasks: %w[cntr_sr patriarchal_nt webbe vulgate crampon segond swete] },
@@ -564,13 +589,90 @@ namespace :import do
       { name: "Bavli dependents", tasks: %w[soncino vilna_margins sefaria_links], parallel: true },
       # Phase 7: Vilna refs (needs vilna_margins)
       { name: "Vilna references", tasks: %w[vilna_refs] },
-      # Phase 8: Lexicon cleanup (needs all word data)
+      # Phase 8: Lexicon cleanup (needs all word data) — creates clean
+      # dictionary lemma rows from STEPBible TSV, merges duplicates by
+      # Strong's number, backfills frequencies/glosses.
       { name: "Lexicon cleanup", tasks: %w[step_lexicon] },
-      # Phase 9: Topical themes (CC BY 4.0 datasets used by topic search).
+      # Phase 9: Macula corpus enrichment. macula_download fetches the
+      # source repos (~2.7 GB); macula_lemma_fix uses Macula stronglemma
+      # to rewire Hebrew/Greek words.lemma_id at root forms (and create
+      # roots that StepLexicon missed); the trio of participants/domains/
+      # syntax adds Macula's coreference, semantic-domain, and syntax-tree
+      # data referencing those words.
+      { name: "Macula download",      tasks: %w[macula_download] },
+      { name: "Macula lemma fix",     tasks: %w[macula_lemma_fix] },
+      { name: "Macula enrichments",   tasks: %w[macula_participants macula_domains macula_syntax], parallel: true },
+      # Phase 10: Lexicon entries (BDB, LSJ, STEPBible structured bodies).
+      # All key off existing lemmas, so they must run after step_lexicon
+      # and macula_lemma_fix have finalized the lemma set.
+      { name: "Lexicon entries",      tasks: %w[bdb lsj step_lexicon_entries], parallel: true },
+      # Phase 11: Passage aliases (named passages, parables, events).
+      # Depends on canonical_works/canonical_refs from earlier phases.
+      { name: "Passage aliases",      tasks: %w[passage_aliases] },
+      # ─── Lemma cleanup chain ─────────────────────────────────────────────
+      # All steps below run AFTER bdb / lsj / step_lexicon_entries so the
+      # lemma set is complete and we have rich LexiconEntry data to draw
+      # from. Order matters — each step's input is the previous step's
+      # output. See lib/tasks/*.rake for per-task incident writeups.
+      #
+      #   1. rebind_multi_token   — undo StepLexicon's collapse of distinct
+      #                              Strong's onto shared multi-word
+      #                              headwords (Beth-jeshimoth absorbing
+      #                              H1004 "house" uses, Ζεύς absorbing
+      #                              G1223 διά, אֲדֹנִי־צֶ֫דֶק absorbing
+      #                              H113 "lord", etc.).
+      #   2. split_homonyms       — split lemmas whose bound Words have
+      #                              widely-separated Strong's (Hebrew
+      #                              homonyms like נֵר "lamp" H5216 vs
+      #                              "Ner" H5369). Requires the drop-
+      #                              unique-index migration.
+      #   3. fix_parenthetical_glosses — clean up "(Place of) X" style
+      #                              gloss residue from TBESH's
+      #                              place-modifier rows.
+      #   4. relink_words         — bind the ~700 KJV orphan Strong's the
+      #                              importer's per-row lookup missed.
+      #   5. bind_clitic_prepositions — bind WLC's ~6k preposition+suffix
+      #                              tokens (לוֹ, בוֹ, …) to clitic-
+      #                              preposition lemmas H9001-H9008.
+      #   6. resolve_null_strongs_by_surface — bind 64-ish patriarchal-1904
+      #                              Greek tokens (κατ᾽, Θεοῦ, …) to
+      #                              existing lemmas via diacritic-stripped
+      #                              surface match.
+      #   7. backfill_from_lexicon_entries — fill primary_gloss /
+      #                              transliteration from linked
+      #                              LexEntries.
+      #   8. backfill_part_of_speech — fill part_of_speech from Word
+      #                              morph_codes + LexEntries +
+      #                              TBESH/TBESG.
+      #   9. lsj_metadata_backfill — for Greek lemmas still missing POS
+      #                              or transliteration, classify by
+      #                              ending and Romanize.
+      #  10. backfill_homonym_siblings — fill metadata for the per-Strong's
+      #                              sibling lemmas created in step 2.
+      #  11. refresh_frequency    — recompute per-lemma frequency counts
+      #                              after every prior step has moved Words.
+      { name: "Lemma cleanup", tasks: %w[
+          lemmas:rebind_multi_token
+          lemmas:split_homonyms
+          lemmas:fix_parenthetical_glosses
+          lemmas:relink_words
+          lemmas:bind_clitic_prepositions
+          lemmas:resolve_null_strongs_by_surface
+          lemmas:backfill_from_lexicon_entries
+          lemmas:backfill_part_of_speech
+          lemmas:lsj_metadata_backfill
+          lemmas:backfill_homonym_siblings
+          lemmas:refresh_frequency
+        ] },
+      # Final orphan cleanup runs AFTER all the rebinding passes — they
+      # may strand lemmas with no Words and no LexiconEntries (e.g. the
+      # 169 transient rows the integrity rebind creates and then empties).
+      { name: "Orphan cleanup",       tasks: %w[cleanup_orphan_lemmas] },
+      # Topical themes (CC BY 4.0 datasets used by topic search).
       # openbible_topics is fast (single TSV); sefaria_topics fetches per-
       # topic via Sefaria's API on first run (~13 min) and caches under
       # tmp/sefaria_topics/refs/ for subsequent runs.
-      { name: "Topical themes", tasks: %w[openbible_topics sefaria_topics] },
+      { name: "Topical themes",       tasks: %w[openbible_topics sefaria_topics] },
     ]
 
     # Non-essential indexes to drop before import and rebuild after.
@@ -637,7 +739,12 @@ namespace :import do
       log.("━━━ Phase #{phase_idx}: #{phase[:name]} (#{phase[:tasks].join(', ')}) ━━━")
 
       run_task = ->(task_name) {
-        log.("  Starting import:#{task_name}...")
+        # Task names without an explicit namespace are resolved under
+        # import:. Names like "lemmas:relink_words" run as-is so we can
+        # mix post-import cleanup tasks (lemmas: namespace) into the
+        # pipeline.
+        full_name = task_name.include?(":") ? task_name : "import:#{task_name}"
+        log.("  Starting #{full_name}...")
         task_start = Time.now
 
         begin
@@ -651,7 +758,7 @@ namespace :import do
             counts_before[table] = 0
           end
 
-          Rake::Task["import:#{task_name}"].invoke
+          Rake::Task[full_name].invoke
 
           elapsed = (Time.now - task_start).round(1)
 
@@ -663,16 +770,16 @@ namespace :import do
             deltas << "#{table}:+#{diff}" if diff > 0
           end
 
-          log.("  ✓ import:#{task_name} completed in #{elapsed}s")
+          log.("  ✓ #{full_name} completed in #{elapsed}s")
           log.("    Rows added: #{deltas.any? ? deltas.join(', ') : 'none'}") if deltas.any?
           mutex.synchronize { results << { task: task_name, status: :ok, elapsed: elapsed, deltas: deltas } }
         rescue => e
           elapsed = (Time.now - task_start).round(1)
-          log.("  ✗ import:#{task_name} FAILED in #{elapsed}s: #{e.class}: #{e.message}")
+          log.("  ✗ #{full_name} FAILED in #{elapsed}s: #{e.class}: #{e.message}")
           log.("    #{e.backtrace.first(3).join("\n    ")}")
           mutex.synchronize { results << { task: task_name, status: :failed, elapsed: elapsed, error: e.message } }
         ensure
-          Rake::Task["import:#{task_name}"].reenable
+          Rake::Task[full_name].reenable
         end
       }
 

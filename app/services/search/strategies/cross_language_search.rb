@@ -91,6 +91,7 @@ module Search
         format_entries = ->(list) {
           list.map { |l|
             {
+              id: l.id,
               lemma: l.lemma,
               normalized: l.normalized,
               transliteration: l.transliteration,
@@ -162,6 +163,7 @@ module Search
         format_entries = ->(list) {
           list.map { |l|
             {
+              id: l.id,
               lemma: l.lemma,
               normalized: l.normalized,
               transliteration: l.transliteration,

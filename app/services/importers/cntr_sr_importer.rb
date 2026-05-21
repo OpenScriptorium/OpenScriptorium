@@ -47,7 +47,11 @@ module Importers
       false
     end
 
+    SOURCE_FILE_URL = "https://raw.githubusercontent.com/Center-for-New-Testament-Restoration/SR/main/SR.tsv".freeze
+
     def perform
+      download_source unless File.exist?(@path)
+
       @license = License.find_by!(name: "CC BY 4.0") rescue License.find_by!(name: "Public Domain")
       @kjv_scheme = VersificationScheme.find_by!(code: "KJV")
       @work = ensure_work
@@ -78,6 +82,14 @@ module Importers
       flush_verse!(current_verse, current_words) if current_verse && current_words.any?
 
       @work.update!(has_word_data: true, last_imported_at: Time.current)
+    end
+
+    def download_source
+      require "open-uri"
+      FileUtils.mkdir_p(File.dirname(@path))
+      Rails.logger.info "[CntrSrImporter] downloading #{SOURCE_FILE_URL}"
+      File.binwrite(@path, URI.open(SOURCE_FILE_URL).read)
+      bump(:source_downloaded)
     end
 
     private
@@ -147,7 +159,23 @@ module Importers
         role = fields[5]
         morph = fields[6]
 
-        lemma = ensure_lemma(lemma_text, esn)
+        # CNTR encodes Enhanced Strong's as base × 10 + variant digit
+        # (variant 0 = the canonical base entry; 1..9 = homonym variants).
+        # Storing the raw ESN as `strongs_number` collides with other
+        # importers' standard-Strong's storage — e.g., CNTR's "G250"
+        # (= ESN for G25 αγαπάω) collides with KJV's "G250" (= standard
+        # G250 ἀλόη). Normalize to standard Strong's at storage time and
+        # preserve the variant digit in notes for downstream research.
+        standard_strongs = nil
+        esn_variant = nil
+        esn_str = esn.to_s.strip
+        if esn_str.match?(/\A\d{2,}\z/)
+          base = esn_str[0..-2].to_i
+          standard_strongs = "G#{base}" if base.positive?
+          esn_variant = esn_str[-1].to_i
+        end
+
+        lemma = ensure_lemma(lemma_text, standard_strongs)
 
         {
           work_id:        @work.id,
@@ -157,9 +185,9 @@ module Importers
           normalized:     koine.to_s.strip,
           lemma_id:       lemma&.id,
           morph_code:     "#{role}:#{morph}",
-          strongs_number: esn.present? ? "G#{esn}" : nil,
+          strongs_number: standard_strongs,
           import_run_id:  @import_run.id,
-          notes:          {},
+          notes:          { esn: esn_str.presence, esn_variant: esn_variant }.compact,
           created_at:     Time.current,
           updated_at:     Time.current
         }
@@ -175,10 +203,20 @@ module Importers
       end
     end
 
-    def ensure_lemma(lemma_text, esn)
+    def ensure_lemma(lemma_text, standard_strongs)
       return nil if lemma_text.blank?
-      key = [lemma_text, esn]
+      key = [lemma_text, standard_strongs]
       return @lemma_cache[key] if @lemma_cache.key?(key)
+
+      # Reuse an existing lemma keyed on this (standard, ESN-normalized)
+      # Strong's before creating one from the surface form. After ESN
+      # normalization (caller side), this matches what KJV / RP / BSB
+      # write \u2014 single canonical lookup, no special trail-drop.
+      lemma = find_lemma_by_strongs(standard_strongs, "el-koine")
+      if lemma
+        bump(:lemmas_resolved_by_strongs)
+        return @lemma_cache[key] = lemma
+      end
 
       normalized = lemma_text.unicode_normalize(:nfd).gsub(/[\u0300-\u036F]/, "").unicode_normalize(:nfc)
       l = Lemma.find_or_initialize_by(language: "el-koine", lemma: lemma_text)

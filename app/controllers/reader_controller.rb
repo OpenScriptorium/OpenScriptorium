@@ -37,7 +37,7 @@ class ReaderController < ApplicationController
                  .where(work_id: @work.id)
                  .where("canonical_refs.hierarchy[1] = ?", @chapter)
                  .order("canonical_refs.ord")
-                 .includes(:canonical_ref, :work_unit_notes)
+                 .includes(*verse_includes)
 
     if @verses.empty?
       raise ActiveRecord::RecordNotFound, "No chapter #{@chapter} in #{@canonical_work.display_title}"
@@ -56,7 +56,7 @@ class ReaderController < ApplicationController
                .where(work_id: @work.id)
                .where("canonical_refs.hierarchy[1] = ? AND canonical_refs.hierarchy[2] = ?",
                       @chapter, @verse_n)
-               .includes(:canonical_ref, :work_unit_notes)
+               .includes(*verse_includes)
                .first
     raise ActiveRecord::RecordNotFound unless @verse
   end
@@ -79,7 +79,7 @@ class ReaderController < ApplicationController
                         canonical_refs.hierarchy[2] BETWEEN ? AND ?",
                        @chapter, @from, @to)
                 .order("canonical_refs.ord")
-                .includes(:canonical_ref, :work_unit_notes)
+                .includes(*verse_includes)
 
     raise ActiveRecord::RecordNotFound if @verses.empty?
 
@@ -111,7 +111,7 @@ class ReaderController < ApplicationController
                 .where(work_id: @work.id)
                 .where("canonical_refs.ord BETWEEN ? AND ?", start_ord, end_ord)
                 .order("canonical_refs.ord")
-                .includes(:canonical_ref, :work_unit_notes)
+                .includes(*verse_includes)
 
     raise ActiveRecord::RecordNotFound if @verses.empty?
 
@@ -122,6 +122,19 @@ class ReaderController < ApplicationController
   end
 
   private
+
+  # Eager-load words + lemmas for any work the reader will render with
+  # clickable word-spans — original languages plus the lemma-aligned
+  # English translations (BSB / KJV). Other translations skip the join.
+  ORIGINAL_LANGUAGE_CODES = %w[he arc el el-koine].freeze
+  CLICKABLE_TRANSLATION_SLUGS = %w[bsb kjv].freeze
+  def verse_includes
+    base = [:canonical_ref, :work_unit_notes]
+    return base unless @work
+    return base + [{ words: :lemma }] if ORIGINAL_LANGUAGE_CODES.include?(@work.language)
+    return base + [{ words: :lemma }] if CLICKABLE_TRANSLATION_SLUGS.include?(@work.slug)
+    base
+  end
 
   def canonical_ord(chapter, verse)
     CanonicalRef

@@ -70,7 +70,11 @@ module Importers
       false
     end
 
+    SOURCE_ZIP_URL = "https://ebible.org/Scriptures/eng-webbe_usfm.zip".freeze
+
     def perform
+      download_source if Dir.glob(File.join(@dir, "*.usfm")).empty?
+
       @license = License.find_by!(name: "Public Domain")
       @kjv_scheme = VersificationScheme.find_by!(code: "KJV")
       @work = ensure_work
@@ -82,6 +86,25 @@ module Importers
 
       @work.update!(last_imported_at: Time.current,
                     imported_at: @work.imported_at || Time.current)
+    end
+
+    def download_source
+      require "open-uri"
+      require "zip"
+      FileUtils.mkdir_p(@dir)
+      Rails.logger.info "[WebbeImporter] downloading #{SOURCE_ZIP_URL}"
+      tmp_zip = Tempfile.new(["eng-webbe_usfm", ".zip"])
+      File.binwrite(tmp_zip.path, URI.open(SOURCE_ZIP_URL).read)
+      Zip::File.open(tmp_zip.path) do |zip|
+        zip.each do |entry|
+          next unless entry.name.end_with?(".usfm")
+          dest = File.join(@dir, File.basename(entry.name))
+          entry.extract(dest) { true }
+        end
+      end
+      bump(:source_downloaded)
+    ensure
+      tmp_zip&.unlink
     end
 
     private

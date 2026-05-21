@@ -2,7 +2,11 @@ require "json"
 
 module Importers
   class PassageAliasesImporter < BaseImporter
-    SOURCE_DIR = Rails.root.join("tmp/passage_aliases")
+    # Curated list of named passages (Creation Account, Sermon on the
+    # Mount, Magnificat, etc.). The data is hand-edited and shipped in
+    # the repo at db/seeds/passage_aliases/combined.json — that file is
+    # the source of truth, NOT a downstream tmp/ file.
+    SEED_DIR = Rails.root.join("db/seeds/passage_aliases")
 
     FILES = %w[
       pentateuch.json
@@ -15,7 +19,7 @@ module Importers
     ].freeze
 
     def source_url
-      "local:tmp/passage_aliases/*.json"
+      "https://github.com/seth/openscriptorium/tree/master/db/seeds/passage_aliases"
     end
 
     def perform
@@ -76,12 +80,12 @@ module Importers
     private
 
     def load_entries
-      combined_path = SOURCE_DIR.join("combined.json")
+      combined_path = SEED_DIR.join("combined.json")
       if combined_path.exist?
         JSON.parse(File.read(combined_path))
       else
         FILES.flat_map do |f|
-          path = SOURCE_DIR.join(f)
+          path = SEED_DIR.join(f)
           next [] unless path.exist?
           JSON.parse(File.read(path))
         end

@@ -50,7 +50,11 @@ module Importers
       false
     end
 
+    SOURCE_ZIP_URL = "https://ebible.org/Scriptures/grcbyz_usfm.zip".freeze
+
     def perform
+      download_source if Dir.glob(File.join(@dir, "*.usfm")).empty?
+
       @license = License.find_by!(name: "Public Domain")
       @kjv_scheme = VersificationScheme.find_by!(code: "KJV")
       @work = ensure_work
@@ -64,6 +68,25 @@ module Importers
       end
 
       @work.update!(has_word_data: true, last_imported_at: Time.current)
+    end
+
+    def download_source
+      require "open-uri"
+      require "zip"
+      FileUtils.mkdir_p(@dir)
+      Rails.logger.info "[PatriarchalNtImporter] downloading #{SOURCE_ZIP_URL}"
+      tmp_zip = Tempfile.new(["grcbyz_usfm", ".zip"])
+      File.binwrite(tmp_zip.path, URI.open(SOURCE_ZIP_URL).read)
+      Zip::File.open(tmp_zip.path) do |zip|
+        zip.each do |entry|
+          next unless entry.name.end_with?(".usfm")
+          dest = File.join(@dir, File.basename(entry.name))
+          entry.extract(dest) { true }
+        end
+      end
+      bump(:source_downloaded)
+    ensure
+      tmp_zip&.unlink
     end
 
     private
@@ -189,11 +212,15 @@ module Importers
       cached = @lemma_cache[strongs]
       return cached if cached
 
-      # Check existing lemmas from other Greek works
-      existing_id = Word.where(strongs_number: strongs).where.not(lemma_id: nil).limit(1).pick(:lemma_id)
-      if existing_id
-        @lemma_cache[strongs] = Lemma.find(existing_id)
-        return @lemma_cache[strongs]
+      # Look up across all Strong's storage shapes (G2532 / G02532 / 2532 \u2026)
+      # within the Greek language family. The previous version of this
+      # method matched by exact storage form only, so Patriarchal's
+      # zero-padded "G02532" silently missed the existing "G2532" rows
+      # from KJV/RP and created new lemmas instead.
+      lemma = find_lemma_by_strongs(strongs, "el-koine")
+      if lemma
+        bump(:lemmas_resolved_by_strongs)
+        return @lemma_cache[strongs] = lemma
       end
 
       normalized = surface.unicode_normalize(:nfd).gsub(/[\u0300-\u036F]/, "").unicode_normalize(:nfc).downcase

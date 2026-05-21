@@ -100,6 +100,7 @@ module Search
 
       def build_lemma_card(lemma)
         entry = {
+          id: lemma.id,
           lemma: lemma.lemma,
           normalized: lemma.normalized,
           transliteration: lemma.transliteration,

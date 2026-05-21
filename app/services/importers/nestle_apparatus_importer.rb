@@ -18,7 +18,12 @@ module Importers
   # rows (we don't have per-manuscript attestation from this source —
   # that comes from the CNTR transcriptions import #81).
   class NestleApparatusImporter < BaseImporter
-    DEFAULT_PATH = Rails.root.join("tmp/nestle_apparatus/final_apparatus.json")
+    # The 712 curated variant pairs ship with the repo at
+    # db/seeds/nestle_apparatus.json — that's the source of truth.
+    # `script/extract_nestle_apparatus.py` produces an unreviewed
+    # apparatus.json from the PDF; the curated/reviewed version is
+    # what we commit and import.
+    DEFAULT_PATH = Rails.root.join("db/seeds/nestle_apparatus.json")
 
     BOOK_TO_SLUG = {
       "Matt" => "matthew", "Mark" => "mark", "Luke" => "luke",
@@ -56,7 +61,7 @@ module Importers
 
     def perform
       unless File.exist?(@path)
-        raise "Missing #{@path} — run the apparatus extraction first"
+        raise "Missing #{@path} — apparatus seed should be committed at this path"
       end
 
       @nestle_work = Work.find_by!(slug: "nestle1904")

@@ -5,6 +5,16 @@ class Lemma < ApplicationRecord
   belongs_to :lexicon_entry, class_name: "WorkUnit", optional: true
   belongs_to :import_run, optional: true
 
+  # canonical_lemma_id was a self-FK that bridged inflected-form rows
+  # ("αιτουντι") to their dictionary form ("αἰτέω"). Since the
+  # consolidation pass (rake lemmas:consolidate_inflected) every Word
+  # binds directly to its dictionary lemma — no bridges remain. The
+  # column and association are kept for forward-compat in case a future
+  # use case (variant spelling, transliteration alias) wants them.
+  belongs_to :canonical_lemma, class_name: "Lemma", optional: true
+  has_many :inflected_forms,
+    class_name: "Lemma", foreign_key: :canonical_lemma_id, dependent: :nullify
+
   ATTESTED_PERIODS = %w[
     biblical_hebrew
     second_temple
@@ -24,8 +34,13 @@ class Lemma < ApplicationRecord
   before_validation :nfc_normalize_lemma
 
   validates :language, presence: true
-  validates :lemma, presence: true,
-                    uniqueness: { scope: :language }
+  # Headword + language is NOT unique — Hebrew homonyms like נֵר
+  # ("lamp" H5216 vs "Ner" H5369) and Greek homonyms (ὁ ἡ τό
+  # vs proper-name doubles) genuinely share spelling but represent
+  # distinct dictionary entries. Disambiguation happens at the Word
+  # level via strongs_number. See migration
+  # 20260520020000_drop_lemma_unique_index_for_homonyms.
+  validates :lemma, presence: true
   validates :normalized, presence: true
   validates :attested_period, inclusion: { in: ATTESTED_PERIODS, allow_nil: true }
 

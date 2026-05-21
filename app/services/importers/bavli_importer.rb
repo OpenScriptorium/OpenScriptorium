@@ -106,6 +106,8 @@ module Importers
     end
 
     def perform
+      download_source
+
       @ccbysa = License.find_or_create_by!(name: "CC BY-SA 3.0") do |l|
         l.spdx_id = "CC-BY-SA-3.0"
         l.url = "https://creativecommons.org/licenses/by-sa/3.0/"
@@ -129,6 +131,64 @@ module Importers
       [@gemara_work, @rashi_work, @tosafot_work].each do |w|
         w.update!(last_imported_at: Time.current,
                   imported_at: w.imported_at || Time.current)
+      end
+    end
+
+    # Fetch each tractate's Gemara, Rashi, Tosafot via Sefaria's v3 API.
+    # 37 tractates × 3 layers = 111 API calls (~6 min on cold cache).
+    # Skips files that already exist.
+    #
+    # Versions chosen for FOSS-license compatibility:
+    #   Gemara: Wikisource Talmud Bavli (CC-BY-SA) — NOT William Davidson (CC-BY-NC)
+    #   Rashi:  Vilna Edition (Public Domain)
+    #   Tosafot: Vilna Edition (Public Domain)
+    #
+    # The saved JSON has the simple `{"text": [...]}` shape the importer
+    # expects (2D array — outer = daf, inner = lines), reshaped from
+    # v3's `versions[0].text`.
+    SEFARIA_VERSIONS = {
+      "gemara"  => "hebrew|Wikisource Talmud Bavli",
+      "rashi"   => "hebrew|Vilna Edition",
+      "tosafot" => "hebrew|Vilna Edition"
+    }.freeze
+
+    def download_source
+      require "open-uri"
+      require "uri"
+      require "json"
+      %w[gemara rashi tosafot].each { |sub| FileUtils.mkdir_p(File.join(@dir, sub)) }
+      TRACTATES.each do |sefaria_slug, _, _, _, _|
+        # Sefaria expects each word capitalized for multi-word tractates
+        # ("Rosh_Hashanah", "Bava_Kamma"). Single-word lowercase is
+        # tolerated for the top tractate URL but NOT for compound names
+        # ("Rashi on berakhot" → "Could not find title"). Use title-case
+        # + underscore consistently.
+        title_cased = sefaria_slug.split("_").map(&:capitalize).join("_")
+        fetch_sefaria_text("gemara",  sefaria_slug, title_cased)
+        fetch_sefaria_text("rashi",   sefaria_slug, "Rashi on #{title_cased}")
+        fetch_sefaria_text("tosafot", sefaria_slug, "Tosafot on #{title_cased}")
+      end
+    end
+
+    def fetch_sefaria_text(subdir, sefaria_slug, sefaria_text_name)
+      path = File.join(@dir, subdir, "#{sefaria_slug}.json")
+      return if File.exist?(path) && File.size(path) > 100
+
+      escaped_name    = URI::DEFAULT_PARSER.escape(sefaria_text_name)
+      escaped_version = URI::DEFAULT_PARSER.escape(SEFARIA_VERSIONS[subdir])
+      url = "https://www.sefaria.org/api/v3/texts/#{escaped_name}?version=#{escaped_version}&fill_in_missing_segments=1"
+      Rails.logger.info "[BavliImporter] fetching #{subdir}/#{sefaria_slug}.json"
+      begin
+        body = URI.open(url, read_timeout: 60).read
+        parsed = JSON.parse(body)
+        version = parsed["versions"]&.first
+        text = version ? version["text"] : []
+        # Save in the simple format the importer reads.
+        File.write(path, JSON.generate({ "text" => text }))
+        bump(:source_downloaded)
+      rescue OpenURI::HTTPError, Net::OpenTimeout, Net::ReadTimeout, JSON::ParserError => e
+        Rails.logger.warn "[BavliImporter] #{subdir}/#{sefaria_slug}: #{e.message}"
+        bump(:source_download_skipped)
       end
     end
 

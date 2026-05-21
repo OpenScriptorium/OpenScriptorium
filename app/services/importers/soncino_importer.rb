@@ -139,14 +139,34 @@ module Importers
         next if File.exist?(file)
         url = "https://halakhah.com/#{info[:url_base]}/#{info[:url_name]}_#{daf}.html"
         begin
-          content = URI.open(url).read
+          content = fetch_with_retries(url)
           File.write(file, content)
           bump(:html_downloaded)
-        rescue OpenURI::HTTPError => e
-          # Some dafim may not exist
+        rescue OpenURI::HTTPError
+          # Some dafim may not exist (404)
           bump(:html_missing)
+        rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET, Errno::ETIMEDOUT, SocketError => e
+          # Network blip after retries — log and skip; this daf will be
+          # retried on the next run since File.exist? above gates the
+          # download.
+          Rails.logger.warn "[SoncinoImporter] giving up on #{info[:url_name]}_#{daf}: #{e.class}: #{e.message}"
+          bump(:html_network_skipped)
         end
         sleep 0.2 # be polite
+      end
+    end
+
+    def fetch_with_retries(url, attempts: 3)
+      tries = 0
+      begin
+        tries += 1
+        URI.open(url, open_timeout: 30, read_timeout: 60).read
+      rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET, Errno::ETIMEDOUT, SocketError => e
+        if tries < attempts
+          sleep 2 * tries  # 2s, 4s
+          retry
+        end
+        raise
       end
     end
 

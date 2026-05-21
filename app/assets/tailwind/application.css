@@ -473,6 +473,368 @@ html {
   .daf-vilna-wrapper { display: block; }
 }
 
+/* Word-study popover ------------------------------------------------------
+ * Original-language reader views render each word as `<span class="w">`.
+ * Words with a `data-lemma-id` attribute also get `.w-clickable`, which
+ * the word-popover Stimulus controller wires to /api/v1/lemmas/:id.
+ * Hover affordance is a dotted underline; the click opens the popover.
+ * -------------------------------------------------------------------------- */
+.w {
+  /* Default — no decoration, behaves like inline text. */
+}
+
+.w-clickable {
+  cursor: pointer;
+  border-bottom: 1px dotted transparent;
+  transition: border-color 80ms ease, background-color 80ms ease;
+}
+
+.w-clickable:hover,
+.w-clickable:focus-visible {
+  border-bottom-color: var(--color-ink-soft);
+  background-color: color-mix(in srgb, var(--color-ink-soft) 8%, transparent);
+}
+
+.word-popover {
+  position: absolute;
+  z-index: 1000;
+  max-width: 22rem;
+  min-width: 14rem;
+  font-family: "Charis SIL", ui-serif, Georgia, serif;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  background: var(--color-page);
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+  padding: 0.65rem 0.8rem 0.7rem;
+  text-align: start;
+  /* Reset inherited styles from the verse container (RTL, oversized
+   * Hebrew font) so the popover always reads LTR at body size. */
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Tooltip arrow — a small white square rotated 45° so the visible
+ * triangular tip points at the anchored word. Two of its borders
+ * inherit the popover's outline so the seam reads as continuous. */
+.word-popover-arrow {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--color-page);
+  left: var(--word-popover-arrow-x, 14px);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.word-popover[data-placement="below"] .word-popover-arrow {
+  top: -7px;
+  border-top: 1px solid var(--color-rule);
+  border-left: 1px solid var(--color-rule);
+}
+
+.word-popover[data-placement="above"] .word-popover-arrow {
+  bottom: -7px;
+  border-bottom: 1px solid var(--color-rule);
+  border-right: 1px solid var(--color-rule);
+}
+
+.word-popover-loading,
+.word-popover-error {
+  color: var(--color-ink-soft);
+  font-style: italic;
+  padding: 0.1rem 0;
+}
+
+.word-popover-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.word-popover-surface {
+  font-size: 1.05rem;
+  color: var(--color-ink-soft);
+}
+
+.word-popover-arrow-glyph {
+  color: var(--color-ink-soft);
+  opacity: 0.55;
+  font-size: 0.85rem;
+}
+
+.word-popover-lemma {
+  font-size: 1.2rem;
+  /* Match the loaded Bold faces exactly (Charis SIL / Galatia SIL / Ezra
+   * SIL all expose 700 = Bold). 600 forced the browser to synthesize
+   * bold from the regular face, which made some Greek letters (rho,
+   * pi, gamma) render as fake-bold while others looked normal. */
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* Per-language font selection on the original-language spans inside the
+ * popover. Without this they'd inherit Charis SIL — which has Greek and
+ * Hebrew glyphs, but its Bold face is less complete for polytonic Greek
+ * than Galatia's, leading to inconsistent bold weights letter-to-letter. */
+.word-popover-surface:lang(el),
+.word-popover-surface:lang(el-koine),
+.word-popover-lemma:lang(el),
+.word-popover-lemma:lang(el-koine) {
+  font-family: "Galatia SIL", "Charis SIL", serif;
+}
+
+.word-popover-surface:lang(he),
+.word-popover-surface:lang(arc),
+.word-popover-lemma:lang(he),
+.word-popover-lemma:lang(arc) {
+  font-family: "Ezra SIL", "Charis SIL", serif;
+}
+
+.word-popover-translit {
+  font-style: italic;
+  color: var(--color-ink-soft);
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+}
+
+/* Form-specific transliteration (the inflected surface, not the lemma).
+ * Sits next to the surface in the header so the user reads "βιβλος" /
+ * "biblos" at a glance. */
+.word-popover-surface-translit {
+  font-style: italic;
+  color: var(--color-ink-soft);
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* Parsing prose ("Verb, Aorist Active Indicative 3rd Singular").
+ * Between the surface and the lemma-row arrow. */
+.word-popover-parsing {
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+  font-style: italic;
+  margin-bottom: 0.45rem;
+}
+
+/* The "↳ λέγω · verb" line. */
+.word-popover-lemma-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.word-popover-pos {
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  opacity: 0.85;
+}
+
+.word-popover-morph {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+
+.word-popover-gloss {
+  margin-bottom: 0.4rem;
+  color: var(--color-ink);
+}
+
+.word-popover-meta {
+  font-size: 0.75rem;
+  color: var(--color-ink-soft);
+  border-top: 1px solid var(--color-rule);
+  padding-top: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+/* Senses toggle on lemma pages -------------------------------------------- */
+.senses-toggle .senses-state-closed { display: inline; }
+.senses-toggle .senses-state-open   { display: none; }
+.senses-toggle[open] .senses-state-closed { display: none; }
+.senses-toggle[open] .senses-state-open   { display: inline; }
+
+.senses-toggle .senses-chevron {
+  display: inline-block;
+  transition: transform 150ms ease;
+}
+.senses-toggle[open] .senses-chevron {
+  transform: rotate(180deg);
+}
+
+.senses-toggle > summary::-webkit-details-marker { display: none; } /* Safari */
+
+/* Lexicon entry rendering ------------------------------------------------ */
+.lex-body { line-height: 1.65; }
+
+.lex-body .lex-w {
+  font-family: "Ezra SIL", "Charis SIL", serif;
+  direction: rtl;
+  unicode-bidi: isolate;
+  font-weight: 600;
+}
+
+.lex-body .lex-orth {
+  font-family: "Galatia SIL", "Charis SIL", serif;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.lex-body .lex-quote,
+.lex-body .lex-foreign[lang="el"],
+.lex-body .lex-foreign[lang="grc"],
+.lex-body .lex-foreign[lang="greek"] {
+  font-family: "Galatia SIL", "Charis SIL", serif;
+}
+
+.lex-body .lex-foreign[lang="he"],
+.lex-body .lex-foreign[lang="arc"] {
+  font-family: "Ezra SIL", "Charis SIL", serif;
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+.lex-body .lex-pos,
+.lex-body .lex-itype,
+.lex-body .lex-gen,
+.lex-body .lex-tns,
+.lex-body .lex-voice,
+.lex-body .lex-mood,
+.lex-body .lex-per,
+.lex-body .lex-case,
+.lex-body .lex-number,
+.lex-body .lex-gender,
+.lex-body .lex-dial,
+.lex-body .lex-asp,
+.lex-body .lex-stem,
+.lex-body .lex-lbl,
+.lex-body .lex-usg {
+  font-style: italic;
+  color: var(--color-ink-soft);
+  font-size: 0.92em;
+}
+
+.lex-body .lex-def {
+  font-style: italic;
+}
+
+.lex-body .lex-tr {
+  font-style: italic;
+  color: var(--color-ink);
+}
+
+.lex-body .lex-bibl {
+  font-size: 0.92em;
+  color: var(--color-ink-soft);
+}
+
+.lex-body .lex-sense {
+  margin: 0.5em 0 0.5em 1em;
+}
+
+.lex-body .lex-sense[data-n] {
+  position: relative;
+  padding-left: 1.6em;
+}
+
+.lex-body .lex-sense[data-n]::before {
+  content: attr(data-n);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  width: 1.4em;
+}
+
+/* STEPBible (TBESG/TBESH) entries — emit data-marker + data-level on each
+ * sense block. Indent by level; render marker as a leading numeral. */
+.lex-body .lex-sense[data-marker] {
+  position: relative;
+  padding-left: 2.6em;
+  margin-left: 0;
+}
+.lex-body .lex-sense[data-marker]::before {
+  content: attr(data-marker) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  width: 2.2em;
+  text-align: right;
+  padding-right: 0.4em;
+}
+.lex-body .lex-sense[data-level="1"] { margin-left: 0; }
+.lex-body .lex-sense[data-level="2"] { margin-left: 1.5em; }
+.lex-body .lex-sense[data-level="3"] { margin-left: 3em; }
+.lex-body .lex-sense[data-level="4"] { margin-left: 4.5em; }
+.lex-body .lex-sense[data-level="5"] { margin-left: 6em; }
+.lex-body .lex-sense[data-level="6"] { margin-left: 7.5em; }
+
+.lex-body .lex-head {
+  margin: 0.25em 0;
+}
+.lex-body .lex-headline {
+  margin: 0.5em 0 0.25em;
+  font-weight: 600;
+}
+.lex-body .lex-prose {
+  margin: 0.25em 0;
+  color: var(--color-ink-soft);
+  font-size: 0.95em;
+}
+.lex-body .lex-related {
+  margin: 0.75em 0 0;
+  padding-top: 0.5em;
+  border-top: 1px dotted var(--color-rule);
+  color: var(--color-ink-soft);
+  font-size: 0.92em;
+}
+
+.lex-body .lex-ref {
+  color: var(--color-link);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px dotted transparent;
+}
+.lex-body .lex-ref:hover { border-bottom-color: var(--color-link); }
+
+.lex-body .lex-etym {
+  color: var(--color-ink-soft);
+  font-size: 0.95em;
+}
+
+.word-popover-footer {
+  margin-top: 0.5rem;
+  text-align: end;
+}
+
+.word-popover-more {
+  font-size: 0.75rem;
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.word-popover-more:hover {
+  text-decoration: underline;
+}
+
+.word-popover-lemma:is(a) {
+  text-decoration: none;
+  color: var(--color-ink);
+}
+
+.word-popover-lemma:is(a):hover {
+  text-decoration: underline;
+}
+
 /* SIL fonts ----------------------------------------------------------------
  * @font-face declarations live in app/assets/stylesheets/fonts.css
  * (loaded via the Propshaft asset pipeline). Font files belong in

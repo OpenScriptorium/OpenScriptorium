@@ -41,15 +41,36 @@ module Importers
 
     protected
 
+    SOURCE_FILE_URLS = {
+      "TBESH.txt" => "https://raw.githubusercontent.com/STEPBible/STEPBible-Data/master/Lexicons/TBESH%20-%20Translators%20Brief%20lexicon%20of%20Extended%20Strongs%20for%20Hebrew%20-%20STEPBible.org%20CC%20BY.txt",
+      "TBESG.txt" => "https://raw.githubusercontent.com/STEPBible/STEPBible-Data/master/Lexicons/TBESG%20-%20Translators%20Brief%20lexicon%20of%20Extended%20Strongs%20for%20Greek%20-%20STEPBible.org%20CC%20BY.txt"
+    }.freeze
+
     def perform
       @dir = @opts[:dir] || DEFAULT_DIR
+      download_source
 
       import_file(File.join(@dir, HEBREW_FILE), default_language: "he")
       import_file(File.join(@dir, GREEK_FILE), default_language: "el-koine")
 
-      cleanup_orphans
+      # Orphan cleanup deferred to a separate post-lexicon pass —
+      # running it here destroys lemmas that downstream lexicon
+      # importers (step_lexicon_entries / bdb / lsj) would have linked
+      # to. See `import:cleanup_orphans` rake.
       backfill_frequencies
       cleanup_glosses
+    end
+
+    def download_source
+      require "open-uri"
+      FileUtils.mkdir_p(@dir)
+      SOURCE_FILE_URLS.each do |name, url|
+        path = File.join(@dir, name)
+        next if File.exist?(path)
+        Rails.logger.info "[StepLexiconImporter] downloading #{name}"
+        File.binwrite(path, URI.open(url).read)
+        bump(:source_downloaded)
+      end
     end
 
     private
@@ -86,6 +107,13 @@ module Importers
       d_strong  = cols[1].strip  # disambiguated Strong's
       u_strong  = cols[2].strip  # unified Strong's
       headword  = cols[3].strip  # dictionary form in original script
+      # TBESH/TBESG lists spelling variants comma-joined ("Μωϋσῆς, Μωσῆς",
+      # "Δαυείδ, Δαυίδ, Δαβίδ"). Only the first form is the canonical
+      # headword; the rest are alternates. Without this trim we'd store
+      # the entire comma-string as the lemma's lemma column, which both
+      # reads badly in the UI and creates spurious "multi-token" lemma
+      # rows that distort top-binding audits.
+      headword  = headword.split(",").first.to_s.strip if headword.include?(",")
       translit  = cols[4].strip  # transliteration
       morph     = cols[5].strip  # e.g., "H:N-M", "G:V"
       gloss     = cols[6].strip  # short English gloss from Tyndale scholars
@@ -121,9 +149,8 @@ module Importers
       # Our words table stores "H430", "G3056" etc. (no leading zeros).
       norm_strongs = normalize_strongs(e_strong)
 
-      # Clean up the gloss and meaning
+      # Clean up the gloss
       clean_gloss = clean_text(gloss)
-      clean_meaning = meaning.present? ? clean_html_meaning(meaning) : nil
 
       # Parse morph into a simple POS string
       pos = parse_pos(morph)
@@ -135,7 +162,6 @@ module Importers
         norm_strongs: norm_strongs,
         transliteration: translit.presence,
         gloss: clean_gloss,
-        meaning: clean_meaning,
         pos: pos,
         d_strong: d_strong,
         u_strong: u_strong
@@ -149,7 +175,7 @@ module Importers
     end
 
     def find_or_create_canonical_lemma(language:, headword:, norm_strongs:, transliteration:,
-                                        gloss:, meaning:, pos:, d_strong:, u_strong:)
+                                        gloss:, pos:, d_strong:, u_strong:)
       # Strategy: Strong's number is the primary identity key. Different
       # Strong's numbers = different lemmas, even if they share the same
       # consonantal skeleton (e.g., H1285 berith "covenant" vs H1287 borit "lye"
@@ -162,8 +188,20 @@ module Importers
 
       normalized_hw = normalize_script(headword, language)
 
-      # Find lemmas currently linked to this Strong's via words
-      linked_lemma_ids = Word.where(strongs_number: norm_strongs)
+      # Find lemmas currently linked to this Strong's via words. SCOPE BY
+      # LANGUAGE: without this, "G154" matches Hebrew words whose bare
+      # Strong's "154" coincides, and StepLexicon would smear Hebrew
+      # metadata onto a Greek inflected-form lemma (the audit on
+      # 2026-05-01 found 278 such cross-script contaminated rows). The
+      # language guard makes that recurrence impossible.
+      same_lang = case language
+                  when "he", "arc"      then %w[he arc]
+                  when "el", "el-koine" then %w[el el-koine grc]
+                  else [language]
+                  end
+      linked_lemma_ids = Word.joins(:lemma)
+                             .where(strongs_number: norm_strongs)
+                             .where("lemmas.language IN (?)", same_lang)
                              .where.not(lemma_id: nil)
                              .distinct
                              .pluck(:lemma_id)
@@ -172,10 +210,29 @@ module Importers
 
       if linked_lemma_ids.any?
         # Pick the best lemma among those linked to this Strong's number
-        canonical = Lemma.where(id: linked_lemma_ids)
+        candidate = Lemma.where(id: linked_lemma_ids)
                          .select("lemmas.*, (SELECT COUNT(*) FROM words WHERE words.lemma_id = lemmas.id) AS wc")
                          .order(Arel.sql("CASE WHEN primary_gloss IS NOT NULL AND primary_gloss != '' THEN 0 ELSE 1 END, wc DESC"))
                          .first
+
+        # Don't fold a multi-word place-name / compound headword into an
+        # existing single-token lemma (or vice versa) just because they
+        # share a base Strong's. TBESH ships H1004 (בַּיִת "house") and
+        # H1004B (בֵּית הַיְשִׁימוֹת "Beth-jeshimoth") as separate rows
+        # whose extended Strong's collapse to the same base. If we
+        # accept the existing בַּיִת lemma here, line 239's
+        # `canonical.lemma = headword` overwrites its text with
+        # "Beth-jeshimoth" — silently relabeling 13k Word bindings.
+        # Skip the reuse when token count differs; the create path
+        # below will produce a distinct lemma row for this dictionary
+        # entry, with zero Word bindings (correct — no corpus Word
+        # uses the multi-word place compound as a single token).
+        if candidate
+          cand_tokens = candidate.lemma.to_s.strip.split(/\s+/).size
+          new_tokens  = headword.to_s.strip.split(/\s+/).size
+          canonical = candidate if cand_tokens == new_tokens
+          bump(:lemmas_skipped_token_mismatch) if canonical.nil?
+        end
       end
 
       if canonical.nil?
@@ -214,13 +271,27 @@ module Importers
       # names (capitalized). When multiple STEP rows share a headword
       # (e.g., H5828 "helper" and H5829 "Ezer"), keep the common word.
       # Merge disambiguated common-word glosses (e.g., "beginning" + "best").
+      #
+      # ALSO reject "(Place-of) X"-style place-modifier glosses entirely.
+      # TBESH ships rows like `H5945E = יְהֹוִה` with gloss
+      # "(Jerusalem of) the Lord" — these are place-modifier disambiguations,
+      # not the dictionary sense, and they read terribly in the popover.
+      # The bare-form sense ("YHWH/God") is what we want as primary_gloss.
       if gloss.present?
         existing_gloss = canonical.primary_gloss.to_s.strip
-        new_is_proper = gloss.match?(/\A[A-Z]/)
+        new_is_proper      = gloss.match?(/\A[A-Z]/)
+        new_is_paren       = gloss.match?(/\A\(/)
         existing_is_common = existing_gloss.present? && existing_gloss.match?(/\A[a-z]/)
+        existing_is_paren  = existing_gloss.present? && existing_gloss.match?(/\A\(/)
 
         if existing_gloss.blank?
           canonical.primary_gloss = gloss
+        elsif existing_is_paren && !new_is_paren
+          # Existing is a place-modifier gloss; the new one is a real sense.
+          # Overwrite — the place-modifier was never the right primary.
+          canonical.primary_gloss = gloss
+        elsif new_is_paren
+          # Never overwrite or merge in a parenthetical place-modifier gloss.
         elsif existing_is_common && new_is_proper
           # Don't overwrite "helper" with "Ezer" — skip
         elsif !existing_is_common && !new_is_proper
@@ -232,12 +303,10 @@ module Importers
         end
       end
 
-      # Store the structured meaning in senses (append, don't overwrite)
-      if meaning.present?
-        new_senses = parse_senses(meaning)
-        existing = canonical.senses || []
-        canonical.senses = existing + new_senses
-      end
+      # Structured meanings are imported separately by
+      # StepLexiconEntriesImporter as `lexicon_entries` rows. Don't write
+      # to `lemmas.senses` from here — that path produced inconsistent
+      # half-parsed strings that fought every regex cleanup.
 
       stamp(canonical)
       canonical.save!
@@ -262,38 +331,91 @@ module Importers
 
       canonical
     rescue ActiveRecord::RecordInvalid => e
-      # Uniqueness violation — the same headword already exists for this
-      # language. Common for Aramaic words that share headword text with
-      # Hebrew entries. Find and reuse the existing record, updating its
-      # gloss if ours is better.
-      # Try exact match, then related languages (Aramaic/Hebrew share headwords),
-      # then any language. Use uncached query to catch records created earlier in this run.
-      existing = Lemma.where(lemma: headword).where(language: [language, "he", "arc", "hbo"]).first ||
-                 Lemma.where(lemma: headword).first
-      if existing
+      # Uniqueness violation — another lemma already has (language, lemma)
+      # equal to what we tried to save canonical as. Find that row and
+      # MERGE canonical into it: move canonical's words + lex entries
+      # over, delete canonical, return the merged row.
+      #
+      # Critically: NFC-normalize the lookup. The model's before_validation
+      # callback saved `headword` in NFC, but the raw `headword` passed
+      # in may be NFD (TBESH source bytes). Without NFC normalization
+      # the lookup misses and the merge silently turns into a row drop.
+      nfc_headword = headword.unicode_normalize(:nfc)
+      existing = Lemma.where(language: language, lemma: nfc_headword).first ||
+                 Lemma.where(lemma: nfc_headword).where(language: [language, "he", "arc", "hbo"]).first ||
+                 Lemma.where(lemma: nfc_headword).first
+      unless existing
+        $stdout.puts "[StepLexiconImporter] ERROR: #{headword} (#{norm_strongs}, #{language}): #{e.message}"
+        $stdout.flush
+        Rails.logger.warn "[StepLexiconImporter] skipping #{headword}: #{e.message}"
+        bump(:lemmas_errored)
+        return nil
+      end
+
+      merge_safety = check_merge_safety(canonical, existing, norm_strongs, language)
+      case merge_safety
+      when :safe
+        # Move canonical's FKs to existing, then delete canonical.
+        if canonical.persisted?
+          Word.where(lemma_id: canonical.id).update_all(lemma_id: existing.id, updated_at: Time.current)
+          LexiconEntry.where(lemma_id: canonical.id).update_all(lemma_id: existing.id, updated_at: Time.current)
+          canonical.destroy
+        end
+        # Apply STEP metadata to the merged row.
+        existing.transliteration ||= transliteration if transliteration.present?
+        existing.part_of_speech  ||= pos             if pos.present?
+        if gloss.present? && (existing.primary_gloss.blank? || existing.primary_gloss.match?(/\A[A-Z]/))
+          existing.primary_gloss = gloss
+        end
+        existing.save!(validate: false) if existing.changed?
+        bump(:lemmas_merged_on_collision)
+        existing
+      when :unsafe
+        # canonical and existing are different lexemes that happen to
+        # share a headword. Don't merge words. Update existing's metadata
+        # opportunistically; canonical stays at whatever surface text
+        # it had before this STEP row tried to rename it.
         if gloss.present? && (existing.primary_gloss.blank? || existing.primary_gloss.match?(/\A[A-Z]/))
           existing.update(primary_gloss: gloss, transliteration: transliteration || existing.transliteration)
         end
-        bump(:lemmas_reused_existing)
-        return existing
+        bump(:lemmas_collision_kept_separate)
+        existing
       end
-      $stdout.puts "[StepLexiconImporter] ERROR: #{headword} (#{norm_strongs}, #{language}): #{e.message}"
-      $stdout.flush
-      Rails.logger.warn "[StepLexiconImporter] skipping #{headword}: #{e.message}"
-      bump(:lemmas_errored)
-      nil
+    end
+
+    # Decide whether merging `canonical` INTO `existing` would conflate
+    # genuinely-distinct lexemes. Both must agree on their dominant
+    # normalized Strong's number (or one side has no words at all, in
+    # which case it's a stub safe to absorb).
+    def check_merge_safety(canonical, existing, norm_strongs, language)
+      can_top = canonical.persisted? ? top_norm_strongs(canonical.id, language) : norm_strongs
+      ex_top  = top_norm_strongs(existing.id, existing.language)
+      return :safe if can_top.nil? || ex_top.nil?
+      return :safe if can_top == ex_top
+      :unsafe
+    end
+
+    def top_norm_strongs(lemma_id, language)
+      raw = Word.where(lemma_id: lemma_id).where.not(strongs_number: [nil, ""])
+                .group(:strongs_number).order(Arel.sql("COUNT(*) DESC"))
+                .limit(1).pick(:strongs_number)
+      return nil unless raw
+      Strongs.normalize(raw, language: language)
     end
 
     def cleanup_orphans
-      # Remove lemmas that have zero words attached and were NOT created
-      # by this importer. These are junk surface-form placeholders left
-      # over from older importers that are no longer the source of truth.
-      # Legitimate STEP-created lemmas (lexicon entries for words not yet
-      # in the corpus) are kept.
+      # Remove lemmas that have zero words attached, no lexicon_entries
+      # attached, and were NOT created by this importer. These are junk
+      # surface-form placeholders left over from older importers that
+      # are no longer the source of truth. Legitimate STEP-created
+      # lemmas (lexicon entries for words not yet in the corpus) are
+      # kept, as are any lemma row that has BDB / LSJ / STEPBible
+      # entries pointing at it (the entries carry independent value).
       step_run_ids = ImportRun.where(importer_class: "Importers::StepLexiconImporter").pluck(:id)
 
       orphans = Lemma
         .where("NOT EXISTS (SELECT 1 FROM words WHERE words.lemma_id = lemmas.id)")
+        .where("NOT EXISTS (SELECT 1 FROM lexicon_entries WHERE lexicon_entries.lemma_id = lemmas.id)")
         .where.not(import_run_id: step_run_ids)
 
       count = orphans.count
@@ -507,11 +629,6 @@ module Importers
       result.strip
     end
 
-    def clean_html_meaning(text)
-      return nil if text.blank?
-      clean_text(text)
-    end
-
     def parse_pos(morph)
       return nil if morph.blank?
       # morph format: "H:N-M" → type is "N"
@@ -533,13 +650,5 @@ module Importers
       "RelP" => "relative pronoun", "V" => "verb"
     }.freeze
 
-    def parse_senses(meaning)
-      return [] if meaning.blank?
-      # Split on numbered entries like "1)", "2)", "1a)"
-      # Return as array of sense strings
-      cleaned = clean_text(meaning)
-      senses = cleaned.split(/(?=\d+[a-z]?\))/).map(&:strip).reject(&:blank?)
-      senses.map { |s| { definition: s } }
-    end
   end
 end

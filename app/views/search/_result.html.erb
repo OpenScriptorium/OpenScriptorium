@@ -33,9 +33,10 @@
       </span>
     <% end %>
   </div>
-  <p class="font-serif text-sm leading-relaxed text-[var(--color-ink)]
-            [&>mark]:bg-yellow-200 [&>mark]:dark:bg-yellow-800/50 [&>mark]:rounded-sm [&>mark]:px-0.5">
-    <%= sanitize result[:headline], tags: %w[mark], attributes: [] %>
+  <p class="<%= search_result_body_classes(result) %>"
+     lang="<%= result[:language] %>"
+     dir="<%= rtl_search_result?(result) ? 'rtl' : 'ltr' %>">
+    <%= render_search_result_body(result) %>
   </p>
   <% if %w[wlc nestle1904].include?(result[:work_slug]) && result[:hierarchy]&.size&.>=(2) %>
     <details class="mt-1">
