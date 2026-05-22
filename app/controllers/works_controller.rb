@@ -16,7 +16,15 @@ class WorksController < ApplicationController
 
     # Hide reference/cross-reference works that aren't independently readable
     hidden = %w[mesoret-hashas-bavli ein-mishpat-bavli]
-    @works = Work.includes(:license).where.not(slug: hidden).order(:title).to_a
+    # Also hide placeholder Work rows that have no text loaded yet — the
+    # vilna_margins importer registers ~9 marginalia Works (Maharsha,
+    # Rashash, etc.) whose per-page text hasn't been ingested.
+    populated_ids = WorkUnit.distinct.pluck(:work_id)
+    @works = Work.includes(:license)
+                 .where.not(slug: hidden)
+                 .where(id: populated_ids)
+                 .order(:title)
+                 .to_a
 
     @facet_languages  = @works.map(&:language).compact.uniq.sort
     # Sort traditions: academic first, then Jewish, then Christian
