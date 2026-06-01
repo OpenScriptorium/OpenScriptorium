@@ -29,6 +29,12 @@ namespace :import do
     Importers::LxxMorphImporter.new.call
   end
 
+  desc "Import STEPBible TBESG (Brief Greek lexicon, CC BY 4.0). Populates Lemma.primary_gloss " \
+       "for el-koine lemmas that don't already have one. Set TBESG_PATH to skip the download."
+  task tbesg: :environment do
+    Importers::TbesgImporter.new.call
+  end
+
   desc "Import Brenton's English translation of the Septuagint (1851)"
   task brenton: :environment do
     download = ENV["DOWNLOAD"] != "false"
