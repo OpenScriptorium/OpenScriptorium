@@ -39,6 +39,13 @@ namespace :lemmas do
     Lemmas::LsjReconciler.new.call
   end
 
+  desc "Cross-link unglossed Greek Hebrew-name lemmas (Ααρων, Βαιθλεεμ, …) to " \
+       "Hebrew lemmas by canonical_ref overlap. Populates primary_gloss with the " \
+       "Hebrew equivalent (e.g. \"Aaron (= אַהֲרֹν)\")."
+  task cross_link_hebrew: :environment do
+    Lemmas::HebrewCrossLinker.new.call
+  end
+
   desc "Coverage report: which el-koine Lemmas have a gloss; which don't, by category."
   task gloss_coverage: :environment do
     total = Lemma.where(language: "el-koine").count
