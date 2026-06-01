@@ -4,7 +4,7 @@
   # Hero
   # ============================================================ %>
 <section class="border-b border-[var(--color-rule)]">
-  <div class="max-w-5xl mx-auto px-5 py-20 sm:py-28 grid sm:grid-cols-[auto_1fr] gap-x-10 gap-y-6 items-center">
+  <div class="max-w-5xl mx-auto px-5 py-12 sm:py-16 grid sm:grid-cols-[auto_1fr] gap-x-10 gap-y-6 items-center">
 
     <%# Decorative illuminated initial — the same S as the navbar/favicon %>
     <div class="hidden sm:block">
@@ -43,8 +43,8 @@
   # Epigraph — the two opening lines as a quiet centered block
   # ============================================================ %>
 <section class="border-b border-[var(--color-rule)]">
-  <div class="max-w-3xl mx-auto px-5 py-16 text-center">
-    <p class="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] mb-6">
+  <div class="max-w-3xl mx-auto px-5 py-10 text-center">
+    <p class="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] mb-4">
       The beginning
     </p>
 
@@ -52,7 +52,9 @@
       בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ׃
     </p>
     <p class="mt-2 text-sm text-[var(--color-ink-soft)] italic font-serif">
-      Genesis 1:1 (Westminster Leningrad Codex)
+      <%= link_to "Genesis 1:1 (Westminster Leningrad Codex)",
+            reader_chapter_path("wlc", "genesis", 1),
+            class: "underline decoration-dotted hover:text-[var(--color-link)]" %>
     </p>
 
     <hr class="my-8 border-[var(--color-rule)] w-16 mx-auto">
@@ -61,7 +63,9 @@
       Ἐν ἀρχῇ ἦν ὁ λόγος.
     </p>
     <p class="mt-2 text-sm text-[var(--color-ink-soft)] italic font-serif">
-      John 1:1 (Nestle 1904)
+      <%= link_to "John 1:1 (Nestle 1904)",
+            reader_chapter_path("nestle1904", "john", 1),
+            class: "underline decoration-dotted hover:text-[var(--color-link)]" %>
     </p>
   </div>
 </section>

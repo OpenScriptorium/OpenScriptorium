@@ -4,7 +4,7 @@
     <div class="max-w-5xl mx-auto px-5 py-8">
       <%= link_to post_path(latest_post),
             class: "group block sm:flex sm:items-baseline sm:gap-6" do %>
-        <p class="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] shrink-0 sm:w-32">
+        <p class="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] shrink-0 whitespace-nowrap sm:w-44">
           New &nbsp;·&nbsp; <%= latest_post.published_at.to_date.to_fs(:long) %>
         </p>
         <h2 class="mt-1 sm:mt-0 font-serif text-xl sm:text-2xl text-[var(--color-ink)] leading-snug group-hover:text-[var(--color-link)]">
