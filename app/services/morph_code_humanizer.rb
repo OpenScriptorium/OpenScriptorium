@@ -1,7 +1,11 @@
-# Renders Nestle/SBLGNT and CNTR-style morph codes as prose ("V-AAI-3S"
-# → "Verb, Aorist Active Indicative, 3rd Singular"). BSB-table Words
-# carry a notes["parsing_long"] field already; this is for the works
-# that don't (RP, CNTR-SR).
+# Renders morph codes as prose. Three input formats are recognized:
+#
+#   - Nestle / SBLGNT dash-separated     ("V-AAI-3S" → "Verb, Aorist Active Indicative 3rd Singular")
+#   - CNTR positional                    ("V:PAI3S.." → "Verb, Present Active Indicative 3rd Person Singular")
+#   - lxx-morph human-readable lowercase ("verb aor ind mid/pass 3rd sg" → "Verb, Aorist Indicative Middle/Passive 3rd Singular")
+#
+# BSB-table Words carry a notes["parsing_long"] field already; this
+# class fills in for the works that don't (RP, CNTR-SR, Rahlfs LXX).
 require "set"
 
 class MorphCodeHumanizer
@@ -33,6 +37,47 @@ class MorphCodeHumanizer
   NUMBER = { "S" => "Singular", "P" => "Plural", "D" => "Dual" }.freeze
   PERSON = { "1" => "1st", "2" => "2nd", "3" => "3rd" }.freeze
 
+  # lxx-morph format vocabularies. Multi-word POS ("proper noun") is
+  # detected before single-token POS in #humanize_lxx_morph.
+  LXX_POS = {
+    "verb"        => "Verb",
+    "noun"        => "Noun",
+    "adjective"   => "Adjective",
+    "article"     => "Article",
+    "pronoun"     => "Pronoun",
+    "participle"  => "Participle",
+    "preposition" => "Preposition",
+    "conjunction" => "Conjunction",
+    "particle"    => "Particle",
+    "adverb"      => "Adverb",
+    "numeral"     => "Numeral",
+    "interjection" => "Interjection",
+  }.freeze
+
+  LXX_TOKEN = {
+    # Tense
+    "pres" => "Present", "impf" => "Imperfect", "aor" => "Aorist",
+    "fut"  => "Future",  "perf" => "Perfect",   "plup" => "Pluperfect",
+    # Voice
+    "act" => "Active", "mid" => "Middle", "pass" => "Passive",
+    # Mood
+    "ind" => "Indicative", "subj" => "Subjunctive", "opt" => "Optative",
+    "imperat" => "Imperative", "imp" => "Imperative",
+    "inf" => "Infinitive", "ptc" => "Participle",
+    # Person
+    "1st" => "1st", "2nd" => "2nd", "3rd" => "3rd",
+    # Number
+    "sg" => "Singular", "pl" => "Plural", "dual" => "Dual",
+    # Gender
+    "masc" => "Masculine", "fem" => "Feminine", "neut" => "Neuter",
+    # Case
+    "nom" => "Nominative", "voc" => "Vocative", "acc" => "Accusative",
+    "gen" => "Genitive",   "dat" => "Dative",
+    # Degree / extras
+    "comp" => "Comparative", "sup" => "Superlative",
+    "adverbial" => "Adverbial",
+  }.freeze
+
   # Entry point. Returns prose, or the raw code if we can't parse.
   def self.humanize(code)
     return nil if code.blank?
@@ -46,6 +91,13 @@ class MorphCodeHumanizer
     # CNTR positional style: 8 chars, e.g. "N:....NFS" or "V:PAI3S..".
     if code =~ /\A([A-Z]):([A-Z0-9.]+)\z/
       return humanize_cntr($1, $2) || code
+    end
+
+    # lxx-morph human-readable: lowercase, space-separated, first
+    # token is a known POS word ("verb aor ind mid/pass 3rd sg").
+    if code =~ /\A[a-z]/ && code.include?(" ") || LXX_POS.key?(code) || code == "proper noun"
+      result = humanize_lxx_morph(code)
+      return result if result
     end
 
     code
@@ -85,6 +137,41 @@ class MorphCodeHumanizer
     end
 
     pos_name
+  end
+
+  # Parse the lxx-morph human-readable format. Returns nil if the
+  # leading POS isn't recognized so the caller can fall back to the
+  # raw code.
+  def self.humanize_lxx_morph(code)
+    tokens = code.split(/\s+/)
+    return nil if tokens.empty?
+
+    # "proper noun" — two-word POS, peel both off.
+    if tokens[0] == "proper" && tokens[1] == "noun"
+      pos_name = "Proper Noun"
+      rest = tokens[2..]
+    else
+      pos_name = LXX_POS[tokens[0]]
+      return nil unless pos_name
+      rest = tokens[1..]
+    end
+
+    return pos_name if rest.empty?
+
+    pieces = rest.map { |t| lxx_token_to_prose(t) }.compact
+    pieces.empty? ? pos_name : "#{pos_name}, #{pieces.join(' ')}"
+  end
+
+  # Translate a single parsing token. Slash-sets ("masc/neut", "nom/voc/acc")
+  # are expanded by mapping each segment and rejoining with slashes — only
+  # if every segment maps. Unknown tokens return nil.
+  def self.lxx_token_to_prose(token)
+    return LXX_TOKEN[token] if LXX_TOKEN.key?(token)
+    if token.include?("/")
+      parts = token.split("/").map { |p| LXX_TOKEN[p] }
+      return parts.join("/") if parts.none?(&:nil?)
+    end
+    nil
   end
 
   def self.humanize_cntr(pos_letter, parsing)
