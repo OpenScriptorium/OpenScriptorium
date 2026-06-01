@@ -1,0 +1,47 @@
+<%= form_with model: [:admin, post], local: true,
+      class: "space-y-6 font-serif text-[var(--color-ink)]" do |f| %>
+
+  <% if post.errors.any? %>
+    <div class="border border-red-700 rounded p-4 text-sm">
+      <p class="font-semibold">This post couldn't be saved:</p>
+      <ul class="list-disc pl-5 mt-2">
+        <% post.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :title, class: "block text-sm uppercase tracking-wider text-[var(--color-ink-soft)] mb-1" %>
+    <%= f.text_field :title, autofocus: true,
+          class: "w-full border border-[var(--color-rule)] rounded px-3 py-2 text-lg" %>
+  </div>
+
+  <div>
+    <%= f.label :slug, class: "block text-sm uppercase tracking-wider text-[var(--color-ink-soft)] mb-1" %>
+    <%= f.text_field :slug, placeholder: "leave blank to derive from title",
+          class: "w-full border border-[var(--color-rule)] rounded px-3 py-2 font-mono text-sm" %>
+  </div>
+
+  <div>
+    <%= f.label :published_at, "Publish at",
+          class: "block text-sm uppercase tracking-wider text-[var(--color-ink-soft)] mb-1" %>
+    <%= f.datetime_local_field :published_at,
+          class: "border border-[var(--color-rule)] rounded px-3 py-2 text-sm" %>
+    <p class="mt-1 text-xs italic text-[var(--color-ink-soft)]">
+      Leave blank to save as a draft. Future dates schedule the post.
+    </p>
+  </div>
+
+  <div>
+    <%= f.label :body, class: "block text-sm uppercase tracking-wider text-[var(--color-ink-soft)] mb-1" %>
+    <%= f.rich_text_area :body, class: "trix-content" %>
+  </div>
+
+  <div class="flex items-center gap-4 pt-4">
+    <%= f.submit class: "inline-block px-5 py-2 bg-[var(--color-ink)] text-[var(--color-page)] rounded hover:opacity-90 cursor-pointer" %>
+    <%= link_to "Cancel", admin_posts_path,
+          class: "text-sm italic underline decoration-dotted text-[var(--color-ink-soft)]" %>
+  </div>
+<% end %>

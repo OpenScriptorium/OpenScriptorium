@@ -1,0 +1,26 @@
+<% content_for :title, "News" %>
+
+<div class="max-w-3xl mx-auto px-5 py-12 font-serif text-[var(--color-ink)]">
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10">
+    <p class="text-sm uppercase tracking-wide text-[var(--color-ink-soft)]">News</p>
+    <h1 class="font-serif text-4xl mt-1">Announcements</h1>
+  </header>
+
+  <% if @posts.any? %>
+    <ul class="space-y-10">
+      <% @posts.each do |post| %>
+        <li>
+          <p class="text-xs uppercase tracking-wider text-[var(--color-ink-soft)]">
+            <%= post.published_at.to_date.to_fs(:long) %>
+          </p>
+          <h2 class="font-serif text-2xl mt-1">
+            <%= link_to post.title, post_path(post),
+                  class: "underline decoration-dotted hover:text-[var(--color-link)]" %>
+          </h2>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="italic text-[var(--color-ink-soft)]">No announcements yet.</p>
+  <% end %>
+</div>

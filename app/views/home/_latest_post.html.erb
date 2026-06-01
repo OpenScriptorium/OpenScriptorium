@@ -1,0 +1,17 @@
+<%# Renders only when a published post exists. Hidden otherwise. %>
+<% if latest_post %>
+  <section class="border-b border-[var(--color-rule)] bg-[color-mix(in_oklab,var(--color-page),var(--color-ink)_3%)]">
+    <div class="max-w-5xl mx-auto px-5 py-8">
+      <%= link_to post_path(latest_post),
+            class: "group block sm:flex sm:items-baseline sm:gap-6" do %>
+        <p class="text-xs uppercase tracking-wider text-[var(--color-ink-soft)] shrink-0 sm:w-32">
+          New &nbsp;·&nbsp; <%= latest_post.published_at.to_date.to_fs(:long) %>
+        </p>
+        <h2 class="mt-1 sm:mt-0 font-serif text-xl sm:text-2xl text-[var(--color-ink)] leading-snug group-hover:text-[var(--color-link)]">
+          <%= latest_post.title %>
+          <span aria-hidden="true" class="ml-1 text-[var(--color-ink-soft)] group-hover:text-[var(--color-link)]">→</span>
+        </h2>
+      <% end %>
+    </div>
+  </section>
+<% end %>

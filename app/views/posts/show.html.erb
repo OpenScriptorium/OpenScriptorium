@@ -1,0 +1,29 @@
+<% content_for :title, @post.title %>
+
+<article class="max-w-3xl mx-auto px-5 py-12 font-serif text-[var(--color-ink)] leading-relaxed text-lg space-y-5
+                [&_h2]:font-serif [&_h2]:text-3xl [&_h2]:text-[var(--color-ink)] [&_h2]:mt-14 [&_h2]:mb-4
+                [&_h3]:font-serif [&_h3]:text-2xl [&_h3]:text-[var(--color-ink)] [&_h3]:mt-10 [&_h3]:mb-3
+                [&_p]:max-w-prose
+                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1
+                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1
+                [&_a]:underline [&_a]:decoration-dotted [&_a:hover]:text-[var(--color-link)]
+                [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--color-rule)] [&_blockquote]:pl-4 [&_blockquote]:italic
+                [&_code]:font-mono [&_code]:text-base
+                [&_pre]:bg-[var(--color-rule)] [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto
+                [&_strong]:font-semibold
+                [&_figure]:my-6
+                [&_img]:rounded">
+  <header class="border-b border-[var(--color-rule)] pb-6 mb-10 not-prose">
+    <p class="text-xs uppercase tracking-wider text-[var(--color-ink-soft)]">
+      <%= @post.published_at.to_date.to_fs(:long) %>
+    </p>
+    <h1 class="font-serif text-4xl text-[var(--color-ink)] mt-1"><%= @post.title %></h1>
+  </header>
+
+  <%= @post.body %>
+
+  <footer class="mt-16 pt-6 border-t border-[var(--color-rule)] not-prose">
+    <%= link_to "← All announcements", posts_path,
+          class: "text-sm font-serif italic underline decoration-dotted text-[var(--color-ink-soft)] hover:text-[var(--color-link)]" %>
+  </footer>
+</article>

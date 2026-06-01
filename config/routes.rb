@@ -25,7 +25,11 @@ Rails.application.routes.draw do
   # /:work_slug reader scope so "admin" isn't swallowed as a work slug.
   namespace :admin do
     get "db_stats", to: "db_stats#show", as: :db_stats
+    resources :posts, param: :slug, except: :show
   end
+
+  # Public posts (announcements). Param :slug keeps URLs readable.
+  resources :posts, only: %i[index show], param: :slug
 
   # Reader. Designed so the URL itself is the OSIS-style human-readable
   # citation: /:work_slug/:book_slug/:chapter[/:verse]
