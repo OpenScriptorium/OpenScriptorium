@@ -62,16 +62,24 @@ module Api
                                  .count
         strongs = Strongs.normalize_set_with_counts(raw_strongs_counts, language: lemma.language)
 
-        # Related lemmas
+        # Related lemmas (existing related_lemma_ids relation)
         related = if lemma.related_lemma_ids.present?
           Lemma.where(id: lemma.related_lemma_ids).map { |l| lemma_summary(l) }
         else
           []
         end
 
+        # Sibling homonyms — other Lemma rows with the same headword
+        # in the same language (e.g. λέγω "say" vs λέγω "pick up").
+        homonyms = Lemma.where(language: lemma.language, lemma: lemma.lemma)
+                        .where.not(id: lemma.id)
+                        .order(:homonym_n, :id)
+                        .map { |l| lemma_summary(l) }
+
         render json: lemma_detail(lemma).merge(
           strongs_numbers: strongs,
-          related_lemmas: related
+          related_lemmas: related,
+          homonyms: homonyms
         )
       end
 
@@ -105,7 +113,8 @@ module Api
           part_of_speech: l.part_of_speech,
           primary_gloss: lexicon_or_short_gloss(l),
           transliteration: l.transliteration,
-          frequency: l.frequency
+          frequency: l.frequency,
+          homonym_n: l.homonym_n
         }
       end
 
@@ -160,7 +169,9 @@ module Api
           etymology: l.etymology,
           senses: l.senses,
           frequency_by_book: l.frequency_by_book,
-          attested_period: l.attested_period
+          attested_period: l.attested_period,
+          lsj_key: l.lsj_key,
+          lexicon_entry_id: l.lexicon_entry_id
         )
       end
     end
