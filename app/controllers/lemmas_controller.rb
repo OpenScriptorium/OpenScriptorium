@@ -14,6 +14,13 @@ class LemmasController < ApplicationController
     @page = [params[:page].to_i, 1].max
     @per_page = PER_PAGE
 
+    # Sibling homonyms: other Lemma rows with the same headword in the
+    # same language. Empty for the common solo-entry case.
+    @homonyms = Lemma.where(language: @lemma.language, lemma: @lemma.lemma)
+                     .where.not(id: @lemma.id)
+                     .order(:homonym_n, :id)
+                     .to_a
+
     # Every work that has at least one word tagged with this lemma_id —
     # these become the source tabs on the page. Includes the original-
     # language work(s) plus any English/translation works whose words

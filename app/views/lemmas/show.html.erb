@@ -32,7 +32,11 @@
   <header class="border-b border-[var(--color-rule)] pb-6 mb-8">
     <h1 class="font-serif text-4xl <%= lemma_font_class %> text-[var(--color-ink)]"
         lang="<%= lang %>" dir="<%= rtl ? 'rtl' : 'ltr' %>">
-      <%= @lemma.lemma %>
+      <%= @lemma.lemma %><%
+        if @homonyms.any? && @lemma.homonym_n.present?
+          %><span class="ml-2 text-2xl text-[var(--color-ink-soft)] font-serif italic"><%= homonym_roman(@lemma.homonym_n) %></span><%
+        end
+      %>
     </h1>
     <% if @lemma.transliteration.present? %>
       <p class="mt-1 text-lg italic text-[var(--color-ink-soft)] font-serif">
@@ -42,6 +46,21 @@
     <% if @lemma.primary_gloss.present? %>
       <p class="mt-3 text-lg font-serif text-[var(--color-ink)]">
         <%= @lemma.primary_gloss.strip.sub(/\s*[.;]\s*$/, "") %>
+      </p>
+    <% end %>
+    <% if @homonyms.any? %>
+      <p class="mt-3 text-sm text-[var(--color-ink-soft)] font-serif">
+        Also as
+        <% @homonyms.each_with_index do |h, idx| %>
+          <%= link_to lemma_path(h),
+                class: "underline decoration-dotted hover:text-[var(--color-link)]" do %>
+            <span lang="<%= lang %>" class="<%= lemma_font_class %>"><%= h.lemma %></span>
+            <% if h.homonym_n.present? %><span class="italic"><%= homonym_roman(h.homonym_n) %></span><% end %>
+            <% if h.primary_gloss.present? %>
+              <span class="text-[var(--color-ink-soft)]"> — <%= h.primary_gloss.split(/[,;]/).first.to_s.strip %></span>
+            <% end %>
+          <% end %><%= idx < @homonyms.size - 1 ? "; " : "" %>
+        <% end %>
       </p>
     <% end %>
     <p class="mt-3 text-sm text-[var(--color-ink-soft)] font-serif">
@@ -167,6 +186,10 @@
     </section>
   <% end %>
 
+  <%# Wrap the concordance in a Turbo Frame so source-tab clicks and
+      pagination replace only this region — keeps the reader's scroll
+      position on the page instead of jumping back to the top. %>
+  <%= turbo_frame_tag "concordance", data: { turbo_action: "advance" } do %>
   <section>
     <h2 class="font-serif text-2xl text-[var(--color-ink)] mb-3">
       Concordance
@@ -231,4 +254,5 @@
       </nav>
     <% end %>
   </section>
+  <% end %>
 </div>
