@@ -591,13 +591,9 @@ namespace :import do
       # Phase 1: Depends on Phase 0 works
       { name: "Phase 0 dependents", tasks: %w[bsb_tables brenton kjv_strongs jps1917 luther1912] },
       # Phase 2: Depends on Phase 1 outputs
-      # LXX morphology intentionally NOT imported here — the only available
-      # parsed-LXX corpora (CATSS / Tov-Polak and its derivatives) are
-      # "academic use only" and incompatible with the FSF-strict policy
-      # in CLAUDE.md. We delete the importer rather than disable it so it
-      # can't be re-enabled by accident. Building our own from Morpheus
-      # over Rahlfs is the planned replacement (see project notes).
-      { name: "Versification + annotations", tasks: %w[tvtms oshb_features nestle_apparatus brenton_notes] },
+      # lxx_morph populates word-level lemma / parsing / pos for every
+      # Rahlfs LXX verse from the CC BY 4.0 lxx-morph corpus.
+      { name: "Versification + annotations", tasks: %w[tvtms oshb_features nestle_apparatus brenton_notes lxx_morph] },
       # Phase 3: Independent scripture translations (including Swete LXX)
       { name: "Additional translations", tasks: %w[cntr_sr patriarchal_nt webbe vulgate crampon segond swete] },
       # Phase 4: Cross-references + apparatus
@@ -624,7 +620,7 @@ namespace :import do
       # Phase 10: Lexicon entries (BDB, LSJ, STEPBible structured bodies).
       # All key off existing lemmas, so they must run after step_lexicon
       # and macula_lemma_fix have finalized the lemma set.
-      { name: "Lexicon entries",      tasks: %w[bdb lsj step_lexicon_entries], parallel: true },
+      { name: "Lexicon entries",      tasks: %w[bdb lsj step_lexicon_entries tbesg], parallel: true },
       # Phase 11: Passage aliases (named passages, parables, events).
       # Depends on canonical_works/canonical_refs from earlier phases.
       { name: "Passage aliases",      tasks: %w[passage_aliases] },
@@ -681,6 +677,9 @@ namespace :import do
           lemmas:backfill_part_of_speech
           lemmas:lsj_metadata_backfill
           lemmas:backfill_homonym_siblings
+          lemmas:reconcile_lsj
+          lemmas:cross_link_hebrew
+          import:lemma_glosses
           lemmas:refresh_frequency
         ] },
       # Final orphan cleanup runs AFTER all the rebinding passes — they
@@ -821,6 +820,14 @@ namespace :import do
     conn.execute("SET synchronous_commit = ON")
     conn.execute("RESET work_mem")
     conn.execute("RESET maintenance_work_mem")
+
+    # Refresh the per-Work feature flag cache (NTS/LEM/STR/PRS/ALN/PRC/QUO/APP).
+    # The works index page reads cached_feature_flags directly to keep page
+    # rendering fast; importers that added notes, lemmas, parsing etc. won't
+    # be reflected on /works until this runs.
+    log.("Refreshing Work#cached_feature_flags...")
+    Work.refresh_all_feature_flags!
+    log.("  done")
 
     total_elapsed = (Time.now - total_start).round(1)
 
