@@ -31,4 +31,58 @@ namespace :lemmas do
 
     puts "Done in #{(Time.now - started).round(1)}s"
   end
+
+  desc "Link el-koine Lemma rows to LSJ LexiconEntries by NFC headword. " \
+       "Populates primary_gloss (when nil), lexicon_entry_id, homonym_n, lsj_key. " \
+       "Creates new Lemma rows for LSJ homonyms beyond the first."
+  task reconcile_lsj: :environment do
+    Lemmas::LsjReconciler.new.call
+  end
+
+  desc "Coverage report: which el-koine Lemmas have a gloss; which don't, by category."
+  task gloss_coverage: :environment do
+    total = Lemma.where(language: "el-koine").count
+    glossed = Lemma.where(language: "el-koine").where.not(primary_gloss: nil).count
+    matched = Lemma.where(language: "el-koine").where.not(lexicon_entry_id: nil).count
+    unmatched_rows = Lemma.where(language: "el-koine", primary_gloss: nil).pluck(:lemma)
+    unmatched = unmatched_rows.size
+
+    puts "=" * 60
+    puts "Greek lemma gloss coverage"
+    puts "=" * 60
+    puts "  Total el-koine lemmas:     #{total.to_s.rjust(6)}"
+    puts "  With primary_gloss:        #{glossed.to_s.rjust(6)}  (#{(glossed.to_f/total*100).round(1)}%)"
+    puts "  Linked to lexicon entry:   #{matched.to_s.rjust(6)}  (#{(matched.to_f/total*100).round(1)}%)"
+    puts "  Without gloss:             #{unmatched.to_s.rjust(6)}  (#{(unmatched.to_f/total*100).round(1)}%)"
+    puts ""
+
+    # Categorize the unmatched
+    caps    = unmatched_rows.count { |l| l && l[0] =~ /[\p{Lu}]/ }
+    deps    = unmatched_rows.count { |l| l&.end_with?("ομαι") }
+    plural  = unmatched_rows.count { |l| l && (l.end_with?("οι") || l.end_with?("αι")) }
+    short   = unmatched_rows.count { |l| l && l.size <= 2 }
+    other   = unmatched - caps - deps - plural - short
+
+    puts "Unmatched breakdown:"
+    puts "  Hebrew proper names (capital letter):  #{caps.to_s.rjust(6)}  (#{(caps.to_f/unmatched*100).round(1)}% of unmatched)"
+    puts "  Deponent middle (-ομαι):               #{deps.to_s.rjust(6)}"
+    puts "  Likely plural (-οι/-αι):               #{plural.to_s.rjust(6)}"
+    puts "  ≤2 chars:                              #{short.to_s.rjust(6)}"
+    puts "  Other:                                 #{other.to_s.rjust(6)}"
+    puts ""
+
+    # Probe how many deponent middles would match LSJ as active form
+    dep_sample = unmatched_rows.select { |l| l&.end_with?("ομαι") }.first(200)
+    dep_hits = dep_sample.count { |hw| LexiconEntry.where(source: "LSJ", headword: hw.sub(/ομαι\z/, "ω")).exists? }
+    puts "Fallback opportunity:"
+    puts "  Deponent middle → LSJ active form:     #{dep_hits} of #{dep_sample.size} sampled hit"
+
+    puts ""
+    puts "Notes:"
+    puts "  * Hebrew indeclinables (~83% of unmatched) cannot be glossed from"
+    puts "    a Greek lexicon. Source for these: a separate biblical-name"
+    puts "    database (e.g. ISBE, Easton's) or accept unglossed."
+    puts "  * Deponent middles match LSJ at roughly an 80% rate when"
+    puts "    rewritten as active; cheap to add as a Round-2 fallback."
+  end
 end
