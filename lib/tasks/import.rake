@@ -35,6 +35,13 @@ namespace :import do
     Importers::TbesgImporter.new.call
   end
 
+  desc "Apply the editorial lemma-gloss seed at db/seeds/lemma_glosses.json. " \
+       "Fills in primary_gloss for lemmas the automated lexicon passes couldn't reach. " \
+       "Set OVERRIDE=true to replace existing glosses."
+  task lemma_glosses: :environment do
+    Importers::LemmaGlossesImporter.new.call
+  end
+
   desc "Import Brenton's English translation of the Septuagint (1851)"
   task brenton: :environment do
     download = ENV["DOWNLOAD"] != "false"

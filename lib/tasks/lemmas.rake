@@ -60,6 +60,67 @@ namespace :lemmas do
     Lemmas::ResidueApplier.new(override: override).call
   end
 
+  desc "Consolidate /tmp/gloss_chunks/chunk_NNN.glosses.tsv into the seed at " \
+       "db/seeds/lemma_glosses.json. Resolves lemma_ids to stable " \
+       "(language, lemma, homonym_n) keys. Merges with existing seed entries."
+  task consolidate_glosses: :environment do
+    require "json"
+
+    seed_path = Rails.root.join("db/seeds/lemma_glosses.json")
+    existing = File.exist?(seed_path) ? JSON.parse(File.read(seed_path)) : []
+    # Index existing by (language, lemma, homonym_n) for upsert
+    index = existing.to_h { |e| [[e["language"], e["lemma"], e["homonym_n"]], e] }
+
+    skip = ["", "?", "??", "UNKNOWN", "unknown", "n/a", "N/A"].to_set
+    added = updated = unchanged = unresolved = 0
+
+    Dir.glob("/tmp/gloss_chunks/chunk_*.glosses.tsv").sort.each do |path|
+      File.foreach(path).with_index do |line, idx|
+        next if idx.zero? || line.strip.empty?
+        fields = line.chomp.split("\t")
+        lemma_id = fields[0].to_i
+        gloss    = fields[1].to_s.strip
+        next if skip.include?(gloss)
+
+        lemma = Lemma.find_by(id: lemma_id)
+        unless lemma
+          unresolved += 1
+          next
+        end
+
+        entry = {
+          "language"  => lemma.language,
+          "lemma"     => lemma.lemma,
+          "homonym_n" => lemma.homonym_n,
+          "gloss"     => gloss
+        }.compact
+
+        key = [entry["language"], entry["lemma"], entry["homonym_n"]]
+        if (prior = index[key])
+          if prior["gloss"] == gloss
+            unchanged += 1
+          else
+            prior["gloss"] = gloss
+            updated += 1
+          end
+        else
+          index[key] = entry
+          added += 1
+        end
+      end
+    end
+
+    out = index.values
+                .sort_by { |e| [e["language"], e["lemma"].to_s.unicode_normalize(:nfd), e["homonym_n"] || 0] }
+    File.write(seed_path, JSON.pretty_generate(out))
+
+    puts "consolidated #{out.size} entries into #{seed_path}"
+    puts "  added:      #{added}"
+    puts "  updated:    #{updated}"
+    puts "  unchanged:  #{unchanged}"
+    puts "  unresolved: #{unresolved}"
+  end
+
   desc "Coverage report: which el-koine Lemmas have a gloss; which don't, by category."
   task gloss_coverage: :environment do
     total = Lemma.where(language: "el-koine").count
