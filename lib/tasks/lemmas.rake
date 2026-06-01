@@ -46,6 +46,20 @@ namespace :lemmas do
     Lemmas::HebrewCrossLinker.new.call
   end
 
+  desc "Write per-chunk JSON files for unglossed el-koine lemmas, paired with verse " \
+       "contexts. Output: /tmp/gloss_chunks/chunk_NNN.json. For editorial review."
+  task chunk_residue: :environment do
+    stats = Lemmas::ResidueChunker.new.call
+    puts stats.inspect
+  end
+
+  desc "Apply editorial gloss decisions from /tmp/gloss_chunks/chunk_NNN.glosses.tsv " \
+       "back to Lemma rows. Set OVERRIDE=true to replace existing glosses."
+  task apply_residue: :environment do
+    override = ENV["OVERRIDE"] == "true"
+    Lemmas::ResidueApplier.new(override: override).call
+  end
+
   desc "Coverage report: which el-koine Lemmas have a gloss; which don't, by category."
   task gloss_coverage: :environment do
     total = Lemma.where(language: "el-koine").count
