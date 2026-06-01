@@ -23,6 +23,12 @@ namespace :import do
     Importers::RahlfsImporter.new(download: download).call
   end
 
+  desc "Import the LXX morphology dataset (word-level lemma/parsing/pos for Rahlfs LXX). " \
+       "Clones git.sr.ht/~sethkush/lxx-morph at job start; set LXX_MORPH_PATH to use a local checkout."
+  task lxx_morph: :environment do
+    Importers::LxxMorphImporter.new.call
+  end
+
   desc "Import Brenton's English translation of the Septuagint (1851)"
   task brenton: :environment do
     download = ENV["DOWNLOAD"] != "false"
