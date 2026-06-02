@@ -3,7 +3,11 @@
     <p>
       Open Scriptorium &middot; This is
       <a href="https://www.gnu.org/philosophy/free-sw.en.html"
-         class="underline decoration-dotted hover:text-[var(--color-link)]">free</a>.
+         class="underline decoration-dotted hover:text-[var(--color-link)]">free</a>
+      and resistant to
+      <%= link_to "censorship and surveillance",
+                  principles_path(anchor: "censorship-resistance"),
+                  class: "underline decoration-dotted hover:text-[var(--color-link)]" %>.
     </p>
 
     <%# Reading theme slider — interpolates page/ink CSS variables across
