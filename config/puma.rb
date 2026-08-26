@@ -3,7 +3,12 @@
 # about methods provided by the DSL, see https://puma.io/puma/Puma/DSL.html.
 
 # Threads / workers ----------------------------------------------------------
-threads_count = ENV.fetch("RAILS_MAX_THREADS", 3).to_i
+# 5 threads on a single Puma process. The ONNX embedding model is shared
+# across threads (loaded once at boot), so extra threads cost only Ruby
+# stack + GC overhead. Ruby releases the GVL during DB waits and inside
+# the ONNX C extension, so semantic-search requests actually run in
+# parallel. Raising further needs an RSS check on the 4GB VPS.
+threads_count = ENV.fetch("RAILS_MAX_THREADS", 5).to_i
 threads threads_count, threads_count
 
 workers ENV.fetch("WEB_CONCURRENCY", 0).to_i

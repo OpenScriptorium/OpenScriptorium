@@ -17,7 +17,10 @@ module Search
   # by passing skip_cache: true (used by the eval harness to avoid
   # cache-warmed numbers).
   module Cache
-    TTL = 15.minutes
+    # 1-hour TTL: corpus mutations bust the whole namespace via
+    # corpus_version, so a longer TTL only costs hit-rate — never
+    # correctness. Override with SEARCH_CACHE_TTL_MIN=<minutes>.
+    TTL = (ENV["SEARCH_CACHE_TTL_MIN"] || "60").to_i.minutes
     ENABLED = ENV.fetch("SEARCH_CACHE", "on") != "off"
 
     module_function

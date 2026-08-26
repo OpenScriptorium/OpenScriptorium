@@ -17,7 +17,10 @@ default: &default
   encoding: unicode
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # +2 headroom over Puma threads so a background job / SolidCache write /
+  # SolidQueue supervisor can hold a connection without web threads
+  # ActiveRecord-blocking on connection checkout.
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 }.to_i + 2 %>
 
 
 development:
