@@ -23,18 +23,7 @@ module Search
       FTS_WEIGHT = 0.7    # α
       SEM_WEIGHT = 0.3    # β
 
-      # max embedding candidates to fetch. Tunable via SEARCH_SEM_LIMIT.
-      # pgvector auto-scales hnsw.ef_search up to max(ef_search, LIMIT),
-      # so this value also floors HNSW graph depth.
-      # Default lowered from 80 -> 60 (2026-08-25 perf pass): top-10
-      # recall in RRF-fused output should be essentially unchanged since
-      # the top matches are almost always in the top-60, and 25% less
-      # graph work drops semantic-side latency measurably.
-      SEM_LIMIT  = (ENV["SEARCH_SEM_LIMIT"] || "60").to_i
-      # HNSW graph search depth. Higher = more accurate, slower. pgvector
-      # default is 40 but effective floor is LIMIT (auto-scaled), so 40
-      # here yields effective ef_search = SEM_LIMIT.
-      EF_SEARCH  = (ENV["SEARCH_EF_SEARCH"] || "40").to_i
+      SEM_LIMIT  = 80     # max embedding candidates to fetch
       MIN_SIMILARITY = 0.3 # below this, semantic results are noise
       LANG_BOOST = 1.4    # multiply score for results matching query language
       TESTAMENT_BOOST = 1.5  # multiply score for results from the right testament
@@ -187,40 +176,33 @@ module Search
         # drop language filter — embeddings are cross-lingual by design
         scope_sql = build_scope_sql(conn, skip_language: true)
 
-        # Wrap in a transaction so SET LOCAL for hnsw.ef_search only
-        # affects this query and does not bleed to the next request on
-        # the pooled connection.
-        rows = conn.transaction do
-          conn.execute("SET LOCAL hnsw.ef_search = #{EF_SEARCH}")
-          # Vectors live in the per-model side table
-          # `work_unit_embeddings_qwen3_06b` (vector(1024)). Join to
-          # work_units on work_unit_id; HNSW index on the side table's
-          # embedding column powers the ORDER BY.
-          conn.select_all(<<~SQL)
-            SELECT wu.id,
-                   wu.body,
-                   wu.canonical_ref_id,
-                   w.slug AS work_slug,
-                   w.title AS work_title,
-                   w.language,
-                   cr.sbl_citation AS citation,
-                   cr.hierarchy,
-                   cr.ord,
-                   l.name AS license,
-                   cw.book_key,
-                   1 - (e.embedding <=> '#{vector_literal}'::vector) AS similarity
-            FROM work_unit_embeddings_qwen3_06b e
-            JOIN work_units wu ON wu.id = e.work_unit_id
-            JOIN works w ON w.id = wu.work_id
-            JOIN canonical_refs cr ON cr.id = wu.canonical_ref_id
-            JOIN canonical_works cw ON cw.id = cr.canonical_work_id
-            JOIN licenses l ON l.id = w.license_id
-            WHERE 1=1
-              #{scope_sql}
-            ORDER BY e.embedding <=> '#{vector_literal}'::vector
-            LIMIT #{SEM_LIMIT}
-          SQL
-        end
+        # Vectors live in the per-model side table `work_unit_embeddings_qwen3_06b`
+        # (vector(1024)). Join to work_units on work_unit_id; HNSW index on
+        # the side table's embedding column powers the ORDER BY.
+        rows = conn.select_all(<<~SQL)
+          SELECT wu.id,
+                 wu.body,
+                 wu.canonical_ref_id,
+                 w.slug AS work_slug,
+                 w.title AS work_title,
+                 w.language,
+                 cr.sbl_citation AS citation,
+                 cr.hierarchy,
+                 cr.ord,
+                 l.name AS license,
+                 cw.book_key,
+                 1 - (e.embedding <=> '#{vector_literal}'::vector) AS similarity
+          FROM work_unit_embeddings_qwen3_06b e
+          JOIN work_units wu ON wu.id = e.work_unit_id
+          JOIN works w ON w.id = wu.work_id
+          JOIN canonical_refs cr ON cr.id = wu.canonical_ref_id
+          JOIN canonical_works cw ON cw.id = cr.canonical_work_id
+          JOIN licenses l ON l.id = w.license_id
+          WHERE 1=1
+            #{scope_sql}
+          ORDER BY e.embedding <=> '#{vector_literal}'::vector
+          LIMIT #{SEM_LIMIT}
+        SQL
 
         rows.select { |r| r["similarity"].to_f >= MIN_SIMILARITY }.map { |r|
           {
