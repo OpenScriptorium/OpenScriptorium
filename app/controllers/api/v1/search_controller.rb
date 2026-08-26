@@ -20,12 +20,14 @@ module Api
 
         scope = build_scope
 
-        result = Search::Executor.new(
-          query,
-          scope: scope.presence,
-          page: page,
-          per_page: limit
-        ).call
+        result = Search::Cache.fetch(query, scope: scope, page: page, per_page: limit) do
+          Search::Executor.new(
+            query,
+            scope: scope.presence,
+            page: page,
+            per_page: limit
+          ).call
+        end
 
         if result.redirect?
           render json: { query: query, redirect: result.redirect }

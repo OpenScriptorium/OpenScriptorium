@@ -46,12 +46,15 @@ class SearchController < ApplicationController
 
     scope = build_scope
 
-    @result = Search::Executor.new(
-      @query,
-      scope: scope.presence,
-      page: params[:page],
-      per_page: params[:per_page] || 25
-    ).call
+    per_page = params[:per_page] || 25
+    @result = Search::Cache.fetch(@query, scope: scope, page: params[:page], per_page: per_page) do
+      Search::Executor.new(
+        @query,
+        scope: scope.presence,
+        page: params[:page],
+        per_page: per_page
+      ).call
+    end
 
     if @result.redirect?
       redirect_to @result.redirect, allow_other_host: false
