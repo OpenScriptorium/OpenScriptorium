@@ -6,7 +6,7 @@
 lock "~> 3.19"
 
 set :application, "openscriptorium"
-set :repo_url,    "git@git.sr.ht:~sethkush/OpenScriptorium"
+set :repo_url,    "git@github-openscriptorium:OpenScriptorium/OpenScriptorium.git"
 
 # Branch to deploy. Override on the command line with:
 #   cap production deploy BRANCH=some-feature
