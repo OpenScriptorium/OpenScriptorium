@@ -4,11 +4,11 @@ require "open3"
 
 module Importers
   # Imports the word-level morphological dataset for the Rahlfs LXX
-  # from the lxx-morph repository on sr.ht. Populates the `words` table
-  # with surface / lemma / morph_code for every token in every Rahlfs
-  # verse that has a matching canonical_ref.
+  # from the lxx-morph repository. Populates the `words` table with
+  # surface / lemma / morph_code for every token in every Rahlfs verse
+  # that has a matching canonical_ref.
   #
-  # Source: https://git.sr.ht/~sethkush/lxx-morph (CC BY 4.0)
+  # Source: https://github.com/OpenScriptorium/lxx-morph (CC BY 4.0)
   #
   # The importer clones the repo at job start into a tmpdir, imports,
   # and removes the clone on exit. This keeps the openscriptorium
@@ -19,7 +19,7 @@ module Importers
   # only; books already imported stay imported. Re-running is
   # idempotent — each (work_unit, position) is upserted in place.
   class LxxMorphImporter < BaseImporter
-    REPO_URL = "https://git.sr.ht/~sethkush/lxx-morph".freeze
+    REPO_URL = "https://github.com/OpenScriptorium/lxx-morph.git".freeze
 
     def perform
       @work = Work.find_by(slug: "rahlfs-lxx")
