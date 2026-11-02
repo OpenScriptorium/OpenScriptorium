@@ -80,11 +80,15 @@ Rails.application.configure do
   config.active_record.attributes_for_inspect = [ :id ]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  #
+  # Tor clients control the Host header on the onion listener, so pin it.
+  # "localhost" is allowed in case a local proxy (Anubis) rewrites Host; it grants nothing.
+  # HSTS and Secure cookies are set by Apache on the clearnet vhost only (the onion is plain HTTP).
+  config.hosts = [
+    "openscriptorium.org",
+    "freebibl3ahqtimxd7qas4sojqs2lmsrwullccr3irgprw2vv22ptsqd.onion",
+    "localhost"
+  ]
+
   # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
