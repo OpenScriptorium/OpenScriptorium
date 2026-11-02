@@ -52,10 +52,16 @@ append :linked_dirs,
 # -----------------------------------------------------------------------------
 # rbenv (capistrano-rbenv)
 # -----------------------------------------------------------------------------
-# Use the same Ruby that's installed on the server via rbenv.
-set :rbenv_type,        :user
+# System-wide Ruby, root-owned, outside any home directory:
+#   rbenv + ruby-build from Ubuntu packages (/usr/bin/rbenv), rubies in /usr/local/rbenv/versions.
+#   Rubies newer than Ubuntu's ruby-build definitions: add a checksum-verified definition to
+#   /usr/local/share/ruby-build-definitions/ and build as root with RBENV_ROOT=/usr/local/rbenv
+#   (see /root/build-ruby-<version>.sh on the server). Keep in sync with .ruby-version and the
+#   ExecStart path in /etc/systemd/system/puma_openscriptorium.service.
+set :rbenv_type,        :system
+set :rbenv_custom_path, "/usr/local/rbenv"
 set :rbenv_ruby,        "3.4.9"
-set :rbenv_prefix,      "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
+set :rbenv_prefix,      "RBENV_ROOT=#{fetch(:rbenv_custom_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} /usr/bin/rbenv exec"
 set :rbenv_map_bins,    %w[rake gem bundle ruby rails puma pumactl]
 set :rbenv_roles,       :all
 
@@ -72,11 +78,12 @@ set :bundle_without, %w[development test].join(" ")
 # -----------------------------------------------------------------------------
 # Puma (capistrano3-puma)
 # -----------------------------------------------------------------------------
-# Run as a systemd USER service under the seth user (no root needed).
-# `loginctl enable-linger seth` must be set on the server so the user
-# service stays running across logout — we'll do that as part of bootstrap.
-set :puma_systemctl_user,    :user
-set :puma_enable_lingering,  false   # we set this manually once during bootstrap
+# Puma runs as a SYSTEM service under the unprivileged 'openscriptorium' user
+# (no shell, no sudo, sandboxed), not as the deploy user. Capistrano restarts it
+# with `sudo systemctl`. The unit is hand-maintained on the server at
+# /etc/systemd/system/puma_openscriptorium.service. Do NOT run `cap puma:install`:
+# it would overwrite that unit with the gem's template (as the deploy user, unsandboxed).
+set :puma_systemctl_user,    :system
 set :puma_service_unit_name, "puma_openscriptorium"
 
 # Wrap ExecStart in `/bin/bash -lc '...'` so the rbenv-style env-var
@@ -94,21 +101,14 @@ set :puma_service_unit_env_vars, [
   "RACK_ENV=production"
 ]
 
-# Bind to a Unix socket inside shared/tmp/sockets/. Apache reverse-proxies
-# to this from the openscriptorium.org vhost. Permissions: 0660, owned
-# seth:seth — Apache (www-data) needs to traverse the parent dirs (already
-# set up via 2755 perms in Stage 9) and read the socket. We add www-data to
-# the seth group during bootstrap so this works.
+# Bind to a Unix socket inside shared/tmp/sockets/. Apache and Anubis (both www-data)
+# reverse-proxy to it. shared/tmp/sockets is openscriptorium:www-data 2750 (setgid), so the
+# socket is created group www-data, mode 0660 via umask=0117.
 set :puma_bind, "unix://#{shared_path}/tmp/sockets/puma.sock?umask=0117"
 
 # Logs
 set :puma_access_log, -> { File.join(shared_path, "log", "puma.access.log") }
 set :puma_error_log,  -> { File.join(shared_path, "log", "puma.error.log") }
 
-# -----------------------------------------------------------------------------
-# Custom hooks
-# -----------------------------------------------------------------------------
-namespace :deploy do
-  # Restart Puma after a successful publish
-  after :publishing, "puma:smart_restart"
-end
+# Note: capistrano3-puma's systemd plugin already restarts puma after
+# deploy:published, so there's no extra restart hook here (it used to restart twice).
